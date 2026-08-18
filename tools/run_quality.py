@@ -6,6 +6,8 @@ import sys
 
 import pytest
 
+from requirements_traceability import TraceabilityError, validate_traceability
+
 
 STATEMENT_THRESHOLD = 95.0
 BRANCH_THRESHOLD = 90.0
@@ -17,6 +19,17 @@ def percentage(covered: int, total: int) -> float:
 
 
 def main() -> int:
+    try:
+        traceability = validate_traceability()
+    except TraceabilityError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(
+        "Traceability gate: "
+        f"{traceability.requirement_count} requirements, "
+        f"statuses={traceability.status_counts}"
+    )
+
     pytest_result = int(pytest.main([]))
     if pytest_result != 0:
         return pytest_result
@@ -46,4 +59,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -2,7 +2,7 @@
 
 - **상태:** Mandatory Engineering Process
 - **작성일:** 2026-08-18
-- **적용 대상:** NSL Core, Compiler, Runtime, Tool Adapter, Workflow/Pack 연계 코드
+- **적용 대상:** NSL Core, Compiler, Runtime, Tool Adapter, Schedule/Pack 연계 코드
 
 ## 1. 목적
 
@@ -173,3 +173,22 @@ Commit 또는 Push 직전 다음이 모두 참이어야 한다.
 5. `test/`, `.venv/`, Coverage Artifact가 Git 대상에서 제외됨
 6. 변경 문서와 실행 Contract가 일치함
 
+## 10. Requirement Traceability Gate
+
+모든 SRS Requirement는 `requirements/nsl_v0_1_traceability.json`에서 상태, 담당 Slice, Verification ID에 연결되어야 한다.
+
+```powershell
+.\.venv\Scripts\python.exe tools\requirements_traceability.py
+```
+
+다음 조건은 실패로 처리한다.
+
+- SRS Requirement ID의 누락 또는 중복
+- Requirement ID, Priority, Text Fingerprint 변경
+- 선언되지 않은 Requirement 또는 Slice 참조
+- Verification ID가 없는 Requirement
+- 증거가 없는 `IMPLEMENTED`
+- 승인되지 않은 SRS Requirement의 Extension Slice 배정
+- 유효한 Scope Decision이 없는 `OUT_OF_SCOPE` 또는 `SUPERSEDED`
+
+`tools/run_quality.py`는 pytest보다 먼저 Requirement Traceability Gate를 실행한다.

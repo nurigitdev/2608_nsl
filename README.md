@@ -47,6 +47,8 @@ replay_equal  true
 
 `tools/run_quality.py` executes one pytest regression run with statement and branch coverage. Pytest uses the repository-local `test/` directory for temporary files and coverage reports. The quality gate requires statement coverage >= 95% and branch coverage >= 90%.
 
+Before pytest, the command validates all 325 SRS Requirement IDs against `requirements/nsl_v0_1_traceability.json`. Requirement text or priority changes, missing Slice/Test mappings, and unsupported status claims fail the same quality gate.
+
 The suite covers:
 
 - deterministic compile and `.nso` round-trip
@@ -70,4 +72,6 @@ NSL Runtime never stores credentials in `.nso`, ExecutionContext, Trace, or Repl
 
 ## Current Scope
 
-The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. The next language milestone is a complete normative EBNF, JSON Schema for `.nso`, stable diagnostics, and conformance fixtures.
+The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. Slice 0002 establishes the verifiable SRS baseline; subsequent Slices implement the mapped requirements through the NSL v0.1 acceptance release.
+
+Workflow Language, multi-Skill orchestration, WRITE, and APPROVAL are outside the current scope. Scheduled execution is a NeX Platform extension that repeatedly submits one registered Skill through the same execution path; it is not NSL syntax or IR.

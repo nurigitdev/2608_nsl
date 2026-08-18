@@ -12,6 +12,8 @@
 - **Package 확장자:** `.nsp`
 - **예약 확장자:** `.nse` — 향후 Executable Image 용도
 - **작성 목적:** NSL v0.1 Interpreter와 Runtime Environment의 구현 요구사항 정의
+- **Requirement Baseline:** `NSL-V0.1-SRS-RB1` (Slice 0002)
+- **Traceability:** `requirements/nsl_v0_1_traceability.json`
 
 ---
 
@@ -22,6 +24,16 @@
 | v0.1 | Concept | NSL DSL 기본 개념 및 회계·구매 Use Case 검토 |
 | v1.0 Draft | 2026-08-14 | Interpreter, Compiler, IR, Runtime, Tool Execution, Validation, Audit/Replay 요구사항 정의 |
 | v1.1 Draft | 2026-08-18 | `include` Structured Source Composition, `true/false` Bool Literal, AST Interpreter 미사용, Canonical Tool Contract, Strict Validation Policy, Source Bundle Hash, Shared `core/`/`ir/` 구조 반영 |
+| v1.1 RB1 | 2026-08-18 | 325개 Requirement ID 동결, Requirement Fingerprint와 Slice/Test Traceability 도입, Coverage 및 Schedule 범위 정합화 |
+
+### 0.1 Slice 0002 Rebaseline
+
+- `NSL v0.1`은 Language Version이고 `Runtime v1.0`은 최초 구현 Release를 의미한다.
+- Requirement Table의 ID, Priority, Text는 `NSL-V0.1-SRS-RB1`의 Fingerprint 대상이다.
+- Workflow Language, Multi-Skill Orchestration, WRITE, APPROVAL은 NSL v0.1 범위 밖이다.
+- Schedule은 NSL Syntax/IR이 아닌 NeX Platform의 단일 Skill 실행 확장이다.
+- 전체 품질 기준은 Statement Coverage 95% 이상, Branch Coverage 90% 이상이다.
+- 상세 상태와 Slice/Test 배정은 `docs/09_NSL_v0.1_SRS_Rebaseline_and_Traceability.md`를 따른다.
 
 ---
 
@@ -164,6 +176,8 @@ coalesce / Optional<T> / Null-Missing Semantics
 ```
 
 해당 기능은 NSL v0.2 이후 또는 NeX-AE Stage 5~6에서 검토한다.
+
+Slice 0002 Rebaseline에서는 `schedule`을 NSL v0.1 문법에서 계속 제외한다. 예약 실행은 하나의 등록된 Skill을 정해진 시각과 횟수로 호출하는 NeX Platform Schedule Extension으로만 정의하며, Workflow Language 또는 `invoke_skill`을 도입하지 않는다.
 
 ---
 
@@ -1143,7 +1157,7 @@ Architecture Dependency Rule은 자동 Test로 검증한다.
 
 | 영역 | Statement | Branch |
 |---|---:|---:|
-| 전체 | ≥ 95% | ≥ 85% |
+| 전체 | ≥ 95% | ≥ 90% |
 | Parser | ≥ 95% | ≥ 90% 권장 |
 | Type Checker | ≥ 95% | ≥ 90% 권장 |
 | Safety Checker | ≥ 95% | ≥ 90% 권장 |
@@ -1528,7 +1542,7 @@ SRS v1.1부터 Requirement-to-Test Traceability를 유지하고 기존 v1.0 Requ
 | Mock Runtime | 필수 |
 | Runtime 배포 | Python Package + NeX-AE Worker |
 | Microservice | 향후 선택 |
-| Coverage | Statement ≥95%, Branch ≥85% |
+| Coverage | Statement ≥95%, Branch ≥90% |
 
 ---
 

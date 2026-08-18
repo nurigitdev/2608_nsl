@@ -1,6 +1,6 @@
-# NSL Core / NeX Workflow / Pack Boundary v0.1
+# NSL Core / NeX Execution / Schedule / Pack Boundary v0.2
 
-- **상태:** Architecture Baseline
+- **상태:** Slice 0002 Rebaseline
 - **작성일:** 2026-08-18
 - **근거:** `FINANCE.PROJECT_BUDGET_CHECK` Vertical Slice
 
@@ -13,7 +13,7 @@ NSL은 Agent 전체를 표현하는 언어가 아니라 한 번의 업무 Skill�
 ```text
 Role Agent
   = Skill Pack
-  + Workflow / Trigger
+  + Optional Schedule Binding
   + Policy
   + Customer Tool Bindings
   + NSL Runtime
@@ -22,26 +22,20 @@ Role Agent
 ## 2. Target Architecture
 
 ```text
-User / Event / Schedule
-          |
-          v
-       NeX-AE
-  Intent / Slot Resolution
-          |
-          v
- Skill Catalog + Policy
-          |
-          v
- Durable Workflow Orchestrator
-          |
-          v
-      NSL Runtime
-          |
-          v
- Canonical Tool Gateway
-          |
-          v
- Customer MCP / Business System
+User Chat -> NeX-AE -> Intent / Slot Resolution -> Skill Catalog / Policy
+                                                              |
+Schedule Registry -> Schedule Runner --------------------------+
+                                                              v
+                                                 Skill Execution Worker
+                                                              |
+                                                              v
+                                                         NSL Runtime
+                                                              |
+                                                              v
+                                                 Canonical Tool Gateway
+                                                              |
+                                                              v
+                                               Customer MCP / Business System
 ```
 
 ## 3. NeX-AE 책임
@@ -95,32 +89,30 @@ Publisher / Signature / Certification
 
 Policy 계층은 Skill 실행과 Tool 호출을 Default Deny로 평가하고 Authorization Decision Reference를 생성한다.
 
-## 5. NeX Workflow 책임
+## 5. NeX Schedule 책임
 
-Workflow는 시간이 지나도 유지되어야 하는 상태와 여러 Skill의 조합을 담당한다.
+Schedule은 정해진 시각에 하나의 등록된 Skill을 정해진 횟수만큼 실행한다.
 
 ```text
-schedule / event trigger
-wait / approval / resume
-retry / backoff
-checkpoint
-idempotency key
-duplicate suppression
-branch / fan-out / join
-compensation
-invoke skill
+schedule_id
+skill_id / version
+start_at / timezone
+interval / repeat_count
+static input bindings
+service principal reference
+overlap / misfire policy
+enabled / cancelled
 ```
 
-Workflow는 NSL Source 내부 Statement로 구현하지 않는다. NSL Runtime은 Workflow Job Queue나 상태 저장소에 직접 의존하지 않는다.
+Schedule은 NSL Source 내부 Statement로 구현하지 않는다. 각 예약 발생은 일반 `SkillExecutionRequest`로 변환되며 NSL Runtime은 Schedule Store나 Runner에 의존하지 않는다.
 
-WRITE를 도입할 때는 다음 Contract를 먼저 확정한다.
+초기 Schedule에서 지원하지 않는 기능:
 
-- Effect declaration
-- Idempotency key derivation
-- Authorization and confirmation token
-- Before/after state reference
-- Retry safety
-- Compensation or manual recovery policy
+- 여러 Skill의 연결과 결과 전달
+- 분기, 병렬 실행, Join
+- 승인, 대기, 보상
+- Dynamic Planning과 Agent 위임
+- WRITE와 자동 Retry
 
 ## 6. NSL Core 책임
 
@@ -167,11 +159,11 @@ NSL Source와 `.nso`에는 Credential, Endpoint, 고객별 Tool Name을 포함�
 publisher
 pack_id / version
 skills
-workflows
 policies
 tool requirements
 runtime compatibility
 intent metadata
+schedule templates
 tests / certification
 signature
 license / entitlement
@@ -199,6 +191,5 @@ Source 비공개 배포가 필요하면 `.nso`를 배포하되, 인증 Test와 T
 3. Production Audit/Snapshot Port 구현
 4. Skill Catalog와 `ExecutionIntent` Contract 구현
 5. Customer Tool Binding Conformance Test 구현
-6. Durable Workflow 최소 모델 설계
-7. WRITE/APPROVAL은 위 Contract 이후 별도 Vertical Slice로 검증
-
+6. 단일 Skill Schedule Contract와 Runner 구현
+7. Workflow Language와 WRITE/APPROVAL은 NSL v0.1 이후 별도 검토

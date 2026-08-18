@@ -28,11 +28,14 @@
 NSL Core는 한 번의 제한된 Skill 실행을 담당하는 Deterministic Execution Kernel이다.
 
 ```text
-NeX-AE
-  -> Intent Contract
-  -> Skill Catalog / Policy
-  -> Durable Workflow Orchestrator
-  -> NSL Runtime
+User Chat -> NeX-AE -> Intent Contract -> Skill Catalog / Policy
+                                                   |
+Schedule Registry -> Schedule Runner --------------+
+                                                   v
+                                      Skill Execution Worker
+                                                   |
+                                                   v
+                                             NSL Runtime
   -> Canonical Tool Gateway
   -> MCP / Business System
 ```
@@ -45,21 +48,20 @@ NSL v0.1 Core 책임:
 - Structured result
 - Audit, provenance, replay
 
-NeX Workflow 책임:
+NeX Schedule 책임:
 
-- schedule, event trigger, watch
-- approval wait/resume
-- retry/backoff와 durable checkpoint
-- idempotency와 duplicate suppression
-- 여러 Skill의 순서, 분기, 보상
+- 하나의 등록된 Skill에 대한 시작 시각, Timezone, 주기, 반복 횟수 관리
+- 각 예약 발생을 독립적인 Skill Execution Request로 변환
+- Overlap/Misfire 정책, 비활성화, 취소, 실행 횟수 관리
+- 명시적인 Service Principal과 실행별 Authorization 재검증
 
 NeX Pack 책임:
 
-- Skill/Workflow/Policy/Tool requirement의 배포 단위
+- Skill/Policy/Tool requirement와 선택적 Schedule Template의 배포 단위
 - Publisher, signature, compatibility, entitlement
 - Skill discovery와 intent routing metadata
 
-WRITE, APPROVAL, schedule, watch, invoke_skill은 단순한 NSL Syntax 추가로 간주하지 않는다. 이 기능을 도입하기 전에 Workflow와 Runtime 사이의 Durable Execution Contract를 별도 승인해야 한다.
+Schedule은 NSL Syntax나 `.nso`에 포함하지 않는다. Workflow Language, Multi-Skill Orchestration, WRITE, APPROVAL, watch, invoke_skill은 NSL v0.1과 현재 Schedule Extension 범위 밖이다.
 
 ## 4. Data State 단일 정의
 
@@ -177,4 +179,3 @@ Vertical Slice는 다음을 모두 만족해야 한다.
 7. Replay는 실제 Mock/MCP Provider를 호출하지 않는다.
 8. Replay Output, CHECK, Status가 원 실행과 동일하다.
 9. Tool Failure 또는 Partial Data에서 False PASS가 발생하지 않는다.
-

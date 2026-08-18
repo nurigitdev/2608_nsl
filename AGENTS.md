@@ -8,6 +8,7 @@ These rules are mandatory for every feature, bug fix, refactor, and release chan
 2. Check module ownership, dependency direction, mutable state, public contracts, and test seams.
 3. If the current structure makes the change unsafe or difficult to test, refactor first.
 4. Run the existing regression suite before and after a behavior-preserving refactor.
+5. Identify affected SRS Requirement IDs and update their Traceability status, Slice, Verification ID, and evidence when behavior changes.
 
 ## Test Design
 
@@ -35,6 +36,8 @@ Pytest temporary files and coverage artifacts must use the repository-local `tes
 
 Do not commit or push when the mandatory quality gate fails.
 
+The quality command also validates `requirements/nsl_v0_1_traceability.json`. Do not mark a Requirement `IMPLEMENTED` without repository evidence, and do not change a Requirement row without explicitly rebaselining its fingerprint.
+
 ## Architecture Boundaries
 
 - `core` must not depend on compiler, runtime, tools, or infrastructure.
@@ -43,4 +46,3 @@ Do not commit or push when the mandatory quality gate fails.
 - `compiler` must not depend on runtime, audit, or replay.
 - `runtime` must not depend on syntax or compiler.
 - Keep credentials and customer-specific endpoints outside NSL Source, IR, Trace, and Replay bundles.
-
