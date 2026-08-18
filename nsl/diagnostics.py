@@ -7,6 +7,7 @@ from enum import StrEnum
 class DiagnosticPhase(StrEnum):
     LEXER = "LEXER"
     PARSER = "PARSER"
+    INCLUDE = "INCLUDE"
     SEMANTIC = "SEMANTIC"
 
 
@@ -36,6 +37,16 @@ class DiagnosticCode(StrEnum):
     SEM_UNDECLARED_TOOL = "NSL-E2201"
     SEM_DUPLICATE_TOOL = "NSL-E2202"
     SEM_INCLUDE_REQUIRES_COMPOSITION = "NSL-E2300"
+    INC_CYCLE = "NSL-E2301"
+    INC_PATH_OUTSIDE_ROOT = "NSL-E2302"
+    INC_DEPTH_LIMIT = "NSL-E2303"
+    INC_FILE_LIMIT = "NSL-E2304"
+    INC_BUNDLE_SIZE_LIMIT = "NSL-E2305"
+    INC_TOOL_VERSION_CONFLICT = "NSL-E2306"
+    INC_DUPLICATE_CONTEXT = "NSL-E2307"
+    INC_DUPLICATE_LIMIT = "NSL-E2308"
+    INC_RESOLUTION_FAILED = "NSL-E2309"
+    INC_REQUIRED_LIMITS_MISSING = "NSL-E2310"
 
     SEM_BINARY_TYPE = "NSL-E3001"
     SEM_FOREACH_COLLECTION_TYPE = "NSL-E3002"
@@ -81,6 +92,7 @@ class Diagnostic:
     message: str
     location: SourceLocation | None = None
     snippet: str | None = None
+    logical_path: str | None = None
 
 
 class CompileError(ValueError):
@@ -104,10 +116,16 @@ class CompileError(ValueError):
     def snippet(self) -> str | None:
         return self.diagnostic.snippet
 
+    @property
+    def logical_path(self) -> str | None:
+        return self.diagnostic.logical_path
+
     def __str__(self) -> str:
         rendered = f"[{self.code}] {self.public_message}"
         if self.location is not None:
             rendered += f" at {self.location.line}:{self.location.column}"
+        if self.logical_path is not None:
+            rendered += f" in {self.logical_path}"
         if self.snippet is not None:
             rendered += f"\n{self.snippet}"
         return rendered
@@ -119,8 +137,11 @@ def compile_error(
     message: str,
     location: SourceLocation | None = None,
     snippet: str | None = None,
+    logical_path: str | None = None,
 ) -> CompileError:
-    return CompileError(Diagnostic(code, phase, message, location, snippet))
+    return CompileError(
+        Diagnostic(code, phase, message, location, snippet, logical_path)
+    )
 
 
 def error_from_diagnostic(diagnostic: Diagnostic) -> CompileError:

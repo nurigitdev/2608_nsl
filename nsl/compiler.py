@@ -37,6 +37,15 @@ from .ir import (
     SymbolRefExpr,
     SymbolSpec,
 )
+from .includes import (
+    IncludeEdge,
+    IncludeOptions,
+    IncludeResolver,
+    SourceBundleBuilder,
+    SourceComposer,
+    SourceManifestEntry,
+    manifest_entry,
+)
 from .source import SourceFile, coerce_source
 from .syntax import (
     AstBinary,
@@ -70,15 +79,39 @@ class CompilationResult:
     nso_bytes: bytes
     semantic_hash: str
     source_bundle_hash: str
+    source_manifest: tuple[SourceManifestEntry, ...]
+    include_edges: tuple[IncludeEdge, ...]
 
 
 class NslCompiler:
-    def __init__(self, tool_catalog: ToolContractCatalog) -> None:
+    def __init__(
+        self,
+        tool_catalog: ToolContractCatalog,
+        include_resolver: IncludeResolver | None = None,
+        include_options: IncludeOptions = IncludeOptions(),
+    ) -> None:
         self.tool_catalog = tool_catalog
+        self.include_resolver = include_resolver
+        self.include_options = include_options
 
     def compile(self, source: str | SourceFile) -> CompilationResult:
         source_file = coerce_source(source)
         ast = Parser(Lexer().tokenize(source_file), source_file).parse()
+        source_bundle_hash = "sha256:" + sha256(
+            source_file.text.encode("utf-8")
+        ).hexdigest()
+        source_manifest = (manifest_entry(source_file, is_root=True),)
+        include_edges: tuple[IncludeEdge, ...] = ()
+        if not isinstance(ast, AstSkill):
+            raise TypeError("root parse mode must produce AstSkill")
+        if ast.includes and self.include_resolver is not None:
+            bundle = SourceBundleBuilder(
+                self.include_resolver, self.include_options
+            ).build(source_file)
+            ast = SourceComposer().compose(bundle)
+            source_bundle_hash = bundle.bundle_hash
+            source_manifest = bundle.manifest
+            include_edges = bundle.edges
         lowerer = _Lowerer(self.tool_catalog, ast)
         skill = lowerer.lower().with_computed_hash()
         nso_bytes = NsoCodec.encode(skill)
@@ -86,8 +119,9 @@ class NslCompiler:
             skill=skill,
             nso_bytes=nso_bytes,
             semantic_hash=skill.semantic_hash,
-            source_bundle_hash="sha256:"
-            + sha256(source_file.text.encode("utf-8")).hexdigest(),
+            source_bundle_hash=source_bundle_hash,
+            source_manifest=source_manifest,
+            include_edges=include_edges,
         )
 
 
@@ -135,6 +169,12 @@ class _Lowerer:
                 DiagnosticCode.SEM_INCLUDE_REQUIRES_COMPOSITION,
                 DiagnosticPhase.SEMANTIC,
                 "include declarations require Source composition before lowering",
+            )
+        if self.ast.limits is None:
+            raise compile_error(
+                DiagnosticCode.INC_REQUIRED_LIMITS_MISSING,
+                DiagnosticPhase.INCLUDE,
+                "composed skill must define exactly one limits block",
             )
         if self.ast.language_version != "0.1":
             raise compile_error(

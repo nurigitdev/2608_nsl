@@ -7,6 +7,7 @@ NSL은 NeX-AE가 선택한 업무 Skill을 제한된 규칙과 Canonical Tool Co
 ```text
 .ns Source
   -> Lexer / Parser
+  -> Secure Include Resolver / AST Composer
   -> Static name, type, tool, resource validation
   -> Immutable SkillObject / Canonical .nso
   -> Runtime
@@ -67,6 +68,9 @@ The suite covers:
 - explicit lexer token kinds, recovery diagnostics, booleans, and durations
 - source-spanned Parser AST with Root Skill and Include Fragment modes
 - parser golden snapshot and structured negative cases
+- resolver-injected Include composition with canonical path enforcement
+- include cycle, depth, file-count, UTF-8 bundle-size, and merge boundaries
+- deterministic Include dependency graph, Source Manifest, and bundle hash
 
 Commits and remote synchronization must not proceed when the quality command fails.
 
@@ -80,6 +84,8 @@ The Runtime has no direct filesystem, network, SQL, Web Framework, NeX-AE, or LL
 
 ## Current Scope
 
-The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. Slice 0002 establishes the verifiable SRS baseline, Slice 0003 fixes the Safe Architecture and Diagnostics boundary, Slice 0004 fixes the Source Model and Lexer contract, and Slice 0005 fixes Parser and AST conformance. SourceSpan propagation is complete through Parser AST nodes; Semantic Diagnostic SourceSpan and Source Snippet propagation remains `PARTIAL` for a later Semantic Slice.
+The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. Slice 0002 establishes the verifiable SRS baseline, Slice 0003 fixes the Safe Architecture and Diagnostics boundary, Slice 0004 fixes the Source Model and Lexer contract, Slice 0005 fixes Parser and AST conformance, and Slice 0006 adds secure Include resolution and structured composition. SourceSpan propagation is complete through included Source diagnostics; general Semantic Diagnostic SourceSpan and Source Snippet propagation remains `PARTIAL` for a later Semantic Slice.
+
+Include Sources are supplied through an injected `IncludeResolver`. Compiler Core performs canonical path validation and enforces configurable depth, file-count, and UTF-8 byte limits; it does not read the filesystem directly. Include dependency metadata remains in `CompilationResult` and is removed before immutable Runtime IR is produced.
 
 Workflow Language, multi-Skill orchestration, WRITE, and APPROVAL are outside the current scope. Scheduled execution is a NeX Platform extension that repeatedly submits one registered Skill through the same execution path; it is not NSL syntax or IR.

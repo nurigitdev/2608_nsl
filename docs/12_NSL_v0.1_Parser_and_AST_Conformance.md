@@ -17,7 +17,7 @@
 4. Let, Foreach, Check, Emit statement를 source 순서와 block scope 그대로 보존한다.
 5. `ParseMode.ROOT_SKILL`과 `ParseMode.INCLUDE_FRAGMENT`를 분리한다.
 6. Include Fragment는 `include`, `requires`, `context`, `limits`만 허용한다.
-7. Include Declaration은 AST에 보존하지만 Resolver/Composer가 구현되기 전까지 Compiler lowering은 `NSL-E2300`으로 명시적으로 차단한다.
+7. Include Declaration은 AST에 보존하며, Slice 0006부터 Resolver/Composer를 거쳐 제거된 후에만 Compiler lowering을 허용한다. Resolver가 없는 Include compile은 `NSL-E2300`으로 차단한다.
 8. Parser 오류는 안정된 코드, 기대 Token, Line/Column과 가능한 Source Snippet을 제공한다.
 9. Collection field access는 AST에서 path로 유지하고 type-aware projection은 Lowering에서 수행한다.
 
@@ -55,8 +55,8 @@ Slice 0005에 할당된 19개 Requirement는 모두 구현되었으며 할당 �
 
 ## 5. 후속 Slice 경계
 
-- Include Source resolve, path 보안, cycle/depth/count 제한과 structured composition은 Parser 책임이 아니다.
-- Include Fragment 간 requires/context/limits merge 및 conflict 검사는 Source Composer/Semantic Slice 범위이다.
+- Include Source resolve, path 보안, cycle/depth/count 제한과 structured composition은 Parser 책임이 아니며 Slice 0006의 Include 계층에서 구현되었다.
+- Include Fragment 간 requires/context/limits merge 및 conflict 검사는 Slice 0006의 `SourceComposer`가 담당한다.
 - AST는 collection path를 유지하고 IR Projection은 type-aware Lowering이 소유한다.
 - Semantic Diagnostic의 정확한 SourceSpan/Snippet 연결이 완료되기 전까지 `NSL-ERR-002/003`을 승격하지 않는다.
 

@@ -47,6 +47,11 @@ The quality command also validates `requirements/nsl_v0_1_traceability.json`. Do
 - Use `Lexer.tokenize()` for fail-fast compilation and `Lexer.scan()` when collecting recovery diagnostics.
 - Every Parser-created AST node must retain the SourceSpan derived from its token range.
 - Parse Root Skills and Include Fragments with explicit `ParseMode` values; do not infer a mode from content.
+- Resolve Include Sources only through an injected `IncludeResolver`; Compiler Core must not access the filesystem directly.
+- Canonicalize and validate every Include path against `IncludeOptions.include_root` before trusting Resolver output.
+- Enforce Include depth, unique file-count, and total UTF-8 Source byte limits before composition.
+- Compose Include Fragments as AST nodes, never by concatenating Source text, and remove Include declarations before IR lowering.
+- Keep Include graph, Source Manifest, and bundle hash in compile metadata; they must not enter Runtime IR.
 - Keep collection field access source-oriented in AST and lower it to Projection only after type analysis.
 - `ir` must not depend on syntax, compiler, runtime, audit, or replay.
 - `compiler` must not depend on runtime, audit, or replay.

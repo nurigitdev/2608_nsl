@@ -8,6 +8,13 @@ from .diagnostics import (
     DiagnosticPhase,
     SourceLocation,
 )
+from .includes import (
+    IncludeEdge,
+    IncludeOptions,
+    IncludeResolver,
+    MemoryIncludeResolver,
+    SourceManifestEntry,
+)
 from .runtime import ExecutionRequest, ExecutionResult, RuntimeEngine
 from .source import SourceFile, SourceId, SourcePosition, SourceSpan
 from .syntax import ParseMode
@@ -20,12 +27,17 @@ __all__ = [
     "DiagnosticPhase",
     "ExecutionRequest",
     "ExecutionResult",
+    "IncludeEdge",
+    "IncludeOptions",
+    "IncludeResolver",
+    "MemoryIncludeResolver",
     "NslCompiler",
     "ParseMode",
     "RuntimeEngine",
     "SourceFile",
     "SourceId",
     "SourceLocation",
+    "SourceManifestEntry",
     "SourcePosition",
     "SourceSpan",
 ]

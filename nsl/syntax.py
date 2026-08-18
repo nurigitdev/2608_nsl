@@ -227,6 +227,7 @@ class Lexer:
                                     "unterminated string escape",
                                     SourceLocation(line, column),
                                     source_lines[line - 1],
+                                    source_file.logical_path,
                                 ).diagnostic
                             )
                             unterminated_escape = True
@@ -257,6 +258,7 @@ class Lexer:
                             "unterminated string",
                             SourceLocation(start_line, start_column),
                             source_lines[start_line - 1],
+                            source_file.logical_path,
                         ).diagnostic
                     )
                     break
@@ -405,6 +407,7 @@ class Lexer:
                     f"unexpected character {char!r}",
                     SourceLocation(line, column),
                     source_lines[line - 1],
+                    source_file.logical_path,
                 ).diagnostic
             )
             index += 1
@@ -527,7 +530,7 @@ class AstSkill(AstNode):
     risk: str
     includes: tuple[AstIncludeDeclaration, ...]
     requires: tuple[tuple[str, str], ...]
-    limits: AstLimits
+    limits: AstLimits | None
     inputs: tuple[AstFieldSpec, ...]
     contexts: tuple[AstFieldSpec, ...]
     outputs: tuple[AstFieldSpec, ...]
@@ -593,6 +596,7 @@ class Parser:
             message,
             SourceLocation(token.line, token.column),
             snippet,
+            self.source.logical_path if self.source is not None else None,
         )
 
     @property
@@ -720,7 +724,7 @@ class Parser:
         end_token = self._expect("}")
         self._expect("<eof>")
 
-        if not skill_version or not risk or limits is None:
+        if not skill_version or not risk or (limits is None and not includes):
             raise self._error(
                 DiagnosticCode.PAR_REQUIRED_METADATA,
                 "version, risk, and limits are required",

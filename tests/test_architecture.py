@@ -31,6 +31,7 @@ LANGUAGE_CORE_MODULES = {
     "core.py",
     "diagnostics.py",
     "ir.py",
+    "includes.py",
     "source.py",
     "syntax.py",
 }
@@ -144,6 +145,32 @@ def called_attributes(path: Path) -> set[str]:
 def test_module_dependency_boundaries(module_name, forbidden) -> None:
     violations = local_imports(module_name) & forbidden
     assert not violations, f"{module_name} imports forbidden modules: {sorted(violations)}"
+
+
+def test_arc_013_include_is_resolved_before_runtime_ir() -> None:
+    assert "includes" in local_imports("compiler")
+    for runtime_module in (
+        "ir",
+        "runtime",
+        "runtime_models",
+        "audit",
+        "replay",
+    ):
+        assert "includes" not in local_imports(runtime_module)
+
+    tree = ast.parse((NSL / "ir.py").read_text(encoding="utf-8"))
+    skill_object = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "SkillObject"
+    )
+    fields = {
+        node.target.id
+        for node in skill_object.body
+        if isinstance(node, ast.AnnAssign)
+        and isinstance(node.target, ast.Name)
+    }
+    assert not any("include" in field for field in fields)
 
 
 def test_arc_004_runtime_has_no_llm_dependency() -> None:
