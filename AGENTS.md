@@ -42,6 +42,9 @@ The quality command also validates `requirements/nsl_v0_1_traceability.json`. Do
 
 - `core` must not depend on compiler, runtime, tools, or infrastructure.
 - `syntax` must not depend on IR, runtime, tools, audit, or replay.
+- Logical NSL input must use `SourceFile`; plain strings are normalized only at public compatibility boundaries.
+- Every lexer token must retain its `SourceSpan`, raw lexeme, explicit `TokenKind`, and normalized value.
+- Use `Lexer.tokenize()` for fail-fast compilation and `Lexer.scan()` when collecting recovery diagnostics.
 - `ir` must not depend on syntax, compiler, runtime, audit, or replay.
 - `compiler` must not depend on runtime, audit, or replay.
 - `runtime` must not depend on syntax or compiler.

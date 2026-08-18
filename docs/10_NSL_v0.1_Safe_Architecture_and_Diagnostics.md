@@ -87,7 +87,7 @@ Architecture test는 문자열 검색이 아니라 Python AST를 사용한다.
 
 `NSL-ERR-003`은 Lexer가 원문 행을 확보할 수 있는 오류에 Source Snippet을 제공하지만 Parser와 Semantic 단계 전체에는 Source Bundle과 Span 전파가 아직 없다.
 
-두 요구사항은 미완료 상태를 숨기지 않고 `PARTIAL`로 유지한다. SourceSpan, Source Bundle, Parser/AST 위치 보존은 Slice 0004 이후 Source/Lexer/Parser 구현에서 완료한다.
+두 요구사항은 미완료 상태를 숨기지 않고 `PARTIAL`로 유지한다. Slice 0004에서 Source Model과 모든 Token의 SourceSpan 보존은 완료했지만, Parser/AST와 Semantic 단계의 Span 및 Source Snippet 전파는 후속 Parser Slice에서 완료한다.
 
 ## 7. Acceptance
 

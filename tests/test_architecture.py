@@ -31,6 +31,7 @@ LANGUAGE_CORE_MODULES = {
     "core.py",
     "diagnostics.py",
     "ir.py",
+    "source.py",
     "syntax.py",
 }
 DIRECT_INFRASTRUCTURE_MODULES = {

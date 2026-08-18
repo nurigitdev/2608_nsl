@@ -37,6 +37,7 @@ from .ir import (
     SymbolRefExpr,
     SymbolSpec,
 )
+from .source import SourceFile, coerce_source
 from .syntax import (
     AstBinary,
     AstCall,
@@ -75,8 +76,9 @@ class NslCompiler:
     def __init__(self, tool_catalog: ToolContractCatalog) -> None:
         self.tool_catalog = tool_catalog
 
-    def compile(self, source: str) -> CompilationResult:
-        ast = Parser(Lexer().tokenize(source)).parse()
+    def compile(self, source: str | SourceFile) -> CompilationResult:
+        source_file = coerce_source(source)
+        ast = Parser(Lexer().tokenize(source_file)).parse()
         lowerer = _Lowerer(self.tool_catalog, ast)
         skill = lowerer.lower().with_computed_hash()
         nso_bytes = NsoCodec.encode(skill)
@@ -84,7 +86,8 @@ class NslCompiler:
             skill=skill,
             nso_bytes=nso_bytes,
             semantic_hash=skill.semantic_hash,
-            source_bundle_hash="sha256:" + sha256(source.encode("utf-8")).hexdigest(),
+            source_bundle_hash="sha256:"
+            + sha256(source_file.text.encode("utf-8")).hexdigest(),
         )
 
 

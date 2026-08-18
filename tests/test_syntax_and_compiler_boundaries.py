@@ -16,6 +16,7 @@ from nsl.syntax import (
     AstRead,
     Lexer,
     Parser,
+    TokenKind,
 )
 from nsl.tools import ToolContractCatalog
 from nsl.vertical_slice import build_tool_catalog
@@ -95,7 +96,7 @@ def test_parser_expectation_and_expression_errors_have_locations() -> None:
 
     parser = Parser(Lexer().tokenize("1"))
     with pytest.raises(CompileError, match="expected IDENT"):
-        parser._expect_kind("IDENT")
+        parser._expect_kind(TokenKind.IDENTIFIER)
 
     with pytest.raises(CompileError, match="expected expression"):
         parse_expression("}")

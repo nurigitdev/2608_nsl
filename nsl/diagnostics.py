@@ -119,3 +119,7 @@ def compile_error(
     snippet: str | None = None,
 ) -> CompileError:
     return CompileError(Diagnostic(code, phase, message, location, snippet))
+
+
+def error_from_diagnostic(diagnostic: Diagnostic) -> CompileError:
+    return CompileError(diagnostic)

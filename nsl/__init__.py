@@ -9,6 +9,7 @@ from .diagnostics import (
     SourceLocation,
 )
 from .runtime import ExecutionRequest, ExecutionResult, RuntimeEngine
+from .source import SourceFile, SourceId, SourcePosition, SourceSpan
 
 __all__ = [
     "CompileError",
@@ -20,5 +21,9 @@ __all__ = [
     "ExecutionResult",
     "NslCompiler",
     "RuntimeEngine",
+    "SourceFile",
+    "SourceId",
     "SourceLocation",
+    "SourcePosition",
+    "SourceSpan",
 ]
