@@ -1,0 +1,46 @@
+# NSL Repository Engineering Rules
+
+These rules are mandatory for every feature, bug fix, refactor, and release change.
+
+## Before Source Changes
+
+1. Review the affected source structurally before implementation.
+2. Check module ownership, dependency direction, mutable state, public contracts, and test seams.
+3. If the current structure makes the change unsafe or difficult to test, refactor first.
+4. Run the existing regression suite before and after a behavior-preserving refactor.
+
+## Test Design
+
+- Add unit tests for every behavior change.
+- Use Boundary Value Analysis by default: `0`, `1`, `MAX-1`, `MAX`, `MAX+1` where applicable.
+- Include empty, single-item, maximum-size, and over-limit collections.
+- Include robustness cases for malformed input, invalid state, missing data, and dependency failure.
+- Include worst-case resource, authorization, tenant-isolation, partial-data, and replay cases when relevant.
+
+## Mandatory Quality Gate
+
+Use the project virtual environment and run exactly one pytest regression/coverage command through:
+
+```powershell
+.\.venv\Scripts\python.exe tools\run_quality.py
+```
+
+The command must report:
+
+- regression failures: `0`
+- statement coverage: `>= 95.00%`
+- branch coverage: `>= 90.00%`
+
+Pytest temporary files and coverage artifacts must use the repository-local `test/` directory configured by `--basetemp=test`.
+
+Do not commit or push when the mandatory quality gate fails.
+
+## Architecture Boundaries
+
+- `core` must not depend on compiler, runtime, tools, or infrastructure.
+- `syntax` must not depend on IR, runtime, tools, audit, or replay.
+- `ir` must not depend on syntax, compiler, runtime, audit, or replay.
+- `compiler` must not depend on runtime, audit, or replay.
+- `runtime` must not depend on syntax or compiler.
+- Keep credentials and customer-specific endpoints outside NSL Source, IR, Trace, and Replay bundles.
+

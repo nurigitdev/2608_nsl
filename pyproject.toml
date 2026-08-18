@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nex-skill-language"
+version = "0.1.0"
+description = "Deterministic execution kernel for NeX Skills"
+requires-python = ">=3.12"
+
+[tool.setuptools.packages.find]
+include = ["nsl*"]
+
+[tool.pytest.ini_options]
+minversion = "8.3"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-config",
+    "--strict-markers",
+    "--basetemp=test",
+    "--cov=nsl",
+    "--cov-branch",
+    "--cov-report=term-missing",
+    "--cov-report=json:test/coverage.json",
+    "--cov-report=xml:test/coverage.xml",
+    "--cov-fail-under=95",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["nsl"]
+
+[tool.coverage.report]
+show_missing = true
+precision = 2

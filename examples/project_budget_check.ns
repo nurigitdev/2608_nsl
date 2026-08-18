@@ -1,0 +1,63 @@
+language NSL "0.1";
+
+skill FINANCE.PROJECT_BUDGET_CHECK {
+    version "1.0.0";
+    risk READ_VALIDATE;
+
+    requires {
+        tool PROJECT.LIST_PARENT_PROJECTS version "1.0.0";
+        tool PROJECT.LIST_CHILD_PROJECTS version "1.0.0";
+    }
+
+    limits {
+        tool_calls 11;
+        loop_iterations 10;
+        emitted_rows 10;
+        collection_size 1000;
+    }
+
+    input {
+        year: Year classification INTERNAL;
+    }
+
+    context {
+        team_id: TeamId from "user.team_id" classification INTERNAL;
+    }
+
+    output {
+        parent_project: ProjectCode classification CONFIDENTIAL;
+        budget: Money<KRW> classification CONFIDENTIAL;
+        spent: Money<KRW> classification CONFIDENTIAL;
+        remaining: Money<KRW> classification CONFIDENTIAL;
+        status: CheckStatus classification INTERNAL;
+    }
+
+    let parents = read PROJECT.LIST_PARENT_PROJECTS(
+        year: year,
+        team_id: team_id
+    );
+
+    foreach parent in parents max 10 {
+        let children = read PROJECT.LIST_CHILD_PROJECTS(
+            parent_project: parent.project_code,
+            year: year
+        );
+        let spent = sum(children.expense_amount);
+        let remaining = parent.budget - spent;
+
+        check BUDGET_LIMIT {
+            assert spent <= parent.budget;
+            severity ERROR;
+            on_fail REPORT;
+            message "자 프로젝트 지출 합계가 모 프로젝트 예산을 초과했습니다.";
+        }
+
+        emit {
+            parent_project: parent.project_code;
+            budget: parent.budget;
+            spent: spent;
+            remaining: remaining;
+            status: BUDGET_LIMIT.status;
+        }
+    }
+}
