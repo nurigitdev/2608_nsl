@@ -45,4 +45,8 @@ The quality command also validates `requirements/nsl_v0_1_traceability.json`. Do
 - `ir` must not depend on syntax, compiler, runtime, audit, or replay.
 - `compiler` must not depend on runtime, audit, or replay.
 - `runtime` must not depend on syntax or compiler.
+- NSL Core and Runtime must not depend on LLMs, NeX-AE, or Web Frameworks.
+- Runtime business-system access must use `ToolExecutionPort`; direct filesystem, network, and SQL access is forbidden.
+- `eval()`, `exec()`, dynamic import, and unreviewed external module imports are forbidden in production NSL modules.
+- Unexpected Runtime exceptions must use a generic user-safe message. Detailed traceback may be sent only to an explicitly enabled protected debug sink.
 - Keep credentials and customer-specific endpoints outside NSL Source, IR, Trace, and Replay bundles.

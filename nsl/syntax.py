@@ -16,8 +16,7 @@ from .core import (
     money_type,
     primitive,
 )
-class CompileError(ValueError):
-    pass
+from .diagnostics import DiagnosticCode, DiagnosticPhase, SourceLocation, compile_error
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +33,7 @@ class Lexer:
 
     def tokenize(self, source: str) -> tuple[Token, ...]:
         tokens: list[Token] = []
+        source_lines = source.splitlines()
         index = 0
         line = 1
         column = 1
@@ -63,7 +63,13 @@ class Lexer:
                         index += 1
                         column += 1
                         if index >= len(source):
-                            raise CompileError("unterminated string escape")
+                            raise compile_error(
+                                DiagnosticCode.LEX_UNTERMINATED_ESCAPE,
+                                DiagnosticPhase.LEXER,
+                                "unterminated string escape",
+                                SourceLocation(line, column),
+                                source_lines[line - 1],
+                            )
                         escapes = {"n": "\n", "t": "\t", '"': '"', "\\": "\\"}
                         value.append(escapes.get(source[index], source[index]))
                     else:
@@ -71,8 +77,12 @@ class Lexer:
                     index += 1
                     column += 1
                 if index >= len(source):
-                    raise CompileError(
-                        f"unterminated string at {start_line}:{start_column}"
+                    raise compile_error(
+                        DiagnosticCode.LEX_UNTERMINATED_STRING,
+                        DiagnosticPhase.LEXER,
+                        "unterminated string",
+                        SourceLocation(start_line, start_column),
+                        source_lines[start_line - 1],
                     )
                 index += 1
                 column += 1
@@ -109,7 +119,13 @@ class Lexer:
                 index += 1
                 column += 1
                 continue
-            raise CompileError(f"unexpected character {char!r} at {line}:{column}")
+            raise compile_error(
+                DiagnosticCode.LEX_UNEXPECTED_CHARACTER,
+                DiagnosticPhase.LEXER,
+                f"unexpected character {char!r}",
+                SourceLocation(line, column),
+                source_lines[line - 1],
+            )
         tokens.append(Token("EOF", "<eof>", line, column))
         return tuple(tokens)
 
@@ -254,16 +270,22 @@ class Parser:
     def _expect(self, value: str) -> Token:
         if self.current.value != value:
             token = self.current
-            raise CompileError(
-                f"expected {value!r}, got {token.value!r} at {token.line}:{token.column}"
+            raise compile_error(
+                DiagnosticCode.PAR_EXPECTED_TOKEN,
+                DiagnosticPhase.PARSER,
+                f"expected {value!r}, got {token.value!r}",
+                SourceLocation(token.line, token.column),
             )
         return self._advance()
 
     def _expect_kind(self, kind: str) -> Token:
         if self.current.kind != kind:
             token = self.current
-            raise CompileError(
-                f"expected {kind}, got {token.value!r} at {token.line}:{token.column}"
+            raise compile_error(
+                DiagnosticCode.PAR_EXPECTED_TOKEN_KIND,
+                DiagnosticPhase.PARSER,
+                f"expected {kind}, got {token.value!r}",
+                SourceLocation(token.line, token.column),
             )
         return self._advance()
 
@@ -274,7 +296,8 @@ class Parser:
         return ".".join(parts)
 
     def _type(self) -> TypeRef:
-        name = self._expect_kind("IDENT").value
+        token = self._expect_kind("IDENT")
+        name = token.value
         if name == "Money":
             self._expect("<")
             currency = self._expect_kind("IDENT").value
@@ -283,16 +306,27 @@ class Parser:
         try:
             return self._TYPE_NAMES[name]
         except KeyError as error:
-            raise CompileError(f"unknown type: {name}") from error
+            raise compile_error(
+                DiagnosticCode.PAR_UNKNOWN_TYPE,
+                DiagnosticPhase.PARSER,
+                f"unknown type: {name}",
+                SourceLocation(token.line, token.column),
+            ) from error
 
     def _classification(self) -> DataClassification:
         if not self._accept("classification"):
             return DataClassification.INTERNAL
-        value = self._expect_kind("IDENT").value
+        token = self._expect_kind("IDENT")
+        value = token.value
         try:
             return DataClassification(value)
         except ValueError as error:
-            raise CompileError(f"unknown data classification: {value}") from error
+            raise compile_error(
+                DiagnosticCode.PAR_UNKNOWN_CLASSIFICATION,
+                DiagnosticPhase.PARSER,
+                f"unknown data classification: {value}",
+                SourceLocation(token.line, token.column),
+            ) from error
 
     def parse(self) -> AstSkill:
         self._expect("language")
@@ -337,7 +371,12 @@ class Parser:
         self._expect("<eof>")
 
         if not skill_version or not risk or limits is None:
-            raise CompileError("version, risk, and limits are required")
+            raise compile_error(
+                DiagnosticCode.PAR_REQUIRED_METADATA,
+                DiagnosticPhase.PARSER,
+                "version, risk, and limits are required",
+                SourceLocation(self.tokens[-1].line, self.tokens[-1].column),
+            )
         return AstSkill(
             language_version,
             skill_id,
@@ -374,9 +413,19 @@ class Parser:
             self._expect(";")
         required = {"tool_calls", "loop_iterations", "emitted_rows", "collection_size"}
         if set(values) != required:
-            raise CompileError(f"limits must define exactly: {', '.join(sorted(required))}")
+            raise compile_error(
+                DiagnosticCode.PAR_INVALID_LIMIT_FIELDS,
+                DiagnosticPhase.PARSER,
+                f"limits must define exactly: {', '.join(sorted(required))}",
+                SourceLocation(self.current.line, self.current.column),
+            )
         if any(value <= 0 for value in values.values()):
-            raise CompileError("all limits must be positive")
+            raise compile_error(
+                DiagnosticCode.PAR_NON_POSITIVE_LIMIT,
+                DiagnosticPhase.PARSER,
+                "all limits must be positive",
+                SourceLocation(self.current.line, self.current.column),
+            )
         return AstLimits(**values)
 
     def _fields(
@@ -413,9 +462,15 @@ class Parser:
             self._expect("in")
             collection = self._expression()
             self._expect("max")
-            max_iterations = int(self._expect_kind("NUMBER").value)
+            max_token = self._expect_kind("NUMBER")
+            max_iterations = int(max_token.value)
             if max_iterations <= 0:
-                raise CompileError("foreach max must be positive")
+                raise compile_error(
+                    DiagnosticCode.PAR_NON_POSITIVE_FOREACH_LIMIT,
+                    DiagnosticPhase.PARSER,
+                    "foreach max must be positive",
+                    SourceLocation(max_token.line, max_token.column),
+                )
             self._expect("{")
             body: list[AstStatement] = []
             while not self._accept("}"):
@@ -450,8 +505,11 @@ class Parser:
                 self._expect(";")
             return AstEmit(tuple(fields))
         token = self.current
-        raise CompileError(
-            f"unexpected statement {token.value!r} at {token.line}:{token.column}"
+        raise compile_error(
+            DiagnosticCode.PAR_UNEXPECTED_STATEMENT,
+            DiagnosticPhase.PARSER,
+            f"unexpected statement {token.value!r}",
+            SourceLocation(token.line, token.column),
         )
 
     def _expression(self, minimum_precedence: int = 0) -> AstExpression:
@@ -512,6 +570,9 @@ class Parser:
             expression = self._expression()
             self._expect(")")
             return expression
-        raise CompileError(
-            f"expected expression, got {token.value!r} at {token.line}:{token.column}"
+        raise compile_error(
+            DiagnosticCode.PAR_EXPECTED_EXPRESSION,
+            DiagnosticPhase.PARSER,
+            f"expected expression, got {token.value!r}",
+            SourceLocation(token.line, token.column),
         )

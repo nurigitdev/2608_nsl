@@ -117,7 +117,7 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(result.status, ExecutionStatus.FAILED)
-        self.assertEqual(result.error.code, "AUTHORIZATION_DENIED")
+        self.assertEqual(result.error.code, "NSL-E5201")
         self.assertEqual(mock.call_count, 0)
 
     async def test_partial_tool_data_cannot_produce_pass(self) -> None:
@@ -158,7 +158,8 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(result.status, ExecutionStatus.TOOL_ERROR)
-        self.assertEqual(result.error.code, "UPSTREAM_TIMEOUT")
+        self.assertEqual(result.error.code, "NSL-E4101")
+        self.assertEqual(result.error.detail_code, "UPSTREAM_TIMEOUT")
         self.assertEqual(result.checks, ())
         self.assertEqual(result.outputs, ())
 

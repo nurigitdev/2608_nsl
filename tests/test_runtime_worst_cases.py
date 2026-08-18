@@ -31,6 +31,7 @@ from nsl.ir import (
     ForeachStatement,
     LiteralExpr,
     ProjectionExpr,
+    ReadExpr,
     ResultPolicy,
 )
 from nsl.runtime import ExecutionRequest, RuntimeEngine
@@ -105,7 +106,26 @@ def test_runtime_preflight_rejects_malformed_or_unsupported_ir(
     catalog, skill, engine, _, request = runtime_fixture
     result = execute(engine, mutation(skill), request, build_mock_executor(catalog))
     assert result.status is ExecutionStatus.FAILED
-    assert result.error.code == "RUNTIME_ERROR"
+    assert result.error.code == "NSL-E8001"
+
+
+def test_sec_007_only_registered_tools_can_reach_executor(runtime_fixture) -> None:
+    catalog, skill, engine, _, request = runtime_fixture
+    first_statement = skill.body[0]
+    assert isinstance(first_statement.value, ReadExpr)
+    unknown_read = replace(first_statement.value, tool_ref="tool9999")
+    malicious = rehashed(
+        skill,
+        body=(replace(first_statement, value=unknown_read), *skill.body[1:]),
+    )
+    tools = build_mock_executor(catalog)
+
+    result = execute(engine, malicious, request, tools)
+
+    assert result.status is ExecutionStatus.FAILED
+    assert result.error is not None
+    assert result.error.code == "NSL-E8002"
+    assert tools.call_count == 0
 
 
 @pytest.mark.parametrize(
@@ -161,7 +181,34 @@ def test_runtime_resource_zero_boundary_is_enforced(
         engine, limit_mutation(skill), request, build_mock_executor(catalog)
     )
     assert result.status is ExecutionStatus.LIMIT_EXCEEDED
-    assert result.error.code == "LIMIT_EXCEEDED"
+    assert result.error.code == "NSL-E6001"
+
+
+@pytest.mark.parametrize(
+    "limit_name",
+    ["tool_calls", "loop_iterations", "emitted_rows", "collection_size"],
+)
+def test_sec_008_resource_limits_cannot_be_bypassed_by_static_analysis(
+    runtime_fixture, limit_name
+) -> None:
+    catalog, skill, engine, _, request = runtime_fixture
+    forged = rehashed(
+        skill,
+        limits=replace(skill.limits, **{limit_name: 0}),
+        analysis=replace(
+            skill.analysis,
+            max_tool_calls=0,
+            max_loop_iterations=0,
+            max_emit_records=0,
+            bounded=True,
+        ),
+    )
+
+    result = execute(engine, forged, request, build_mock_executor(catalog))
+
+    assert result.status is ExecutionStatus.LIMIT_EXCEEDED
+    assert result.error is not None
+    assert result.error.code == "NSL-E6001"
 
 
 def test_empty_collection_is_complete_and_emits_nothing(runtime_fixture) -> None:
@@ -321,4 +368,3 @@ def test_validate_runtime_type_bool_string_domain_and_unchecked_record(
     engine._validate_runtime_type({}, PARENT_PROJECT, "record")
     with pytest.raises(RuntimeError, match="runtime type mismatch"):
         engine._validate_runtime_type(1, BOOL, "bool")
-

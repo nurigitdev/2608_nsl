@@ -61,6 +61,8 @@ The suite covers:
 - replay-specific Scope and tenant isolation
 - Live/Replay semantic equality
 - boundary, robustness, and worst-case resource conditions
+- stable compile diagnostic codes and safe runtime error disclosure
+- AST-enforced architecture and security boundaries
 
 Commits and remote synchronization must not proceed when the quality command fails.
 
@@ -70,8 +72,10 @@ Commits and remote synchronization must not proceed when the quality command fai
 
 NSL Runtime never stores credentials in `.nso`, ExecutionContext, Trace, or Replay Bundle. It receives a validated `ExecutionPrincipal` and records only Authorization Decision references.
 
+The Runtime has no direct filesystem, network, SQL, Web Framework, NeX-AE, or LLM dependency. Business-system access is performed only through `ToolExecutionPort`. Unexpected Python exceptions are returned as a generic user-safe error; detailed traceback is available only through an explicitly enabled protected debug trace sink.
+
 ## Current Scope
 
-The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. Slice 0002 establishes the verifiable SRS baseline; subsequent Slices implement the mapped requirements through the NSL v0.1 acceptance release.
+The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. Slice 0002 establishes the verifiable SRS baseline, and Slice 0003 fixes the Safe Architecture and Diagnostics boundary. Full semantic SourceSpan and Source Snippet propagation remains `PARTIAL` for the Source/Lexer/Parser Slices.
 
 Workflow Language, multi-Skill orchestration, WRITE, and APPROVAL are outside the current scope. Scheduled execution is a NeX Platform extension that repeatedly submits one registered Skill through the same execution path; it is not NSL syntax or IR.

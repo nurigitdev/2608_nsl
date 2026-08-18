@@ -59,6 +59,7 @@ class RuntimeErrorInfo:
     category: str
     message: str
     node_id: str | None = None
+    detail_code: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,6 +104,7 @@ class ExecutionResult:
                 "category": self.error.category,
                 "message": self.error.message,
                 "node_id": self.error.node_id,
+                "detail_code": self.error.detail_code,
             },
         }
 
@@ -145,4 +147,3 @@ class _ExecutionContext:
             self.resources.emitted_rows,
             self.resources.max_collection_size_seen,
         )
-

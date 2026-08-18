@@ -12,6 +12,7 @@ from .core import (
     classification_allows,
     list_type,
 )
+from .diagnostics import CompileError, DiagnosticCode, DiagnosticPhase, compile_error
 from .ir import (
     BinaryExpr,
     CallExpr,
@@ -49,7 +50,6 @@ from .syntax import (
     AstRead,
     AstSkill,
     AstStatement,
-    CompileError,
     Lexer,
     Parser,
 )
@@ -114,7 +114,11 @@ class _Lowerer:
         classification: DataClassification,
     ) -> _Binding:
         if name in self.bindings:
-            raise CompileError(f"duplicate symbol or shadowing is forbidden: {name}")
+            raise compile_error(
+                DiagnosticCode.SEM_DUPLICATE_SYMBOL,
+                DiagnosticPhase.SEMANTIC,
+                f"duplicate symbol or shadowing is forbidden: {name}",
+            )
         binding = _Binding(self._symbol_id(), type_info, classification)
         self.bindings[name] = binding
         self.symbols.append(
@@ -124,20 +128,40 @@ class _Lowerer:
 
     def lower(self) -> SkillObject:
         if self.ast.language_version != "0.1":
-            raise CompileError(f"unsupported NSL version: {self.ast.language_version}")
+            raise compile_error(
+                DiagnosticCode.SEM_UNSUPPORTED_LANGUAGE_VERSION,
+                DiagnosticPhase.SEMANTIC,
+                f"unsupported NSL version: {self.ast.language_version}",
+            )
         if self.ast.risk not in {"READ_ONLY", "READ_VALIDATE"}:
-            raise CompileError(f"unsupported risk profile: {self.ast.risk}")
+            raise compile_error(
+                DiagnosticCode.SEM_UNSUPPORTED_RISK,
+                DiagnosticPhase.SEMANTIC,
+                f"unsupported risk profile: {self.ast.risk}",
+            )
 
         required_tools: list[RequiredTool] = []
         for index, (tool_id, version) in enumerate(self.ast.requires, start=1):
             if tool_id in self.tools_by_id:
-                raise CompileError(f"duplicate required tool: {tool_id}")
+                raise compile_error(
+                    DiagnosticCode.SEM_DUPLICATE_TOOL,
+                    DiagnosticPhase.SEMANTIC,
+                    f"duplicate required tool: {tool_id}",
+                )
             try:
                 contract = self.catalog.get(tool_id, version)
             except KeyError as error:
-                raise CompileError(str(error)) from error
+                raise compile_error(
+                    DiagnosticCode.SEM_UNKNOWN_TOOL_CONTRACT,
+                    DiagnosticPhase.SEMANTIC,
+                    f"unknown tool contract: {tool_id}@{version}",
+                ) from error
             if contract.capability != "READ":
-                raise CompileError(f"WRITE tool is forbidden in v0.1: {tool_id}")
+                raise compile_error(
+                    DiagnosticCode.SEM_WRITE_TOOL_FORBIDDEN,
+                    DiagnosticPhase.SEMANTIC,
+                    f"WRITE tool is forbidden in v0.1: {tool_id}",
+                )
             requirement = RequiredTool(
                 tool_ref=f"tool{index:04d}",
                 tool_id=tool_id,
@@ -194,11 +218,23 @@ class _Lowerer:
         bounds = self._bounds(body)
         analysis = StaticAnalysis(*bounds, bounded=True)
         if analysis.max_tool_calls > limits.tool_calls:
-            raise CompileError("static tool call bound exceeds declared limit")
+            raise compile_error(
+                DiagnosticCode.SEM_TOOL_CALL_BOUND,
+                DiagnosticPhase.SEMANTIC,
+                "static tool call bound exceeds declared limit",
+            )
         if analysis.max_loop_iterations > limits.loop_iterations:
-            raise CompileError("static loop bound exceeds declared limit")
+            raise compile_error(
+                DiagnosticCode.SEM_LOOP_BOUND,
+                DiagnosticPhase.SEMANTIC,
+                "static loop bound exceeds declared limit",
+            )
         if analysis.max_emit_records > limits.emitted_rows:
-            raise CompileError("static emit bound exceeds declared limit")
+            raise compile_error(
+                DiagnosticCode.SEM_EMIT_BOUND,
+                DiagnosticPhase.SEMANTIC,
+                "static emit bound exceeds declared limit",
+            )
 
         return SkillObject(
             ir_version="1.0",
@@ -235,7 +271,11 @@ class _Lowerer:
             elif isinstance(statement, AstForeach):
                 collection, classification = self._lower_expr(statement.collection)
                 if collection.type_info.kind != "list" or collection.type_info.item is None:
-                    raise CompileError("foreach collection must be List<T>")
+                    raise compile_error(
+                        DiagnosticCode.SEM_FOREACH_COLLECTION_TYPE,
+                        DiagnosticPhase.SEMANTIC,
+                        "foreach collection must be List<T>",
+                    )
                 outer_bindings = dict(self.bindings)
                 iterator = self._add_binding(
                     statement.iterator,
@@ -257,7 +297,11 @@ class _Lowerer:
             elif isinstance(statement, AstCheck):
                 condition, _ = self._lower_expr(statement.condition)
                 if condition.type_info != BOOL:
-                    raise CompileError("CHECK assert must have Bool type")
+                    raise compile_error(
+                        DiagnosticCode.SEM_CHECK_CONDITION_TYPE,
+                        DiagnosticPhase.SEMANTIC,
+                        "CHECK assert must have Bool type",
+                    )
                 binding = self._add_binding(
                     statement.check_id,
                     "CHECK",
@@ -278,16 +322,26 @@ class _Lowerer:
             elif isinstance(statement, AstEmit):
                 declared = {item.name: item for item in outputs}
                 if set(name for name, _ in statement.fields) != set(declared):
-                    raise CompileError("EMIT fields must exactly match output schema")
+                    raise compile_error(
+                        DiagnosticCode.SEM_EMIT_SCHEMA,
+                        DiagnosticPhase.SEMANTIC,
+                        "EMIT fields must exactly match output schema",
+                    )
                 fields: list[tuple[str, Any]] = []
                 for name, ast_expression in statement.fields:
                     expression, classification = self._lower_expr(ast_expression)
                     output = declared[name]
                     if expression.type_info != output.type_info:
-                        raise CompileError(f"output type mismatch for {name}")
+                        raise compile_error(
+                            DiagnosticCode.SEM_OUTPUT_TYPE,
+                            DiagnosticPhase.SEMANTIC,
+                            f"output type mismatch for {name}",
+                        )
                     if not classification_allows(classification, output.classification):
-                        raise CompileError(
-                            f"output classification for {name} is too weak"
+                        raise compile_error(
+                            DiagnosticCode.SEM_OUTPUT_CLASSIFICATION,
+                            DiagnosticPhase.SEMANTIC,
+                            f"output classification for {name} is too weak",
                         )
                     fields.append((name, expression))
                 lowered.append(EmitStatement(self._node_id("emit"), tuple(fields)))
@@ -305,7 +359,11 @@ class _Lowerer:
             try:
                 binding = self.bindings[ast.parts[0]]
             except KeyError as error:
-                raise CompileError(f"unknown identifier: {ast.parts[0]}") from error
+                raise compile_error(
+                    DiagnosticCode.SEM_UNKNOWN_IDENTIFIER,
+                    DiagnosticPhase.SEMANTIC,
+                    f"unknown identifier: {ast.parts[0]}",
+                ) from error
             expression: Any = SymbolRefExpr(
                 self._node_id("expr"), binding.symbol_id, binding.type_info
             )
@@ -327,19 +385,33 @@ class _Lowerer:
                     else:
                         raise KeyError(field)
                 except KeyError as error:
-                    raise CompileError(
-                        f"type {current_type.kind} has no field {field}"
+                    raise compile_error(
+                        DiagnosticCode.SEM_UNKNOWN_FIELD,
+                        DiagnosticPhase.SEMANTIC,
+                        f"type {current_type.kind} has no field {field}",
                     ) from error
             return expression, classification
         if isinstance(ast, AstCall):
             arguments = [self._lower_expr(item) for item in ast.arguments]
             if ast.name != "sum" or len(arguments) != 1:
-                raise CompileError(f"unsupported built-in call: {ast.name}")
+                raise compile_error(
+                    DiagnosticCode.SEM_UNSUPPORTED_BUILTIN,
+                    DiagnosticPhase.SEMANTIC,
+                    f"unsupported built-in call: {ast.name}",
+                )
             argument, classification = arguments[0]
             if argument.type_info.kind != "list" or argument.type_info.item is None:
-                raise CompileError("sum requires List<Int|Decimal|Money>")
+                raise compile_error(
+                    DiagnosticCode.SEM_SUM_ARGUMENT_TYPE,
+                    DiagnosticPhase.SEMANTIC,
+                    "sum requires List<Int|Decimal|Money>",
+                )
             if argument.type_info.item.kind not in {"primitive", "money"}:
-                raise CompileError("sum requires List<Int|Decimal|Money>")
+                raise compile_error(
+                    DiagnosticCode.SEM_SUM_ARGUMENT_TYPE,
+                    DiagnosticPhase.SEMANTIC,
+                    "sum requires List<Int|Decimal|Money>",
+                )
             return (
                 CallExpr(
                     self._node_id("expr"), "sum", (argument,), argument.type_info.item
@@ -350,7 +422,11 @@ class _Lowerer:
             left, left_classification = self._lower_expr(ast.left)
             right, right_classification = self._lower_expr(ast.right)
             if left.type_info != right.type_info:
-                raise CompileError(f"binary type mismatch for {ast.operator}")
+                raise compile_error(
+                    DiagnosticCode.SEM_BINARY_TYPE,
+                    DiagnosticPhase.SEMANTIC,
+                    f"binary type mismatch for {ast.operator}",
+                )
             operator_map = {
                 "+": "ADD",
                 "-": "SUB",
@@ -382,18 +458,28 @@ class _Lowerer:
             try:
                 requirement, contract = self.tools_by_id[ast.tool_id]
             except KeyError as error:
-                raise CompileError(f"tool not declared in requires: {ast.tool_id}") from error
+                raise compile_error(
+                    DiagnosticCode.SEM_UNDECLARED_TOOL,
+                    DiagnosticPhase.SEMANTIC,
+                    f"tool not declared in requires: {ast.tool_id}",
+                ) from error
             provided = {name for name, _ in ast.arguments}
             expected = {name for name, _ in contract.input_types}
             if provided != expected:
-                raise CompileError(
-                    f"tool arguments for {ast.tool_id} must be {sorted(expected)}"
+                raise compile_error(
+                    DiagnosticCode.SEM_TOOL_ARGUMENTS,
+                    DiagnosticPhase.SEMANTIC,
+                    f"tool arguments for {ast.tool_id} must be {sorted(expected)}",
                 )
             arguments: list[tuple[str, Any]] = []
             for name, ast_value in ast.arguments:
                 value, _ = self._lower_expr(ast_value)
                 if value.type_info != contract.input_type(name):
-                    raise CompileError(f"tool argument type mismatch: {ast.tool_id}.{name}")
+                    raise compile_error(
+                        DiagnosticCode.SEM_TOOL_ARGUMENT_TYPE,
+                        DiagnosticPhase.SEMANTIC,
+                        f"tool argument type mismatch: {ast.tool_id}.{name}",
+                    )
                 arguments.append((name, value))
             return (
                 ReadExpr(
@@ -443,5 +529,3 @@ class _Lowerer:
                 expression.right
             )
         return 0
-
-
