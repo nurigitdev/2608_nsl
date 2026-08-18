@@ -84,11 +84,11 @@ Architecture test는 문자열 검색이 아니라 Python AST를 사용한다.
 
 ## 6. PARTIAL 사유
 
-`NSL-ERR-002`는 Lexer와 Parser 오류에 구조화된 Line/Column을 제공하고, Slice 0005에서 Parser가 생성하는 모든 AST Node도 SourceSpan을 보존한다. Slice 0006의 Include 해석 및 합성 오류도 원래 Source 위치와 Logical Path를 보존한다. 다만 일반 Semantic 오류 전체가 아직 해당 AST 위치를 Diagnostic으로 전달하지 않는다.
+`NSL-ERR-002`는 Lexer와 Parser 오류에 구조화된 Line/Column을 제공하고, Slice 0005에서 Parser가 생성하는 모든 AST Node도 SourceSpan을 보존한다. Slice 0006의 Include 오류와 Slice 0007의 Symbol/Scope 오류도 원래 Source 위치와 Logical Path를 보존한다. 다만 type, tool, resource 등 일반 Semantic 오류 전체가 아직 해당 AST 위치를 Diagnostic으로 전달하지 않는다.
 
-`NSL-ERR-003`은 Lexer, SourceFile을 제공받은 Parser, Include 해석 및 합성 오류에 Source Snippet을 제공한다. 일반 Semantic 단계 전체에는 아직 SourceSpan 기반 Snippet 전파가 적용되지 않았다.
+`NSL-ERR-003`은 Lexer, SourceFile을 제공받은 Parser, Include, Symbol/Scope 오류에 Source Snippet을 제공한다. 일반 Semantic 단계 전체에는 아직 SourceSpan 기반 Snippet 전파가 적용되지 않았다.
 
-두 요구사항은 미완료 상태를 숨기지 않고 `PARTIAL`로 유지한다. Source, Token, Parser AST까지의 위치 보존은 완료했으며, 남은 Semantic Diagnostic 연결은 후속 Semantic Slice에서 완료한다.
+두 요구사항은 미완료 상태를 숨기지 않고 `PARTIAL`로 유지한다. Source, Token, Parser AST, Include, Symbol/Scope까지의 위치 보존은 완료했으며, 남은 Semantic Diagnostic 연결은 후속 Semantic Slice에서 완료한다.
 
 ## 7. Acceptance
 

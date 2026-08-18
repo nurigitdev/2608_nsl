@@ -33,6 +33,7 @@ LANGUAGE_CORE_MODULES = {
     "ir.py",
     "includes.py",
     "source.py",
+    "symbols.py",
     "syntax.py",
 }
 DIRECT_INFRASTRUCTURE_MODULES = {
@@ -138,6 +139,7 @@ def called_attributes(path: Path) -> set[str]:
         ("syntax", {"ir", "compiler", "runtime", "tools", "audit", "replay"}),
         ("ir", {"syntax", "compiler", "runtime", "audit", "replay"}),
         ("compiler", {"runtime", "runtime_models", "audit", "replay"}),
+        ("symbols", {"ir", "syntax", "compiler", "runtime", "tools"}),
         ("runtime", {"syntax", "compiler"}),
         ("runtime_models", {"syntax", "compiler"}),
     ],

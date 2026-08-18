@@ -52,6 +52,11 @@ The quality command also validates `requirements/nsl_v0_1_traceability.json`. Do
 - Enforce Include depth, unique file-count, and total UTF-8 Source byte limits before composition.
 - Compose Include Fragments as AST nodes, never by concatenating Source text, and remove Include declarations before IR lowering.
 - Keep Include graph, Source Manifest, and bundle hash in compile metadata; they must not enter Runtime IR.
+- Declare and resolve Input, Context, Variable, Iterator, and Check identifiers only through `SymbolTable`.
+- Allocate Symbol IDs deterministically in declaration order and keep `let` bindings immutable.
+- Enter an explicit Scope frame for every foreach and leave it in stack order, including error paths.
+- Allow name reuse across completed sibling scopes, but reject same-scope duplicates and all active ancestor shadowing in NSL v0.1.
+- Resolve identifiers only after declaration; foreach iterators and local bindings must not escape their block.
 - Keep collection field access source-oriented in AST and lower it to Projection only after type analysis.
 - `ir` must not depend on syntax, compiler, runtime, audit, or replay.
 - `compiler` must not depend on runtime, audit, or replay.

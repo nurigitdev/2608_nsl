@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0006",
+  "current_slice": "0007",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -213,6 +213,14 @@
     "NSL-SRC-010": {"status": "IMPLEMENTED", "target_slice": "0006", "verification": ["TEST-SRC-010"], "evidence": ["tests/test_secure_includes.py::test_src_010_root_and_fragment_logical_paths_remain_distinct"]},
     "NSL-ARC-013": {"status": "IMPLEMENTED", "target_slice": "0006", "verification": ["TEST-ARC-013"], "evidence": ["tests/test_architecture.py::test_arc_013_include_is_resolved_before_runtime_ir"]},
     "NSL-TST-014": {"status": "IMPLEMENTED", "target_slice": "0006", "verification": ["TEST-TST-014"], "evidence": ["tests/test_secure_includes.py::test_inc_001_compiler_frontend_resolves_include_sources", "tests/test_secure_includes.py::test_inc_003_circular_include_is_compile_error", "tests/test_secure_includes.py::test_inc_004_include_path_cannot_escape_configured_root", "tests/test_secure_includes.py::test_inc_005_diamond_include_composes_canonical_source_once", "tests/test_secure_includes.py::test_inc_006_include_depth_default_boundary_is_sixteen", "tests/test_secure_includes.py::test_inc_007_include_file_count_default_boundary_is_one_hundred", "tests/test_secure_includes.py::test_inc_008_source_bundle_size_is_limited_by_utf8_bytes"]},
+    "NSL-SEM-001": {"status": "IMPLEMENTED", "target_slice": "0007", "verification": ["TEST-SEM-001"], "evidence": ["tests/test_symbol_semantics.py::test_sem_001_all_value_and_check_identifiers_are_symbolized"]},
+    "NSL-SEM-002": {"status": "IMPLEMENTED", "target_slice": "0007", "verification": ["TEST-SEM-002"], "evidence": ["tests/test_symbol_semantics.py::test_sem_002_undeclared_or_not_yet_declared_identifier_is_rejected"]},
+    "NSL-SEM-003": {"status": "IMPLEMENTED", "target_slice": "0007", "verification": ["TEST-SEM-003"], "evidence": ["tests/test_symbol_semantics.py::test_sem_003_duplicate_variable_in_same_scope_is_rejected"]},
+    "NSL-SEM-004": {"status": "IMPLEMENTED", "target_slice": "0007", "verification": ["TEST-SEM-004"], "evidence": ["tests/test_symbol_semantics.py::test_sem_004_let_binding_has_no_reassignment_path"]},
+    "NSL-SEM-005": {"status": "IMPLEMENTED", "target_slice": "0007", "verification": ["TEST-SEM-005"], "evidence": ["tests/test_symbol_semantics.py::test_sem_005_sibling_foreach_blocks_have_separate_scopes"]},
+    "NSL-SEM-006": {"status": "IMPLEMENTED", "target_slice": "0007", "verification": ["TEST-SEM-006"], "evidence": ["tests/test_symbol_semantics.py::test_sem_006_foreach_iterator_is_unavailable_after_block"]},
+    "NSL-SEM-007": {"status": "IMPLEMENTED", "target_slice": "0007", "verification": ["TEST-SEM-007"], "evidence": ["tests/test_symbol_semantics.py::test_sem_007_check_result_is_resolvable_only_after_check"]},
+    "NSL-SEM-008": {"status": "IMPLEMENTED", "target_slice": "0007", "verification": ["TEST-SEM-008"], "evidence": ["tests/test_symbol_semantics.py::test_sem_008_nested_scope_shadowing_is_rejected"]},
     "NSL-ARC-010": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-ARC-010"], "evidence": ["tests/test_architecture.py::test_module_dependency_boundaries"]},
     "NSL-ARC-011": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-ARC-011"], "evidence": ["tests/test_architecture.py::test_module_dependency_boundaries"]},
     "NSL-IR-009": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-IR-009"], "evidence": ["tests/test_vertical_slice.py::test_compile_is_deterministic_and_nso_round_trips"]},

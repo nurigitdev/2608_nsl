@@ -66,10 +66,10 @@ Slice 0006에 할당된 16개 Requirement는 모두 구현되었으며 할당 �
 
 ## 5. Slice 0003 PARTIAL 재평가
 
-- `NSL-ERR-002`: Include 단계까지 Line/Column과 Logical Path 전파가 완료됐다. 일반 Semantic `_Lowerer` 오류 전체에는 AST SourceSpan 위치가 아직 연결되지 않아 `PARTIAL`을 유지한다.
-- `NSL-ERR-003`: Include 단계까지 원래 Source Snippet 전파가 완료됐다. 일반 Semantic `_Lowerer` 오류 전체에는 Snippet 전파가 아직 연결되지 않아 `PARTIAL`을 유지한다.
+- `NSL-ERR-002`: Slice 0007에서 Symbol/Scope 오류까지 Line/Column과 Logical Path 전파가 완료됐다. type, tool, resource 등 다른 Semantic 오류에는 AST SourceSpan 위치가 아직 연결되지 않아 `PARTIAL`을 유지한다.
+- `NSL-ERR-003`: Slice 0007에서 Symbol/Scope 오류까지 원래 Source Snippet 전파가 완료됐다. 다른 Semantic 오류 전체에는 Snippet 전파가 아직 연결되지 않아 `PARTIAL`을 유지한다.
 
-두 요구사항은 Include 기능만으로 전체 Compiler Diagnostic 계약이 완료됐다고 간주하지 않는다. 후속 Semantic Diagnostic Slice에서 모든 AST 기반 오류에 위치와 Snippet을 연결한 뒤 승격한다.
+두 요구사항은 Include와 Symbol/Scope 기능의 부분 완료만으로 전체 Compiler Diagnostic 계약이 완료됐다고 간주하지 않는다. 후속 Semantic Diagnostic Slice에서 모든 AST 기반 오류에 위치와 Snippet을 연결한 뒤 승격한다.
 
 ## 6. Acceptance
 

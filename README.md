@@ -8,7 +8,8 @@ NSL은 NeX-AE가 선택한 업무 Skill을 제한된 규칙과 Canonical Tool Co
 .ns Source
   -> Lexer / Parser
   -> Secure Include Resolver / AST Composer
-  -> Static name, type, tool, resource validation
+  -> Symbol Table / Scope Resolution
+  -> Static type, tool, resource validation
   -> Immutable SkillObject / Canonical .nso
   -> Runtime
   -> Mock Tool
@@ -71,6 +72,9 @@ The suite covers:
 - resolver-injected Include composition with canonical path enforcement
 - include cycle, depth, file-count, UTF-8 bundle-size, and merge boundaries
 - deterministic Include dependency graph, Source Manifest, and bundle hash
+- deterministic Symbol IDs and explicit foreach Scope frames
+- duplicate, use-before-declaration, escaped iterator, and shadowing rejection
+- CHECK result resolution only after declaration
 
 Commits and remote synchronization must not proceed when the quality command fails.
 
@@ -84,7 +88,7 @@ The Runtime has no direct filesystem, network, SQL, Web Framework, NeX-AE, or LL
 
 ## Current Scope
 
-The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. Slice 0002 establishes the verifiable SRS baseline, Slice 0003 fixes the Safe Architecture and Diagnostics boundary, Slice 0004 fixes the Source Model and Lexer contract, Slice 0005 fixes Parser and AST conformance, and Slice 0006 adds secure Include resolution and structured composition. SourceSpan propagation is complete through included Source diagnostics; general Semantic Diagnostic SourceSpan and Source Snippet propagation remains `PARTIAL` for a later Semantic Slice.
+The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. Slice 0002 establishes the verifiable SRS baseline, Slice 0003 fixes the Safe Architecture and Diagnostics boundary, Slice 0004 fixes the Source Model and Lexer contract, Slice 0005 fixes Parser and AST conformance, Slice 0006 adds secure Include resolution and structured composition, and Slice 0007 fixes Symbol and Scope semantics. SourceSpan propagation is complete through Symbol/Scope diagnostics; general type, tool, and resource Semantic Diagnostic SourceSpan and Source Snippet propagation remains `PARTIAL` for a later Semantic Slice.
 
 Include Sources are supplied through an injected `IncludeResolver`. Compiler Core performs canonical path validation and enforces configurable depth, file-count, and UTF-8 byte limits; it does not read the filesystem directly. Include dependency metadata remains in `CompilationResult` and is removed before immutable Runtime IR is produced.
 

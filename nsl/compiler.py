@@ -47,6 +47,7 @@ from .includes import (
     manifest_entry,
 )
 from .source import SourceFile, coerce_source
+from .symbols import ScopeKind, SymbolBinding, SymbolNamespace, SymbolTable
 from .syntax import (
     AstBinary,
     AstCall,
@@ -56,6 +57,7 @@ from .syntax import (
     AstForeach,
     AstLet,
     AstLiteral,
+    AstNode,
     AstPath,
     AstRead,
     AstSkill,
@@ -64,13 +66,6 @@ from .syntax import (
     Parser,
 )
 from .tools import ToolContract, ToolContractCatalog
-
-
-@dataclass(frozen=True, slots=True)
-class _Binding:
-    symbol_id: str
-    type_info: TypeRef
-    classification: DataClassification
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +97,7 @@ class NslCompiler:
         ).hexdigest()
         source_manifest = (manifest_entry(source_file, is_root=True),)
         include_edges: tuple[IncludeEdge, ...] = ()
+        source_files = (source_file,)
         if not isinstance(ast, AstSkill):
             raise TypeError("root parse mode must produce AstSkill")
         if ast.includes and self.include_resolver is not None:
@@ -112,7 +108,8 @@ class NslCompiler:
             source_bundle_hash = bundle.bundle_hash
             source_manifest = bundle.manifest
             include_edges = bundle.edges
-        lowerer = _Lowerer(self.tool_catalog, ast)
+            source_files = bundle.sources
+        lowerer = _Lowerer(self.tool_catalog, ast, source_files)
         skill = lowerer.lower().with_computed_hash()
         nso_bytes = NsoCodec.encode(skill)
         return CompilationResult(
@@ -126,18 +123,17 @@ class NslCompiler:
 
 
 class _Lowerer:
-    def __init__(self, catalog: ToolContractCatalog, ast: AstSkill) -> None:
+    def __init__(
+        self,
+        catalog: ToolContractCatalog,
+        ast: AstSkill,
+        sources: tuple[SourceFile, ...],
+    ) -> None:
         self.catalog = catalog
         self.ast = ast
-        self.symbol_counter = 0
         self.node_counters: dict[str, int] = {}
-        self.symbols: list[SymbolSpec] = []
-        self.bindings: dict[str, _Binding] = {}
+        self.symbol_table = SymbolTable(sources)
         self.tools_by_id: dict[str, tuple[RequiredTool, ToolContract]] = {}
-
-    def _symbol_id(self) -> str:
-        self.symbol_counter += 1
-        return f"s{self.symbol_counter:04d}"
 
     def _node_id(self, kind: str) -> str:
         self.node_counters[kind] = self.node_counters.get(kind, 0) + 1
@@ -149,19 +145,17 @@ class _Lowerer:
         category: str,
         type_info: TypeRef,
         classification: DataClassification,
-    ) -> _Binding:
-        if name in self.bindings:
-            raise compile_error(
-                DiagnosticCode.SEM_DUPLICATE_SYMBOL,
-                DiagnosticPhase.SEMANTIC,
-                f"duplicate symbol or shadowing is forbidden: {name}",
-            )
-        binding = _Binding(self._symbol_id(), type_info, classification)
-        self.bindings[name] = binding
-        self.symbols.append(
-            SymbolSpec(binding.symbol_id, name, category, type_info, classification)
+        node: AstNode,
+        namespace: SymbolNamespace = SymbolNamespace.VALUE,
+    ) -> SymbolBinding:
+        return self.symbol_table.declare(
+            name,
+            namespace,
+            category,
+            type_info,
+            classification,
+            node.span,
         )
-        return binding
 
     def lower(self) -> SkillObject:
         if self.ast.includes:
@@ -226,7 +220,7 @@ class _Lowerer:
         input_specs: list[InputSpec] = []
         for item in self.ast.inputs:
             binding = self._add_binding(
-                item.name, "INPUT", item.type_info, item.classification
+                item.name, "INPUT", item.type_info, item.classification, item
             )
             input_specs.append(
                 InputSpec(
@@ -241,7 +235,7 @@ class _Lowerer:
         context_specs: list[ContextSpec] = []
         for item in self.ast.contexts:
             binding = self._add_binding(
-                item.name, "CONTEXT", item.type_info, item.classification
+                item.name, "CONTEXT", item.type_info, item.classification, item
             )
             context_specs.append(
                 ContextSpec(
@@ -294,7 +288,16 @@ class _Lowerer:
             semantics_profile="NSL-0.1-STRICT",
             semantic_hash="",
             features=frozenset({"READ", "FOREACH", "LET", "CHECK", "EMIT", "LIMITS"}),
-            symbols=tuple(self.symbols),
+            symbols=tuple(
+                SymbolSpec(
+                    binding.symbol_id,
+                    binding.name,
+                    binding.category,
+                    binding.type_info,
+                    binding.classification,
+                )
+                for binding in self.symbol_table.bindings
+            ),
             required_tools=tuple(required_tools),
             limits=limits,
             inputs=tuple(input_specs),
@@ -312,7 +315,11 @@ class _Lowerer:
             if isinstance(statement, AstLet):
                 expression, classification = self._lower_expr(statement.value)
                 binding = self._add_binding(
-                    statement.name, "VARIABLE", expression.type_info, classification
+                    statement.name,
+                    "VARIABLE",
+                    expression.type_info,
+                    classification,
+                    statement,
                 )
                 lowered.append(
                     LetStatement(self._node_id("stmt"), binding.symbol_id, expression)
@@ -325,15 +332,18 @@ class _Lowerer:
                         DiagnosticPhase.SEMANTIC,
                         "foreach collection must be List<T>",
                     )
-                outer_bindings = dict(self.bindings)
-                iterator = self._add_binding(
-                    statement.iterator,
-                    "ITERATOR",
-                    collection.type_info.item,
-                    classification,
-                )
-                body = self._lower_block(statement.body, outputs)
-                self.bindings = outer_bindings
+                scope_id = self.symbol_table.enter_scope(ScopeKind.FOREACH)
+                try:
+                    iterator = self._add_binding(
+                        statement.iterator,
+                        "ITERATOR",
+                        collection.type_info.item,
+                        classification,
+                        statement,
+                    )
+                    body = self._lower_block(statement.body, outputs)
+                finally:
+                    self.symbol_table.leave_scope(scope_id)
                 lowered.append(
                     ForeachStatement(
                         self._node_id("stmt"),
@@ -356,6 +366,8 @@ class _Lowerer:
                     "CHECK",
                     CHECK_RESULT,
                     DataClassification.INTERNAL,
+                    statement,
+                    SymbolNamespace.CHECK,
                 )
                 lowered.append(
                     CheckStatement(
@@ -405,14 +417,7 @@ class _Lowerer:
                 DataClassification.PUBLIC,
             )
         if isinstance(ast, AstPath):
-            try:
-                binding = self.bindings[ast.parts[0]]
-            except KeyError as error:
-                raise compile_error(
-                    DiagnosticCode.SEM_UNKNOWN_IDENTIFIER,
-                    DiagnosticPhase.SEMANTIC,
-                    f"unknown identifier: {ast.parts[0]}",
-                ) from error
+            binding = self.symbol_table.resolve(ast.parts[0], ast.span)
             expression: Any = SymbolRefExpr(
                 self._node_id("expr"), binding.symbol_id, binding.type_info
             )
