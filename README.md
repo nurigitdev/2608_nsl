@@ -65,6 +65,8 @@ The suite covers:
 - AST-enforced architecture and security boundaries
 - deterministic UTF-8 Source Model and token-level SourceSpan tracking
 - explicit lexer token kinds, recovery diagnostics, booleans, and durations
+- source-spanned Parser AST with Root Skill and Include Fragment modes
+- parser golden snapshot and structured negative cases
 
 Commits and remote synchronization must not proceed when the quality command fails.
 
@@ -78,6 +80,6 @@ The Runtime has no direct filesystem, network, SQL, Web Framework, NeX-AE, or LL
 
 ## Current Scope
 
-The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. Slice 0002 establishes the verifiable SRS baseline, Slice 0003 fixes the Safe Architecture and Diagnostics boundary, and Slice 0004 fixes the Source Model and Lexer contract. SourceSpan propagation is complete through tokens; AST/Semantic SourceSpan and Source Snippet propagation remains `PARTIAL` for a later Parser Slice.
+The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. Slice 0002 establishes the verifiable SRS baseline, Slice 0003 fixes the Safe Architecture and Diagnostics boundary, Slice 0004 fixes the Source Model and Lexer contract, and Slice 0005 fixes Parser and AST conformance. SourceSpan propagation is complete through Parser AST nodes; Semantic Diagnostic SourceSpan and Source Snippet propagation remains `PARTIAL` for a later Semantic Slice.
 
 Workflow Language, multi-Skill orchestration, WRITE, and APPROVAL are outside the current scope. Scheduled execution is a NeX Platform extension that repeatedly submits one registered Skill through the same execution path; it is not NSL syntax or IR.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from enum import StrEnum
 from typing import Any, TypeAlias
@@ -18,6 +18,7 @@ from .core import (
     primitive,
 )
 from .diagnostics import (
+    CompileError,
     Diagnostic,
     DiagnosticCode,
     DiagnosticPhase,
@@ -35,6 +36,11 @@ class TokenCategory(StrEnum):
     OPERATOR = "OPERATOR"
     DELIMITER = "DELIMITER"
     END = "END"
+
+
+class ParseMode(StrEnum):
+    ROOT_SKILL = "ROOT_SKILL"
+    INCLUDE_FRAGMENT = "INCLUDE_FRAGMENT"
 
 
 class TokenKind(StrEnum):
@@ -415,31 +421,36 @@ class Lexer:
         return LexResult(tuple(tokens), tuple(diagnostics))
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AstNode:
+    span: SourceSpan | None = field(default=None, compare=False)
+
+
 @dataclass(frozen=True, slots=True)
-class AstLiteral:
+class AstLiteral(AstNode):
     value: Any
     type_info: TypeRef
 
 
 @dataclass(frozen=True, slots=True)
-class AstPath:
+class AstPath(AstNode):
     parts: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
-class AstCall:
+class AstCall(AstNode):
     name: str
     arguments: tuple[AstExpression, ...]
 
 
 @dataclass(frozen=True, slots=True)
-class AstRead:
+class AstRead(AstNode):
     tool_id: str
     arguments: tuple[tuple[str, AstExpression], ...]
 
 
 @dataclass(frozen=True, slots=True)
-class AstBinary:
+class AstBinary(AstNode):
     operator: str
     left: AstExpression
     right: AstExpression
@@ -449,13 +460,13 @@ AstExpression: TypeAlias = AstLiteral | AstPath | AstCall | AstRead | AstBinary
 
 
 @dataclass(frozen=True, slots=True)
-class AstLet:
+class AstLet(AstNode):
     name: str
     value: AstExpression
 
 
 @dataclass(frozen=True, slots=True)
-class AstForeach:
+class AstForeach(AstNode):
     iterator: str
     collection: AstExpression
     max_iterations: int
@@ -463,7 +474,7 @@ class AstForeach:
 
 
 @dataclass(frozen=True, slots=True)
-class AstCheck:
+class AstCheck(AstNode):
     check_id: str
     condition: AstExpression
     severity: str
@@ -472,7 +483,7 @@ class AstCheck:
 
 
 @dataclass(frozen=True, slots=True)
-class AstEmit:
+class AstEmit(AstNode):
     fields: tuple[tuple[str, AstExpression], ...]
 
 
@@ -480,7 +491,7 @@ AstStatement: TypeAlias = AstLet | AstForeach | AstCheck | AstEmit
 
 
 @dataclass(frozen=True, slots=True)
-class AstFieldSpec:
+class AstFieldSpec(AstNode):
     name: str
     type_info: TypeRef
     classification: DataClassification
@@ -488,7 +499,7 @@ class AstFieldSpec:
 
 
 @dataclass(frozen=True, slots=True)
-class AstLimits:
+class AstLimits(AstNode):
     tool_calls: int
     loop_iterations: int
     emitted_rows: int
@@ -496,11 +507,25 @@ class AstLimits:
 
 
 @dataclass(frozen=True, slots=True)
-class AstSkill:
+class AstIncludeDeclaration(AstNode):
+    path: str
+
+
+@dataclass(frozen=True, slots=True)
+class AstIncludeFragment(AstNode):
+    includes: tuple[AstIncludeDeclaration, ...]
+    requires: tuple[tuple[str, str], ...]
+    contexts: tuple[AstFieldSpec, ...]
+    limits: tuple[AstLimits, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class AstSkill(AstNode):
     language_version: str
     skill_id: str
     skill_version: str
     risk: str
+    includes: tuple[AstIncludeDeclaration, ...]
     requires: tuple[tuple[str, str], ...]
     limits: AstLimits
     inputs: tuple[AstFieldSpec, ...]
@@ -533,9 +558,42 @@ class Parser:
         "/": 40,
     }
 
-    def __init__(self, tokens: tuple[Token, ...]) -> None:
+    def __init__(
+        self, tokens: tuple[Token, ...], source: SourceFile | None = None
+    ) -> None:
+        if source is not None and any(
+            token.span.source_id != source.source_id for token in tokens
+        ):
+            raise ValueError("parser tokens and source must share a source_id")
         self.tokens = tokens
+        self.source = source
         self.index = 0
+
+    @staticmethod
+    def _span(start: Token | AstNode, end: Token | AstNode) -> SourceSpan:
+        start_span = start.span
+        end_span = end.span
+        if start_span is None or end_span is None:
+            raise ValueError("parsed AST nodes must have source spans")
+        if start_span.source_id != end_span.source_id:
+            raise ValueError("AST span boundaries must share a source")
+        return SourceSpan(start_span.source_id, start_span.start, end_span.end)
+
+    def _error(
+        self, code: DiagnosticCode, message: str, token: Token
+    ) -> CompileError:
+        snippet = None
+        if self.source is not None:
+            lines = self.source.text.splitlines()
+            if token.line <= len(lines):
+                snippet = lines[token.line - 1]
+        return compile_error(
+            code,
+            DiagnosticPhase.PARSER,
+            message,
+            SourceLocation(token.line, token.column),
+            snippet,
+        )
 
     @property
     def current(self) -> Token:
@@ -555,22 +613,20 @@ class Parser:
     def _expect(self, value: str) -> Token:
         if self.current.value != value:
             token = self.current
-            raise compile_error(
+            raise self._error(
                 DiagnosticCode.PAR_EXPECTED_TOKEN,
-                DiagnosticPhase.PARSER,
                 f"expected {value!r}, got {token.value!r}",
-                SourceLocation(token.line, token.column),
+                token,
             )
         return self._advance()
 
     def _expect_kind(self, kind: TokenKind) -> Token:
         if self.current.kind != kind:
             token = self.current
-            raise compile_error(
+            raise self._error(
                 DiagnosticCode.PAR_EXPECTED_TOKEN_KIND,
-                DiagnosticPhase.PARSER,
                 f"expected {kind}, got {token.value!r}",
-                SourceLocation(token.line, token.column),
+                token,
             )
         return self._advance()
 
@@ -591,11 +647,10 @@ class Parser:
         try:
             return self._TYPE_NAMES[name]
         except KeyError as error:
-            raise compile_error(
+            raise self._error(
                 DiagnosticCode.PAR_UNKNOWN_TYPE,
-                DiagnosticPhase.PARSER,
                 f"unknown type: {name}",
-                SourceLocation(token.line, token.column),
+                token,
             ) from error
 
     def _classification(self) -> DataClassification:
@@ -606,15 +661,21 @@ class Parser:
         try:
             return DataClassification(value)
         except ValueError as error:
-            raise compile_error(
+            raise self._error(
                 DiagnosticCode.PAR_UNKNOWN_CLASSIFICATION,
-                DiagnosticPhase.PARSER,
                 f"unknown data classification: {value}",
-                SourceLocation(token.line, token.column),
+                token,
             ) from error
 
-    def parse(self) -> AstSkill:
-        self._expect("language")
+    def parse(
+        self, mode: ParseMode = ParseMode.ROOT_SKILL
+    ) -> AstSkill | AstIncludeFragment:
+        if mode is ParseMode.INCLUDE_FRAGMENT:
+            return self._parse_include_fragment()
+        return self._parse_skill()
+
+    def _parse_skill(self) -> AstSkill:
+        start_token = self._expect("language")
         self._expect("NSL")
         language_version = self._expect_kind(TokenKind.STRING).value
         self._expect(";")
@@ -624,6 +685,7 @@ class Parser:
 
         skill_version = ""
         risk = ""
+        includes: list[AstIncludeDeclaration] = []
         requires: tuple[tuple[str, str], ...] = ()
         limits: AstLimits | None = None
         inputs: tuple[AstFieldSpec, ...] = ()
@@ -631,7 +693,7 @@ class Parser:
         outputs: tuple[AstFieldSpec, ...] = ()
         body: list[AstStatement] = []
 
-        while not self._accept("}"):
+        while self.current.value != "}":
             keyword = self.current.value
             if keyword == "version":
                 self._advance()
@@ -641,6 +703,8 @@ class Parser:
                 self._advance()
                 risk = self._expect_kind(TokenKind.IDENTIFIER).value
                 self._expect(";")
+            elif keyword == "include":
+                includes.append(self._include())
             elif keyword == "requires":
                 requires = self._requires()
             elif keyword == "limits":
@@ -653,26 +717,71 @@ class Parser:
                 outputs = self._fields("output")
             else:
                 body.append(self._statement())
+        end_token = self._expect("}")
         self._expect("<eof>")
 
         if not skill_version or not risk or limits is None:
-            raise compile_error(
+            raise self._error(
                 DiagnosticCode.PAR_REQUIRED_METADATA,
-                DiagnosticPhase.PARSER,
                 "version, risk, and limits are required",
-                SourceLocation(self.tokens[-1].line, self.tokens[-1].column),
+                self.tokens[-1],
             )
         return AstSkill(
-            language_version,
-            skill_id,
-            skill_version,
-            risk,
-            requires,
-            limits,
-            inputs,
-            contexts,
-            outputs,
-            tuple(body),
+            language_version=language_version,
+            skill_id=skill_id,
+            skill_version=skill_version,
+            risk=risk,
+            includes=tuple(includes),
+            requires=requires,
+            limits=limits,
+            inputs=inputs,
+            contexts=contexts,
+            outputs=outputs,
+            body=tuple(body),
+            span=self._span(start_token, end_token),
+        )
+
+    def _parse_include_fragment(self) -> AstIncludeFragment:
+        start_token = self.current
+        includes: list[AstIncludeDeclaration] = []
+        requires: list[tuple[str, str]] = []
+        contexts: list[AstFieldSpec] = []
+        limits: list[AstLimits] = []
+
+        while self.current.kind is not TokenKind.EOF:
+            keyword = self.current.value
+            if keyword == "include":
+                includes.append(self._include())
+            elif keyword == "requires":
+                requires.extend(self._requires())
+            elif keyword == "context":
+                contexts.extend(self._fields("context", with_path=True))
+            elif keyword == "limits":
+                limits.append(self._limits())
+            else:
+                token = self.current
+                raise self._error(
+                    DiagnosticCode.PAR_UNEXPECTED_FRAGMENT_DECLARATION,
+                    f"declaration {token.value!r} is not allowed in include fragment",
+                    token,
+                )
+
+        end_token = self.tokens[self.index - 1] if self.index else self.current
+        self._expect("<eof>")
+        return AstIncludeFragment(
+            tuple(includes),
+            tuple(requires),
+            tuple(contexts),
+            tuple(limits),
+            span=self._span(start_token, end_token),
+        )
+
+    def _include(self) -> AstIncludeDeclaration:
+        start_token = self._expect("include")
+        path = self._expect_kind(TokenKind.STRING).value
+        end_token = self._expect(";")
+        return AstIncludeDeclaration(
+            path, span=self._span(start_token, end_token)
         )
 
     def _requires(self) -> tuple[tuple[str, str], ...]:
@@ -689,29 +798,28 @@ class Parser:
         return tuple(items)
 
     def _limits(self) -> AstLimits:
-        self._expect("limits")
+        start_token = self._expect("limits")
         self._expect("{")
         values: dict[str, int] = {}
-        while not self._accept("}"):
+        while self.current.value != "}":
             name = self._expect_kind(TokenKind.IDENTIFIER).value
             values[name] = int(self._expect_kind(TokenKind.INTEGER).value)
             self._expect(";")
+        end_token = self._expect("}")
         required = {"tool_calls", "loop_iterations", "emitted_rows", "collection_size"}
         if set(values) != required:
-            raise compile_error(
+            raise self._error(
                 DiagnosticCode.PAR_INVALID_LIMIT_FIELDS,
-                DiagnosticPhase.PARSER,
                 f"limits must define exactly: {', '.join(sorted(required))}",
-                SourceLocation(self.current.line, self.current.column),
+                self.current,
             )
         if any(value <= 0 for value in values.values()):
-            raise compile_error(
+            raise self._error(
                 DiagnosticCode.PAR_NON_POSITIVE_LIMIT,
-                DiagnosticPhase.PARSER,
                 "all limits must be positive",
-                SourceLocation(self.current.line, self.current.column),
+                self.current,
             )
-        return AstLimits(**values)
+        return AstLimits(**values, span=self._span(start_token, end_token))
 
     def _fields(
         self, keyword: str, with_path: bool = False
@@ -720,7 +828,8 @@ class Parser:
         self._expect("{")
         fields: list[AstFieldSpec] = []
         while not self._accept("}"):
-            name = self._expect_kind(TokenKind.IDENTIFIER).value
+            start_token = self._expect_kind(TokenKind.IDENTIFIER)
+            name = start_token.value
             self._expect(":")
             type_info = self._type()
             path: tuple[str, ...] = ()
@@ -728,21 +837,29 @@ class Parser:
                 self._expect("from")
                 path = tuple(self._expect_kind(TokenKind.STRING).value.split("."))
             classification = self._classification()
-            self._expect(";")
-            fields.append(AstFieldSpec(name, type_info, classification, path))
+            end_token = self._expect(";")
+            fields.append(
+                AstFieldSpec(
+                    name,
+                    type_info,
+                    classification,
+                    path,
+                    span=self._span(start_token, end_token),
+                )
+            )
         return tuple(fields)
 
     def _statement(self) -> AstStatement:
         keyword = self.current.value
         if keyword == "let":
-            self._advance()
+            start_token = self._advance()
             name = self._expect_kind(TokenKind.IDENTIFIER).value
             self._expect("=")
             value = self._expression()
-            self._expect(";")
-            return AstLet(name, value)
+            end_token = self._expect(";")
+            return AstLet(name, value, span=self._span(start_token, end_token))
         if keyword == "foreach":
-            self._advance()
+            start_token = self._advance()
             iterator = self._expect_kind(TokenKind.IDENTIFIER).value
             self._expect("in")
             collection = self._expression()
@@ -750,19 +867,25 @@ class Parser:
             max_token = self._expect_kind(TokenKind.INTEGER)
             max_iterations = int(max_token.value)
             if max_iterations <= 0:
-                raise compile_error(
+                raise self._error(
                     DiagnosticCode.PAR_NON_POSITIVE_FOREACH_LIMIT,
-                    DiagnosticPhase.PARSER,
                     "foreach max must be positive",
-                    SourceLocation(max_token.line, max_token.column),
+                    max_token,
                 )
             self._expect("{")
             body: list[AstStatement] = []
-            while not self._accept("}"):
+            while self.current.value != "}":
                 body.append(self._statement())
-            return AstForeach(iterator, collection, max_iterations, tuple(body))
+            end_token = self._expect("}")
+            return AstForeach(
+                iterator,
+                collection,
+                max_iterations,
+                tuple(body),
+                span=self._span(start_token, end_token),
+            )
         if keyword == "check":
-            self._advance()
+            start_token = self._advance()
             check_id = self._expect_kind(TokenKind.IDENTIFIER).value
             self._expect("{")
             self._expect("assert")
@@ -777,24 +900,31 @@ class Parser:
             self._expect("message")
             message = self._expect_kind(TokenKind.STRING).value
             self._expect(";")
-            self._expect("}")
-            return AstCheck(check_id, condition, severity, on_fail, message)
+            end_token = self._expect("}")
+            return AstCheck(
+                check_id,
+                condition,
+                severity,
+                on_fail,
+                message,
+                span=self._span(start_token, end_token),
+            )
         if keyword == "emit":
-            self._advance()
+            start_token = self._advance()
             self._expect("{")
             fields: list[tuple[str, AstExpression]] = []
-            while not self._accept("}"):
+            while self.current.value != "}":
                 name = self._expect_kind(TokenKind.IDENTIFIER).value
                 self._expect(":")
                 fields.append((name, self._expression()))
                 self._expect(";")
-            return AstEmit(tuple(fields))
+            end_token = self._expect("}")
+            return AstEmit(tuple(fields), span=self._span(start_token, end_token))
         token = self.current
-        raise compile_error(
+        raise self._error(
             DiagnosticCode.PAR_UNEXPECTED_STATEMENT,
-            DiagnosticPhase.PARSER,
             f"unexpected statement {token.value!r}",
-            SourceLocation(token.line, token.column),
+            token,
         )
 
     def _expression(self, minimum_precedence: int = 0) -> AstExpression:
@@ -806,7 +936,7 @@ class Parser:
                 break
             self._advance()
             right = self._expression(precedence + 1)
-            left = AstBinary(operator, left, right)
+            left = AstBinary(operator, left, right, span=self._span(left, right))
         return left
 
     def _primary(self) -> AstExpression:
@@ -814,14 +944,16 @@ class Parser:
         if token.kind in {TokenKind.INTEGER, TokenKind.DECIMAL}:
             self._advance()
             if "." in token.value:
-                return AstLiteral(Decimal(token.value), primitive("Decimal"))
-            return AstLiteral(int(token.value), INT)
+                return AstLiteral(
+                    Decimal(token.value), primitive("Decimal"), span=token.span
+                )
+            return AstLiteral(int(token.value), INT, span=token.span)
         if token.kind is TokenKind.STRING:
             self._advance()
-            return AstLiteral(token.value, STRING)
+            return AstLiteral(token.value, STRING, span=token.span)
         if token.kind is TokenKind.BOOLEAN:
             self._advance()
-            return AstLiteral(token.value, BOOL)
+            return AstLiteral(token.value, BOOL, span=token.span)
         if token.value == "read":
             self._advance()
             tool_id = self._qualified_name()
@@ -835,7 +967,11 @@ class Parser:
                     if self._accept(")"):
                         break
                     self._expect(",")
-            return AstRead(tool_id, tuple(arguments))
+            return AstRead(
+                tool_id,
+                tuple(arguments),
+                span=self._span(token, self.tokens[self.index - 1]),
+            )
         if token.kind is TokenKind.IDENTIFIER:
             name = self._advance().value
             if self._accept("("):
@@ -846,18 +982,23 @@ class Parser:
                         if self._accept(")"):
                             break
                         self._expect(",")
-                return AstCall(name, tuple(arguments))
+                return AstCall(
+                    name,
+                    tuple(arguments),
+                    span=self._span(token, self.tokens[self.index - 1]),
+                )
             parts = [name]
             while self._accept("."):
                 parts.append(self._expect_kind(TokenKind.IDENTIFIER).value)
-            return AstPath(tuple(parts))
+            return AstPath(
+                tuple(parts), span=self._span(token, self.tokens[self.index - 1])
+            )
         if self._accept("("):
             expression = self._expression()
-            self._expect(")")
-            return expression
-        raise compile_error(
+            end_token = self._expect(")")
+            return replace(expression, span=self._span(token, end_token))
+        raise self._error(
             DiagnosticCode.PAR_EXPECTED_EXPRESSION,
-            DiagnosticPhase.PARSER,
             f"expected expression, got {token.value!r}",
-            SourceLocation(token.line, token.column),
+            token,
         )

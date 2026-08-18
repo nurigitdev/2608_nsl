@@ -78,7 +78,7 @@ class NslCompiler:
 
     def compile(self, source: str | SourceFile) -> CompilationResult:
         source_file = coerce_source(source)
-        ast = Parser(Lexer().tokenize(source_file)).parse()
+        ast = Parser(Lexer().tokenize(source_file), source_file).parse()
         lowerer = _Lowerer(self.tool_catalog, ast)
         skill = lowerer.lower().with_computed_hash()
         nso_bytes = NsoCodec.encode(skill)
@@ -130,6 +130,12 @@ class _Lowerer:
         return binding
 
     def lower(self) -> SkillObject:
+        if self.ast.includes:
+            raise compile_error(
+                DiagnosticCode.SEM_INCLUDE_REQUIRES_COMPOSITION,
+                DiagnosticPhase.SEMANTIC,
+                "include declarations require Source composition before lowering",
+            )
         if self.ast.language_version != "0.1":
             raise compile_error(
                 DiagnosticCode.SEM_UNSUPPORTED_LANGUAGE_VERSION,

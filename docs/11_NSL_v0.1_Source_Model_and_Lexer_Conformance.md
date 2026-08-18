@@ -55,9 +55,9 @@ Slice 0004에 할당된 18개 Requirement는 모두 구현되었으며 할당 �
 
 ## 5. 후속 Slice 경계
 
-- `include`는 이 Slice에서 예약 Keyword로만 고정한다. include 구문 분석과 Source 조합은 후속 Parser/Compiler Slice 범위이다.
+- `include`는 이 Slice에서 예약 Keyword로만 고정했다. Slice 0005에서 Include AST와 Root/Fragment Parse Mode가 추가되었으며 Source 조합은 후속 Compiler Slice 범위이다.
 - Duration은 이 Slice에서 독립 Token으로만 고정한다. AST 및 type/semantic 해석은 후속 Slice 범위이다.
-- SourceSpan은 Source와 Token까지 전파된다. AST Node와 Semantic Diagnostic의 전체 Span/Snippet 전파는 아직 완료되지 않았으므로 `NSL-ERR-002`, `NSL-ERR-003`은 `PARTIAL`을 유지한다.
+- SourceSpan은 이 Slice에서 Source와 Token까지 전파되었다. Slice 0005에서 Parser AST 전파도 완료되었지만 Semantic Diagnostic의 전체 Span/Snippet 전파는 아직 완료되지 않아 `NSL-ERR-002`, `NSL-ERR-003`은 `PARTIAL`을 유지한다.
 - `NSL-SRC-008`, `NSL-SRC-010`은 include 보안과 결정성 검증이 필요한 별도 할당 Requirement이므로 이번 Slice에서 상태를 앞당기지 않는다.
 
 ## 6. Acceptance

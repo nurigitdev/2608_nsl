@@ -45,6 +45,9 @@ The quality command also validates `requirements/nsl_v0_1_traceability.json`. Do
 - Logical NSL input must use `SourceFile`; plain strings are normalized only at public compatibility boundaries.
 - Every lexer token must retain its `SourceSpan`, raw lexeme, explicit `TokenKind`, and normalized value.
 - Use `Lexer.tokenize()` for fail-fast compilation and `Lexer.scan()` when collecting recovery diagnostics.
+- Every Parser-created AST node must retain the SourceSpan derived from its token range.
+- Parse Root Skills and Include Fragments with explicit `ParseMode` values; do not infer a mode from content.
+- Keep collection field access source-oriented in AST and lower it to Projection only after type analysis.
 - `ir` must not depend on syntax, compiler, runtime, audit, or replay.
 - `compiler` must not depend on runtime, audit, or replay.
 - `runtime` must not depend on syntax or compiler.

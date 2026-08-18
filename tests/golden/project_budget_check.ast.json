@@ -1,0 +1,207 @@
+{
+  "node": "AstSkill",
+  "language_version": "0.1",
+  "skill_id": "FINANCE.PROJECT_BUDGET_CHECK",
+  "skill_version": "1.0.0",
+  "risk": "READ_VALIDATE",
+  "includes": [],
+  "requires": [
+    ["PROJECT.LIST_PARENT_PROJECTS", "1.0.0"],
+    ["PROJECT.LIST_CHILD_PROJECTS", "1.0.0"]
+  ],
+  "limits": {
+    "node": "AstLimits",
+    "tool_calls": 11,
+    "loop_iterations": 10,
+    "emitted_rows": 10,
+    "collection_size": 1000
+  },
+  "inputs": [
+    {
+      "node": "AstFieldSpec",
+      "name": "year",
+      "type_info": {
+        "kind": "primitive",
+        "name": "Year",
+        "currency": null,
+        "item": null,
+        "fields": [],
+        "enum_values": []
+      },
+      "classification": "INTERNAL",
+      "path": []
+    }
+  ],
+  "contexts": [
+    {
+      "node": "AstFieldSpec",
+      "name": "team_id",
+      "type_info": {
+        "kind": "domain",
+        "name": "TeamId",
+        "currency": null,
+        "item": null,
+        "fields": [],
+        "enum_values": []
+      },
+      "classification": "INTERNAL",
+      "path": ["user", "team_id"]
+    }
+  ],
+  "outputs": [
+    {
+      "node": "AstFieldSpec",
+      "name": "parent_project",
+      "type_info": {
+        "kind": "domain",
+        "name": "ProjectCode",
+        "currency": null,
+        "item": null,
+        "fields": [],
+        "enum_values": []
+      },
+      "classification": "CONFIDENTIAL",
+      "path": []
+    },
+    {
+      "node": "AstFieldSpec",
+      "name": "budget",
+      "type_info": {
+        "kind": "money",
+        "name": null,
+        "currency": "KRW",
+        "item": null,
+        "fields": [],
+        "enum_values": []
+      },
+      "classification": "CONFIDENTIAL",
+      "path": []
+    },
+    {
+      "node": "AstFieldSpec",
+      "name": "spent",
+      "type_info": {
+        "kind": "money",
+        "name": null,
+        "currency": "KRW",
+        "item": null,
+        "fields": [],
+        "enum_values": []
+      },
+      "classification": "CONFIDENTIAL",
+      "path": []
+    },
+    {
+      "node": "AstFieldSpec",
+      "name": "remaining",
+      "type_info": {
+        "kind": "money",
+        "name": null,
+        "currency": "KRW",
+        "item": null,
+        "fields": [],
+        "enum_values": []
+      },
+      "classification": "CONFIDENTIAL",
+      "path": []
+    },
+    {
+      "node": "AstFieldSpec",
+      "name": "status",
+      "type_info": {
+        "kind": "enum",
+        "name": "CheckStatus",
+        "currency": null,
+        "item": null,
+        "fields": [],
+        "enum_values": ["PASS", "FAIL", "UNKNOWN"]
+      },
+      "classification": "INTERNAL",
+      "path": []
+    }
+  ],
+  "body": [
+    {
+      "node": "AstLet",
+      "name": "parents",
+      "value": {
+        "node": "AstRead",
+        "tool_id": "PROJECT.LIST_PARENT_PROJECTS",
+        "arguments": [
+          ["year", {"node": "AstPath", "parts": ["year"]}],
+          ["team_id", {"node": "AstPath", "parts": ["team_id"]}]
+        ]
+      }
+    },
+    {
+      "node": "AstForeach",
+      "iterator": "parent",
+      "collection": {"node": "AstPath", "parts": ["parents"]},
+      "max_iterations": 10,
+      "body": [
+        {
+          "node": "AstLet",
+          "name": "children",
+          "value": {
+            "node": "AstRead",
+            "tool_id": "PROJECT.LIST_CHILD_PROJECTS",
+            "arguments": [
+              [
+                "parent_project",
+                {"node": "AstPath", "parts": ["parent", "project_code"]}
+              ],
+              ["year", {"node": "AstPath", "parts": ["year"]}]
+            ]
+          }
+        },
+        {
+          "node": "AstLet",
+          "name": "spent",
+          "value": {
+            "node": "AstCall",
+            "name": "sum",
+            "arguments": [
+              {"node": "AstPath", "parts": ["children", "expense_amount"]}
+            ]
+          }
+        },
+        {
+          "node": "AstLet",
+          "name": "remaining",
+          "value": {
+            "node": "AstBinary",
+            "operator": "-",
+            "left": {"node": "AstPath", "parts": ["parent", "budget"]},
+            "right": {"node": "AstPath", "parts": ["spent"]}
+          }
+        },
+        {
+          "node": "AstCheck",
+          "check_id": "BUDGET_LIMIT",
+          "condition": {
+            "node": "AstBinary",
+            "operator": "<=",
+            "left": {"node": "AstPath", "parts": ["spent"]},
+            "right": {"node": "AstPath", "parts": ["parent", "budget"]}
+          },
+          "severity": "ERROR",
+          "on_fail": "REPORT",
+          "message": "자 프로젝트 지출 합계가 모 프로젝트 예산을 초과했습니다."
+        },
+        {
+          "node": "AstEmit",
+          "fields": [
+            [
+              "parent_project",
+              {"node": "AstPath", "parts": ["parent", "project_code"]}
+            ],
+            ["budget", {"node": "AstPath", "parts": ["parent", "budget"]}],
+            ["spent", {"node": "AstPath", "parts": ["spent"]}],
+            ["remaining", {"node": "AstPath", "parts": ["remaining"]}],
+            ["status", {"node": "AstPath", "parts": ["BUDGET_LIMIT", "status"]}]
+          ]
+        }
+      ]
+    }
+  ]
+}

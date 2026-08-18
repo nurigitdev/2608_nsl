@@ -10,6 +10,7 @@ from .diagnostics import (
 )
 from .runtime import ExecutionRequest, ExecutionResult, RuntimeEngine
 from .source import SourceFile, SourceId, SourcePosition, SourceSpan
+from .syntax import ParseMode
 
 __all__ = [
     "CompileError",
@@ -20,6 +21,7 @@ __all__ = [
     "ExecutionRequest",
     "ExecutionResult",
     "NslCompiler",
+    "ParseMode",
     "RuntimeEngine",
     "SourceFile",
     "SourceId",
