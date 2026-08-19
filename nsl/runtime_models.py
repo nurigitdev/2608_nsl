@@ -20,6 +20,10 @@ class LimitExceeded(RuntimeError):
     pass
 
 
+class ImmutableBindingError(RuntimeError):
+    detail_code = "IMMUTABLE_BINDING_ERROR"
+
+
 @dataclass(frozen=True, slots=True)
 class ExecutionRequest:
     execution_id: str
@@ -154,7 +158,7 @@ class ExecutionContext:
         value: ValueEnvelope,
     ) -> None:
         if self._is_bound(symbol_id):
-            raise RuntimeError(f"immutable symbol already bound: {symbol_id}")
+            raise ImmutableBindingError(f"immutable symbol already bound: {symbol_id}")
         namespace[symbol_id] = value
 
     def bind_input(self, symbol_id: str, value: ValueEnvelope) -> None:

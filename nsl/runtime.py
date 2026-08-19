@@ -42,6 +42,7 @@ from .runtime_models import (
     EmitRecord,
     ExecutionRequest,
     ExecutionResult,
+    ImmutableBindingError,
     LimitExceeded,
     ResourceUsage,
     RuntimeErrorInfo,
@@ -58,6 +59,18 @@ from .tools import (
 
 class RuntimeContractError(RuntimeError):
     """A controlled runtime validation error that is safe to return to callers."""
+
+
+class ExpressionEvaluationError(RuntimeContractError):
+    def __init__(
+        self,
+        node_id: str,
+        detail_code: str = "EXPRESSION_EVALUATION_ERROR",
+        message: str = "expression evaluation failed",
+    ) -> None:
+        self.node_id = node_id
+        self.detail_code = detail_code
+        super().__init__(f"{message} at {node_id}")
 
 
 _UNEXPECTED_RUNTIME_MESSAGE = "An unexpected runtime error occurred."
@@ -188,6 +201,23 @@ class RuntimeEngine:
                 str(error),
                 ExecutionStatus.LIMIT_EXCEEDED,
             )
+        except ImmutableBindingError as error:
+            return self._failed(
+                ctx,
+                DiagnosticCode.RUNTIME_EVALUATION,
+                "RUNTIME",
+                str(error),
+                detail_code=error.detail_code,
+            )
+        except ExpressionEvaluationError as error:
+            return self._failed(
+                ctx,
+                DiagnosticCode.RUNTIME_EVALUATION,
+                "RUNTIME",
+                str(error),
+                detail_code=error.detail_code,
+                node_id=error.node_id,
+            )
         except (RuntimeContractError, MoneyError) as error:
             return self._failed(
                 ctx, DiagnosticCode.RUNTIME_EVALUATION, "RUNTIME", str(error)
@@ -280,7 +310,7 @@ class RuntimeEngine:
                 {"node_id": statement.node_id, "kind": type(statement).__name__},
             )
             if isinstance(statement, LetStatement):
-                ctx.bind(statement.target_symbol_id, await self._evaluate(ctx, statement.value, tools))
+                await self._execute_let(ctx, statement, tools)
             elif isinstance(statement, ForeachStatement):
                 collection = await self._evaluate(ctx, statement.collection, tools)
                 values = collection.value
@@ -369,7 +399,57 @@ class RuntimeEngine:
                 {"node_id": statement.node_id, "kind": type(statement).__name__},
             )
 
+    async def _execute_let(
+        self,
+        ctx: ExecutionContext,
+        statement: LetStatement,
+        tools: ToolExecutionPort,
+    ) -> None:
+        value = await self._evaluate(ctx, statement.value, tools)
+        ctx.bind(statement.target_symbol_id, value)
+
     async def _evaluate(
+        self,
+        ctx: ExecutionContext,
+        expression: Expression,
+        tools: ToolExecutionPort,
+    ) -> ValueEnvelope:
+        if not isinstance(
+            expression,
+            (
+                LiteralExpr,
+                SymbolRefExpr,
+                FieldExpr,
+                ProjectionExpr,
+                CallExpr,
+                BinaryExpr,
+                ReadExpr,
+            ),
+        ):
+            raise TypeError(expression)
+        try:
+            result = await self._evaluate_ir(ctx, expression, tools)
+        except (
+            AuthorizationError,
+            ToolExecutionError,
+            LimitExceeded,
+            RuntimeContractError,
+            MoneyError,
+        ):
+            raise
+        except (ArithmeticError, LookupError, TypeError, ValueError) as error:
+            if isinstance(expression, ReadExpr):
+                raise
+            raise ExpressionEvaluationError(expression.node_id) from error
+        if result.type_info != expression.type_info:
+            raise ExpressionEvaluationError(
+                expression.node_id,
+                "EXPRESSION_TYPE_MISMATCH",
+                "expression type mismatch",
+            )
+        return result
+
+    async def _evaluate_ir(
         self,
         ctx: ExecutionContext,
         expression: Expression,
@@ -456,7 +536,7 @@ class RuntimeEngine:
                 highest_classification(left.classification, right.classification),
                 tuple(dict.fromkeys(left.provenance_refs + right.provenance_refs)),
             )
-        if isinstance(expression, ReadExpr):
+        else:
             required = next(
                 item
                 for item in ctx.skill.required_tools
@@ -527,7 +607,6 @@ class RuntimeEngine:
                 },
             )
             return result.to_value(provenance_ref)
-        raise TypeError(expression)
 
     def _combine_completeness(
         self, left: Completeness, right: Completeness
@@ -564,6 +643,7 @@ class RuntimeEngine:
         message: str,
         status: ExecutionStatus = ExecutionStatus.FAILED,
         detail_code: str | None = None,
+        node_id: str | None = None,
     ) -> ExecutionResult:
         normalized_code = str(code)
         ctx.audit.emit(
@@ -584,6 +664,7 @@ class RuntimeEngine:
                 normalized_code,
                 category,
                 message,
+                node_id=node_id,
                 detail_code=detail_code,
             ),
         )

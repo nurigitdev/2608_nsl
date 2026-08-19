@@ -138,6 +138,12 @@ Slice 0015는 Runtime Contract 오류를 구조화된 `ExecutionResult`로 반�
 
 Unsupported language/risk와 일부 EMIT schema/classification Source 오류에는 여전히 해당 AST SourceSpan이 연결되지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0015 종료 시점에도 `PARTIAL`을 유지한다.
 
+### Slice 0016 재평가
+
+Slice 0016은 Expression 평가 오류에 안정적인 `NSL-E8001`, IR Expression `node_id`, detail code를 부여한다. 이는 Compile된 IR의 Runtime 위치이며 `.ns` Source의 Line/Column 또는 Snippet은 아니다. READ provider의 미계약 예외는 내부 정보를 노출하지 않는 `NSL-E8002` 경계를 유지한다.
+
+Unsupported language/risk와 일부 EMIT schema/classification Source 오류에는 여전히 해당 AST SourceSpan이 연결되지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0016 종료 시점에도 `PARTIAL`을 유지한다.
+
 ## 7. Acceptance
 
 각 Requirement 변경 후 `tools/run_quality.py`로 Traceability, 전체 Regression, Statement/Branch Coverage를 반복 검증했다. Slice 완료 기준은 다음과 같다.

@@ -420,22 +420,31 @@ def test_rt_010_runtime_evaluator_directly_dispatches_every_ir_expression() -> N
         for node in tree.body
         if isinstance(node, ast.ClassDef) and node.name == "RuntimeEngine"
     )
-    evaluator = next(
+    evaluators = [
         node
         for node in runtime.body
-        if isinstance(node, ast.AsyncFunctionDef) and node.name == "_evaluate"
-    )
-    dispatched = {
-        call.args[1].id
-        for call in ast.walk(evaluator)
-        if isinstance(call, ast.Call)
-        and isinstance(call.func, ast.Name)
-        and call.func.id == "isinstance"
-        and len(call.args) >= 2
-        and isinstance(call.args[0], ast.Name)
-        and call.args[0].id == "expression"
-        and isinstance(call.args[1], ast.Name)
-    }
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name in {"_evaluate", "_evaluate_ir"}
+    ]
+    dispatched: set[str] = set()
+    for evaluator in evaluators:
+        for call in ast.walk(evaluator):
+            if not (
+                isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Name)
+                and call.func.id == "isinstance"
+                and len(call.args) >= 2
+                and isinstance(call.args[0], ast.Name)
+                and call.args[0].id == "expression"
+            ):
+                continue
+            type_argument = call.args[1]
+            if isinstance(type_argument, ast.Name):
+                dispatched.add(type_argument.id)
+            elif isinstance(type_argument, ast.Tuple):
+                dispatched.update(
+                    item.id for item in type_argument.elts if isinstance(item, ast.Name)
+                )
     expected = {
         "BinaryExpr",
         "CallExpr",

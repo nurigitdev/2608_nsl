@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0015",
+  "current_slice": "0016",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -285,6 +285,11 @@
     "NSL-RT-010": {"status": "IMPLEMENTED", "target_slice": "0015", "verification": ["TEST-RT-010"], "evidence": ["tests/test_architecture.py::test_rt_010_runtime_evaluator_directly_dispatches_every_ir_expression"]},
     "NSL-RT-011": {"status": "IMPLEMENTED", "target_slice": "0015", "verification": ["TEST-RT-011"], "evidence": ["tests/test_runtime_context_and_determinism.py::test_rt_011_execution_id_rejects_missing_or_blank_values", "tests/test_runtime_context_and_determinism.py::test_rt_011_execution_id_is_preserved_in_success_and_failure_results"]},
     "NSL-RT-012": {"status": "IMPLEMENTED", "target_slice": "0015", "verification": ["TEST-RT-012"], "evidence": ["tests/test_architecture.py::test_rt_012_runtime_has_no_source_ast_interpreter_path"]},
+    "NSL-LET-001": {"status": "IMPLEMENTED", "target_slice": "0016", "verification": ["TEST-LET-001"], "evidence": ["tests/test_expression_and_let_runtime.py::test_let_001_let_creates_an_immutable_binding"]},
+    "NSL-LET-002": {"status": "IMPLEMENTED", "target_slice": "0016", "verification": ["TEST-LET-002"], "evidence": ["tests/test_expression_and_let_runtime.py::test_let_002_an_existing_binding_cannot_be_reassigned"]},
+    "NSL-LET-003": {"status": "IMPLEMENTED", "target_slice": "0016", "verification": ["TEST-LET-003"], "evidence": ["tests/test_expression_and_let_runtime.py::test_let_003_pure_expressions_have_no_side_effects"]},
+    "NSL-LET-004": {"status": "IMPLEMENTED", "target_slice": "0016", "verification": ["TEST-LET-004"], "evidence": ["tests/test_expression_and_let_runtime.py::test_let_004_expression_results_preserve_their_declared_types"]},
+    "NSL-LET-005": {"status": "IMPLEMENTED", "target_slice": "0016", "verification": ["TEST-LET-005"], "evidence": ["tests/test_expression_and_let_runtime.py::test_let_005_expression_errors_follow_the_strict_failure_policy", "tests/test_expression_and_let_runtime.py::test_let_005_read_provider_errors_keep_the_unexpected_error_boundary"]},
     "NSL-PY-004": {"status": "IMPLEMENTED", "target_slice": "0013", "verification": ["TEST-PY-004"], "evidence": ["tests/test_immutable_ir_schema.py::test_py_004_ir_model_has_strict_schema_validation_before_immutable_load", "tests/test_ir_schema.py::test_schema_validator_rejects_malformed_documents_with_paths"]},
     "NSL-ARC-012": {"status": "IMPLEMENTED", "target_slice": "0011", "verification": ["TEST-ARC-012"], "evidence": ["tests/test_tool_contracts.py::test_arc_012_compiler_resolves_canonical_contract_not_customer_binding"]},
     "NSL-REQ-001": {"status": "IMPLEMENTED", "target_slice": "0011", "verification": ["TEST-REQ-001"], "evidence": ["tests/test_tool_contracts.py::test_req_001_every_read_requires_an_explicit_tool_declaration"]},
