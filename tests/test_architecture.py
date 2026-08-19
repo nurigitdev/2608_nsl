@@ -25,6 +25,7 @@ RUNTIME_KERNEL_MODULES = {
     "ir_schema.py",
     "integrity.py",
     "replay.py",
+    "result_codec.py",
     "runtime.py",
     "runtime_models.py",
     "security.py",
@@ -83,6 +84,7 @@ ALLOWED_EXTERNAL_MODULES = {
     "pathlib",
     "time",
     "traceback",
+    "types",
     "typing",
 }
 AST_NODE_NAMES = {
@@ -158,6 +160,7 @@ def called_attributes(path: Path) -> set[str]:
         ("type_system", {"ir", "syntax", "compiler", "runtime", "tools"}),
         ("runtime", {"syntax", "compiler"}),
         ("runtime_models", {"syntax", "compiler"}),
+        ("result_codec", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
         ("validation", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
     ],
 )

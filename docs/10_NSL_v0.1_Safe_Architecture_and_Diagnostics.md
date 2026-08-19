@@ -1,7 +1,7 @@
 # NSL v0.1 Safe Architecture and Diagnostics
 
 - **Slice:** `0003`
-- **상태:** Accepted with two documented partial requirements
+- **상태:** Accepted, remaining diagnostics completed in Slice 0021
 - **작성일:** 2026-08-18
 - **Requirement Baseline:** `requirements/nsl_v0_1_traceability.json`
 
@@ -18,7 +18,7 @@
 5. AST Node는 `syntax.py`에 명시적인 frozen, slotted dataclass로 정의한다.
 6. `eval()`, `exec()`, 동적 import와 검토되지 않은 외부 module import는 architecture regression gate에서 차단한다.
 
-Runtime Kernel 범위는 `audit.py`, `builtins.py`, `core.py`, `ir.py`, `replay.py`, `runtime.py`, `runtime_models.py`, `security.py`이다. 개발용 `vertical_slice.py`의 fixture 및 파일 로딩은 Runtime Kernel에 포함하지 않는다.
+Runtime Kernel 범위는 `audit.py`, `builtins.py`, `core.py`, `ir.py`, `replay.py`, `result_codec.py`, `runtime.py`, `runtime_models.py`, `security.py`, `validation.py`이다. 개발용 `vertical_slice.py`의 fixture 및 파일 로딩은 Runtime Kernel에 포함하지 않는다.
 
 ## 3. Diagnostic 계약
 
@@ -63,8 +63,8 @@ Architecture test는 문자열 검색이 아니라 Python AST를 사용한다.
 | `NSL-ARC-006` | `IMPLEMENTED` | `TEST-ARC-006` |
 | `NSL-ARC-007` | `IMPLEMENTED` | `TEST-ARC-007` |
 | `NSL-ERR-001` | `IMPLEMENTED` | `TEST-ERR-001` |
-| `NSL-ERR-002` | `PARTIAL` | `TEST-ERR-002-PARTIAL` |
-| `NSL-ERR-003` | `PARTIAL` | `TEST-ERR-003-PARTIAL` |
+| `NSL-ERR-002` | `IMPLEMENTED` | `TEST-ERR-002` |
+| `NSL-ERR-003` | `IMPLEMENTED` | `TEST-ERR-003` |
 | `NSL-ERR-004` | `IMPLEMENTED` | `TEST-ERR-004` |
 | `NSL-ERR-005` | `IMPLEMENTED` | `TEST-ERR-005` |
 | `NSL-ERR-006` | `IMPLEMENTED` | `TEST-ERR-006` |
@@ -80,9 +80,9 @@ Architecture test는 문자열 검색이 아니라 Python AST를 사용한다.
 | `NSL-SEC-007` | `IMPLEMENTED` | `TEST-SEC-007` |
 | `NSL-SEC-008` | `IMPLEMENTED` | `TEST-SEC-008` |
 
-전체 Baseline 상태는 `IMPLEMENTED 62`, `PARTIAL 202`, `PLANNED 61`이다.
+Slice 0003 종료 당시 Baseline 상태는 `IMPLEMENTED 62`, `PARTIAL 202`, `PLANNED 61`이었다. `NSL-ERR-002/003`은 Slice 0021 재평가에서 종결됐다.
 
-## 6. PARTIAL 사유
+## 6. PARTIAL 이력과 종결
 
 `NSL-ERR-002`는 Lexer와 Parser 오류에 구조화된 Line/Column을 제공하고, Slice 0005에서 Parser가 생성하는 모든 AST Node도 SourceSpan을 보존한다. Slice 0006의 Include 오류와 Slice 0007의 Symbol/Scope 오류도 원래 Source 위치와 Logical Path를 보존한다. 다만 type, tool, resource 등 일반 Semantic 오류 전체가 아직 해당 AST 위치를 Diagnostic으로 전달하지 않는다.
 
@@ -167,6 +167,12 @@ Unsupported language/risk와 일부 EMIT schema/classification Source 오류의 
 Slice 0020은 CHECK 결과에 condition IR node, Presence, Completeness, 판정 사유와 provenance를 보존하고 Audit에 기록한다. 이는 실행 중 사용된 Fact와 판단 근거를 추적하는 Runtime 의미론이며 `.ns` Source의 Line/Column 또는 Snippet을 새로 제공하는 Compile Diagnostic은 아니다.
 
 Unsupported language/risk와 일부 EMIT schema/classification Source 오류의 AST SourceSpan 연결도 남아 있다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0020 종료 시점에도 `PARTIAL`을 유지한다.
+
+### Slice 0021 재평가
+
+Slice 0021에서 EMIT schema/classification 오류를 공통 `SourceDiagnosticContext`로 전환하고, language version과 risk 선언 Token의 정확한 SourceSpan을 AST metadata로 보존했다. Include composition 전제와 composed limits 오류도 같은 진단 경계를 사용한다. Lexer, Parser, Include, Symbol, Type, Tool, Bound, EMIT 및 상위 Semantic 오류가 모두 가능한 원본 Source의 Line/Column, Snippet, Logical Path를 반환한다.
+
+이에 따라 `NSL-ERR-002`와 `NSL-ERR-003`의 남은 공백이 해소됐으며 두 Requirement를 `IMPLEMENTED`로 종결한다.
 
 ## 7. Acceptance
 

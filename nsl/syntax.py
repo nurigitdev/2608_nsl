@@ -546,6 +546,12 @@ class AstSkill(AstNode):
     contexts: tuple[AstFieldSpec, ...]
     outputs: tuple[AstFieldSpec, ...]
     body: tuple[AstStatement, ...]
+    language_version_span: SourceSpan | None = field(
+        default=None, compare=False, repr=False, kw_only=True
+    )
+    risk_span: SourceSpan | None = field(
+        default=None, compare=False, repr=False, kw_only=True
+    )
 
 
 class Parser:
@@ -708,7 +714,8 @@ class Parser:
     def _parse_skill(self) -> AstSkill:
         start_token = self._expect("language")
         self._expect("NSL")
-        language_version = self._expect_kind(TokenKind.STRING).value
+        language_version_token = self._expect_kind(TokenKind.STRING)
+        language_version = language_version_token.value
         self._expect(";")
         self._expect("skill")
         skill_id = self._qualified_name()
@@ -716,6 +723,7 @@ class Parser:
 
         skill_version = ""
         risk = ""
+        risk_span: SourceSpan | None = None
         includes: list[AstIncludeDeclaration] = []
         requires: tuple[AstRequiredTool, ...] = ()
         limits: AstLimits | None = None
@@ -732,7 +740,9 @@ class Parser:
                 self._expect(";")
             elif keyword == "risk":
                 self._advance()
-                risk = self._expect_kind(TokenKind.IDENTIFIER).value
+                risk_token = self._expect_kind(TokenKind.IDENTIFIER)
+                risk = risk_token.value
+                risk_span = risk_token.span
                 self._expect(";")
             elif keyword == "include":
                 includes.append(self._include())
@@ -770,6 +780,8 @@ class Parser:
             outputs=outputs,
             body=tuple(body),
             span=self._span(start_token, end_token),
+            language_version_span=language_version_token.span,
+            risk_span=risk_span,
         )
 
     def _parse_include_fragment(self) -> AstIncludeFragment:

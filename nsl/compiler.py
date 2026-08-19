@@ -10,7 +10,7 @@ from .core import (
     TypeRef,
     classification_allows,
 )
-from .diagnostics import CompileError, DiagnosticCode, DiagnosticPhase, compile_error
+from .diagnostics import CompileError, DiagnosticCode, DiagnosticPhase
 from .ir import (
     BinaryExpr,
     BuildMetadata,
@@ -178,28 +178,29 @@ class _Lowerer:
 
     def lower(self, build: BuildMetadata) -> SkillObject:
         if self.ast.includes:
-            raise compile_error(
+            raise self.diagnostics.error(
                 DiagnosticCode.SEM_INCLUDE_REQUIRES_COMPOSITION,
-                DiagnosticPhase.SEMANTIC,
                 "include declarations require Source composition before lowering",
+                self.ast.includes[0].span,
             )
         if self.ast.limits is None:
-            raise compile_error(
+            raise self.diagnostics.error(
                 DiagnosticCode.INC_REQUIRED_LIMITS_MISSING,
-                DiagnosticPhase.INCLUDE,
                 "composed skill must define exactly one limits block",
+                self.ast.span,
+                DiagnosticPhase.INCLUDE,
             )
         if self.ast.language_version != "0.1":
-            raise compile_error(
+            raise self.diagnostics.error(
                 DiagnosticCode.SEM_UNSUPPORTED_LANGUAGE_VERSION,
-                DiagnosticPhase.SEMANTIC,
                 f"unsupported NSL version: {self.ast.language_version}",
+                self.ast.language_version_span,
             )
         if self.ast.risk not in {"READ_ONLY", "READ_VALIDATE"}:
-            raise compile_error(
+            raise self.diagnostics.error(
                 DiagnosticCode.SEM_UNSUPPORTED_RISK,
-                DiagnosticPhase.SEMANTIC,
                 f"unsupported risk profile: {self.ast.risk}",
+                self.ast.risk_span,
             )
 
         required_tools: list[RequiredTool] = []
@@ -275,6 +276,19 @@ class _Lowerer:
                 )
             )
 
+        output_names = tuple(item.name for item in self.ast.outputs)
+        if len(output_names) != len(set(output_names)):
+            duplicate = next(
+                name for name in output_names if output_names.count(name) > 1
+            )
+            duplicate_node = next(
+                item for item in self.ast.outputs if item.name == duplicate
+            )
+            raise self.diagnostics.error(
+                DiagnosticCode.SEM_EMIT_SCHEMA,
+                f"duplicate output field: {duplicate}",
+                duplicate_node.span,
+            )
         outputs = tuple(
             OutputField(item.name, item.type_info, item.classification)
             for item in self.ast.outputs
@@ -418,11 +432,16 @@ class _Lowerer:
                 )
             elif isinstance(statement, AstEmit):
                 declared = {item.name: item for item in outputs}
-                if set(name for name, _ in statement.fields) != set(declared):
-                    raise compile_error(
+                field_names = tuple(name for name, _ in statement.fields)
+                if (
+                    len(field_names) != len(declared)
+                    or len(field_names) != len(set(field_names))
+                    or set(field_names) != set(declared)
+                ):
+                    raise self.diagnostics.error(
                         DiagnosticCode.SEM_EMIT_SCHEMA,
-                        DiagnosticPhase.SEMANTIC,
                         "EMIT fields must exactly match output schema",
+                        statement.span,
                     )
                 fields: list[tuple[str, Any]] = []
                 for name, ast_expression in statement.fields:
@@ -436,10 +455,10 @@ class _Lowerer:
                         ast_expression.span,
                     )
                     if not classification_allows(classification, output.classification):
-                        raise compile_error(
+                        raise self.diagnostics.error(
                             DiagnosticCode.SEM_OUTPUT_CLASSIFICATION,
-                            DiagnosticPhase.SEMANTIC,
                             f"output classification for {name} is too weak",
+                            ast_expression.span,
                         )
                     fields.append((name, expression))
                 lowered.append(EmitStatement(self._node_id("emit"), tuple(fields)))

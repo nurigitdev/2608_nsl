@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0020",
+  "current_slice": "0021",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -144,8 +144,8 @@
     "NSL-ARC-006": {"status": "IMPLEMENTED", "target_slice": "0003", "verification": ["TEST-ARC-006"], "evidence": ["tests/test_architecture.py::test_arc_006_runtime_has_no_direct_infrastructure_dependency"]},
     "NSL-ARC-007": {"status": "IMPLEMENTED", "target_slice": "0003", "verification": ["TEST-ARC-007"], "evidence": ["tests/test_architecture.py::test_arc_007_nsl_is_an_independent_python_package"]},
     "NSL-ERR-001": {"status": "IMPLEMENTED", "target_slice": "0003", "verification": ["TEST-ERR-001"], "evidence": ["tests/test_diagnostics.py::test_err_001_all_compile_errors_have_unique_stable_codes"]},
-    "NSL-ERR-002": {"status": "PARTIAL", "target_slice": "0003", "verification": ["TEST-ERR-002-PARTIAL"], "evidence": ["tests/test_diagnostics.py::test_err_002_source_errors_expose_structured_line_and_column"]},
-    "NSL-ERR-003": {"status": "PARTIAL", "target_slice": "0003", "verification": ["TEST-ERR-003-PARTIAL"], "evidence": ["tests/test_diagnostics.py::test_err_003_source_snippet_is_included_when_available"]},
+    "NSL-ERR-002": {"status": "IMPLEMENTED", "target_slice": "0003", "verification": ["TEST-ERR-002"], "evidence": ["tests/test_diagnostics.py::test_err_002_source_errors_expose_structured_line_and_column", "tests/test_diagnostics.py::test_err_002_and_003_all_remaining_compiler_errors_have_source_context"]},
+    "NSL-ERR-003": {"status": "IMPLEMENTED", "target_slice": "0003", "verification": ["TEST-ERR-003"], "evidence": ["tests/test_diagnostics.py::test_err_003_source_snippet_is_included_when_available", "tests/test_diagnostics.py::test_err_002_and_003_all_remaining_compiler_errors_have_source_context"]},
     "NSL-ERR-004": {"status": "IMPLEMENTED", "target_slice": "0003", "verification": ["TEST-ERR-004"], "evidence": ["tests/test_diagnostics.py::test_err_004_public_message_is_separate_from_internal_exception"]},
     "NSL-ERR-005": {"status": "IMPLEMENTED", "target_slice": "0003", "verification": ["TEST-ERR-005"], "evidence": ["tests/test_diagnostics.py::test_err_005_stack_trace_is_not_exposed_to_normal_users"]},
     "NSL-ERR-006": {"status": "IMPLEMENTED", "target_slice": "0003", "verification": ["TEST-ERR-006"], "evidence": ["tests/test_diagnostics.py::test_err_006_debug_mode_can_send_detailed_trace_to_protected_sink"]},
@@ -383,6 +383,15 @@
     "NSL-VAL-009": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-VAL-009"], "evidence": ["tests/test_check_and_false_pass.py::test_val_009_simple_check_uses_strict_rule_evaluator"]},
     "NSL-VAL-010": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-VAL-010"], "evidence": ["tests/test_check_and_false_pass.py::test_val_010_reasoning_validator_has_typed_future_adapter_boundary"]},
     "NSL-FP-002": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-FP-002"], "evidence": ["tests/test_check_and_false_pass.py::test_fp_002_missing_required_tool_result_cannot_reach_check"]},
-    "NSL-FP-005": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-FP-005"], "evidence": ["tests/test_check_and_false_pass.py::test_fp_005_data_completeness_is_recorded_in_audit"]}
+    "NSL-FP-005": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-FP-005"], "evidence": ["tests/test_check_and_false_pass.py::test_fp_005_data_completeness_is_recorded_in_audit"]},
+    "NSL-EMT-001": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-EMT-001"], "evidence": ["tests/test_emit_and_structured_result.py::test_emt_001_emit_creates_typed_structured_record"]},
+    "NSL-EMT-002": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-EMT-002"], "evidence": ["tests/test_emit_and_structured_result.py::test_emt_002_compile_rejects_missing_extra_and_duplicate_emit_fields", "tests/test_emit_and_structured_result.py::test_emt_002_compile_rejects_duplicate_output_schema_field", "tests/test_emit_and_structured_result.py::test_emt_002_runtime_rejects_forged_emit_schema"]},
+    "NSL-EMT-003": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-EMT-003"], "evidence": ["tests/test_emit_and_structured_result.py::test_emt_003_multiple_emit_records_are_returned_as_an_ordered_list"]},
+    "NSL-EMT-004": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-EMT-004"], "evidence": ["tests/test_emit_and_structured_result.py::test_emt_004_emitted_rows_limit_blocks_the_next_record"]},
+    "NSL-EMT-005": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-EMT-005"], "evidence": ["tests/test_emit_and_structured_result.py::test_emt_005_money_date_and_datetime_types_survive_emit", "tests/test_emit_and_structured_result.py::test_emt_005_date_and_datetime_value_codec_is_lossless", "tests/test_emit_and_structured_result.py::test_emt_005_runtime_rejects_values_that_do_not_match_declared_type"]},
+    "NSL-EMT-006": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-EMT-006"], "evidence": ["tests/test_emit_and_structured_result.py::test_emt_006_execution_result_has_lossless_deterministic_json", "tests/test_emit_and_structured_result.py::test_emt_006_failed_result_serializes_structured_error_and_empty_outputs"]},
+    "NSL-REL-003": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-REL-003"], "evidence": ["tests/test_emit_and_structured_result.py::test_rel_003_runtime_error_is_returned_as_structured_result"]},
+    "NSL-REL-004": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-REL-004"], "evidence": ["tests/test_emit_and_structured_result.py::test_rel_004_tool_failure_has_explicit_status_and_detail_code"]},
+    "NSL-REL-005": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-REL-005"], "evidence": ["tests/test_emit_and_structured_result.py::test_rel_005_incomplete_data_is_not_reported_as_complete_execution_result", "tests/test_emit_and_structured_result.py::test_rel_005_complete_and_interrupted_result_boundaries"]}
   }
 }

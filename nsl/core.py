@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from typing import Any, Iterable
@@ -256,6 +257,10 @@ def encode_value(value: Any) -> Any:
         }
     if isinstance(value, Decimal):
         return {"$type": "Decimal", "value": format(value, "f")}
+    if isinstance(value, datetime):
+        return {"$type": "DateTime", "value": value.isoformat()}
+    if isinstance(value, date):
+        return {"$type": "Date", "value": value.isoformat()}
     if isinstance(value, StrEnum):
         return value.value
     if isinstance(value, dict):
@@ -273,6 +278,10 @@ def decode_value(value: Any) -> Any:
         )
     if isinstance(value, dict) and value.get("$type") == "Decimal":
         return _decode_decimal_string(value.get("value"), "Decimal value")
+    if isinstance(value, dict) and value.get("$type") == "DateTime":
+        return _decode_iso_value(value.get("value"), "DateTime", datetime.fromisoformat)
+    if isinstance(value, dict) and value.get("$type") == "Date":
+        return _decode_iso_value(value.get("value"), "Date", date.fromisoformat)
     if isinstance(value, dict):
         return {key: decode_value(item) for key, item in value.items()}
     if isinstance(value, list):
@@ -289,3 +298,12 @@ def _decode_decimal_string(value: Any, label: str) -> Decimal:
         raise ValueError(
             f"encoded {label} must be a decimal string"
         ) from error
+
+
+def _decode_iso_value(value: Any, label: str, parser: Any) -> date | datetime:
+    if not isinstance(value, str):
+        raise ValueError(f"encoded {label} must be an ISO string")
+    try:
+        return parser(value)
+    except ValueError as error:
+        raise ValueError(f"encoded {label} must be an ISO string") from error

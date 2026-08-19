@@ -67,6 +67,57 @@ def test_err_003_source_snippet_is_included_when_available() -> None:
     assert str(captured.value).endswith("\n  @ trailing")
 
 
+@pytest.mark.parametrize(
+    ("source", "code", "snippet"),
+    (
+        (
+            SOURCE.replace('language NSL "0.1";', 'language NSL "0.2";'),
+            DiagnosticCode.SEM_UNSUPPORTED_LANGUAGE_VERSION,
+            'language NSL "0.2";',
+        ),
+        (
+            SOURCE.replace("risk READ_VALIDATE;", "risk WRITE_HIGH;"),
+            DiagnosticCode.SEM_UNSUPPORTED_RISK,
+            "    risk WRITE_HIGH;",
+        ),
+        (
+            SOURCE.replace("            status: BUDGET_LIMIT.status;\n", ""),
+            DiagnosticCode.SEM_EMIT_SCHEMA,
+            "        emit {",
+        ),
+        (
+            SOURCE.replace(
+                "spent: Money<KRW> classification CONFIDENTIAL",
+                "spent: Money<KRW> classification INTERNAL",
+            ),
+            DiagnosticCode.SEM_OUTPUT_CLASSIFICATION,
+            "            spent: spent;",
+        ),
+        (
+            SOURCE.replace(
+                "    requires {",
+                '    include "common.ns";\n\n    requires {',
+            ),
+            DiagnosticCode.SEM_INCLUDE_REQUIRES_COMPOSITION,
+            '    include "common.ns";',
+        ),
+    ),
+)
+def test_err_002_and_003_all_remaining_compiler_errors_have_source_context(
+    source: str, code: DiagnosticCode, snippet: str
+) -> None:
+    with pytest.raises(CompileError) as captured:
+        NslCompiler(build_tool_catalog()).compile(source)
+
+    error = captured.value
+    assert error.code == code
+    assert error.location is not None
+    assert error.location.line >= 1
+    assert error.location.column >= 1
+    assert error.snippet == snippet
+    assert error.logical_path == "memory/root.ns"
+
+
 def test_err_004_public_message_is_separate_from_internal_exception() -> None:
     source = SOURCE.replace(
         'version "1.0.0";\n    }', 'version "9.0.0";\n    }', 1

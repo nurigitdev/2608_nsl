@@ -51,7 +51,7 @@ def _ast_nodes(value: Any):
     if isinstance(value, AstNode):
         yield value
         for item in fields(value):
-            if item.name != "span":
+            if not item.name.endswith("span"):
                 yield from _ast_nodes(getattr(value, item.name))
     elif isinstance(value, tuple):
         for item in value:
@@ -84,7 +84,7 @@ def _golden_value(value: Any) -> Any:
             {
                 item.name: _golden_value(getattr(value, item.name))
                 for item in fields(value)
-                if item.name != "span"
+                if not item.name.endswith("span")
             }
         )
         return result

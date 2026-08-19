@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from time import monotonic_ns
+from types import MappingProxyType
 from typing import Any, Mapping, Protocol
 
 from .audit import AuditRecorder
@@ -11,7 +12,6 @@ from .core import (
     DataClassification,
     ExecutionStatus,
     ValueEnvelope,
-    encode_value,
 )
 from .ir import ResourceLimits, SkillObject
 from .security import DataHandlingPolicy, ExecutionPrincipal
@@ -69,8 +69,30 @@ class CheckResult:
 
 @dataclass(frozen=True, slots=True)
 class EmitRecord:
-    values: Mapping[str, Any]
-    classifications: Mapping[str, DataClassification]
+    fields: Mapping[str, ValueEnvelope]
+
+    def __post_init__(self) -> None:
+        copied = dict(self.fields)
+        if not all(
+            isinstance(name, str)
+            and bool(name)
+            and isinstance(value, ValueEnvelope)
+            for name, value in copied.items()
+        ):
+            raise ValueError("emit fields must map names to ValueEnvelope values")
+        object.__setattr__(self, "fields", MappingProxyType(copied))
+
+    @property
+    def values(self) -> Mapping[str, Any]:
+        return MappingProxyType(
+            {name: field.value for name, field in self.fields.items()}
+        )
+
+    @property
+    def classifications(self) -> Mapping[str, DataClassification]:
+        return MappingProxyType(
+            {name: field.classification for name, field in self.fields.items()}
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,47 +119,26 @@ class ExecutionResult:
     skill_version: str
     semantic_hash: str
     status: ExecutionStatus
+    completeness: Completeness
     checks: tuple[CheckResult, ...]
     outputs: tuple[EmitRecord, ...]
     resources: ResourceUsage
     error: RuntimeErrorInfo | None = None
 
+    def to_data(self) -> dict[str, Any]:
+        from .result_codec import execution_result_to_data
+
+        return execution_result_to_data(self)
+
+    def to_json(self) -> str:
+        from .result_codec import execution_result_to_json
+
+        return execution_result_to_json(self)
+
     def semantic_view(self) -> dict[str, Any]:
-        return {
-            "skill_id": self.skill_id,
-            "skill_version": self.skill_version,
-            "semantic_hash": self.semantic_hash,
-            "status": self.status.value,
-            "checks": [
-                {
-                    "check_id": check.check_id,
-                    "status": check.status.value,
-                    "severity": check.severity,
-                    "message": check.message,
-                    "condition_node_id": check.condition_node_id,
-                    "presence": check.presence.value,
-                    "completeness": check.completeness.value,
-                    "reason_code": check.reason_code,
-                }
-                for check in self.checks
-            ],
-            "outputs": [encode_value(dict(record.values)) for record in self.outputs],
-            "resources": {
-                "tool_calls": self.resources.tool_calls,
-                "loop_iterations": self.resources.loop_iterations,
-                "emitted_rows": self.resources.emitted_rows,
-                "max_collection_size_seen": self.resources.max_collection_size_seen,
-            },
-            "error": None
-            if self.error is None
-            else {
-                "code": self.error.code,
-                "category": self.error.category,
-                "message": self.error.message,
-                "node_id": self.error.node_id,
-                "detail_code": self.error.detail_code,
-            },
-        }
+        from .result_codec import semantic_result_view
+
+        return semantic_result_view(self)
 
 
 @dataclass(slots=True)
@@ -233,6 +234,7 @@ class ExecutionContext:
     checks: list[CheckResult] = field(default_factory=list)
     outputs: list[EmitRecord] = field(default_factory=list)
     resources: _ResourceMeter = field(default_factory=_ResourceMeter)
+    data_completeness: Completeness = Completeness.COMPLETE
     invocation_counter: int = 0
     foreach_depth: int = 0
     resource_guard: ResourceGuard = field(init=False, repr=False)
@@ -293,6 +295,24 @@ class ExecutionContext:
             if symbol_id in namespace:
                 return namespace[symbol_id]
         raise RuntimeError(f"unknown symbol: {symbol_id}")
+
+    def observe_completeness(self, completeness: Completeness) -> None:
+        if completeness is Completeness.UNKNOWN:
+            self.data_completeness = Completeness.UNKNOWN
+        elif (
+            completeness is Completeness.PARTIAL
+            and self.data_completeness is Completeness.COMPLETE
+        ):
+            self.data_completeness = Completeness.PARTIAL
+
+    def result_completeness(
+        self, status: ExecutionStatus
+    ) -> Completeness:
+        if status is ExecutionStatus.COMPLETED:
+            return self.data_completeness
+        if self.checks or self.outputs:
+            return Completeness.PARTIAL
+        return Completeness.UNKNOWN
 
     def usage(self) -> ResourceUsage:
         return ResourceUsage(

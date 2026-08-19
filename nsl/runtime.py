@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, datetime
 from decimal import Decimal
 from traceback import format_exception
 from typing import Any, Callable
@@ -8,14 +9,18 @@ from .audit import AuditRecorder, AuditSink, SnapshotStore, value_hash
 from .builtins import BuiltinError, V0_1_BUILTINS
 from .core import (
     CHECK_RESULT,
+    DATE,
+    DATETIME,
     DECIMAL,
     Completeness,
     DataClassification,
     ExecutionStatus,
+    Money,
     MoneyError,
     Presence,
     TypeRef,
     ValueEnvelope,
+    classification_allows,
     highest_classification,
 )
 from .diagnostics import DiagnosticCode
@@ -173,6 +178,7 @@ class RuntimeEngine:
                 {
                     "execution_id": request.execution_id,
                     "status": result.status.value,
+                    "completeness": result.completeness.value,
                     "output_count": len(result.outputs),
                     "check_count": len(result.checks),
                 },
@@ -320,6 +326,17 @@ class RuntimeEngine:
             valid = isinstance(value, bool)
         elif type_info == DECIMAL:
             valid = isinstance(value, Decimal)
+        elif type_info == DATE:
+            valid = type(value) is date
+        elif type_info == DATETIME:
+            valid = isinstance(value, datetime)
+        elif type_info.kind == "money":
+            valid = (
+                isinstance(value, Money)
+                and value.currency == type_info.currency
+            )
+        elif type_info.kind == "enum":
+            valid = isinstance(value, str) and value in type_info.enum_values
         if not valid:
             raise RuntimeContractError(f"runtime type mismatch for {name}")
 
@@ -342,28 +359,62 @@ class RuntimeEngine:
             elif isinstance(statement, CheckStatement):
                 await self._execute_check(ctx, statement, tools)
             elif isinstance(statement, EmitStatement):
-                ctx.resource_guard.before_emit()
-                values: dict[str, Any] = {}
-                classifications: dict[str, DataClassification] = {}
-                maximum = DataClassification.PUBLIC
-                for name, expression in statement.fields:
-                    result = await self._evaluate(ctx, expression, tools)
-                    values[name] = result.value
-                    classifications[name] = result.classification
-                    maximum = highest_classification(maximum, result.classification)
-                ctx.outputs.append(EmitRecord(values, classifications))
-                ctx.resource_guard.record_emit()
-                ctx.audit.emit(
-                    "EMIT_COMPLETED",
-                    {"node_id": statement.node_id, "values": values},
-                    maximum,
-                )
+                await self._execute_emit(ctx, statement, tools)
             else:
                 raise TypeError(statement)
             ctx.audit.emit(
                 "STATEMENT_COMPLETED",
                 {"node_id": statement.node_id, "kind": type(statement).__name__},
             )
+
+    async def _execute_emit(
+        self,
+        ctx: ExecutionContext,
+        statement: EmitStatement,
+        tools: ToolExecutionPort,
+    ) -> None:
+        ctx.resource_guard.before_emit()
+        declared = {field.name: field for field in ctx.skill.outputs}
+        field_names = tuple(name for name, _ in statement.fields)
+        if (
+            len(declared) != len(ctx.skill.outputs)
+            or len(field_names) != len(declared)
+            or len(field_names) != len(set(field_names))
+            or set(field_names) != set(declared)
+        ):
+            raise RuntimeContractError(
+                "EMIT fields do not match output schema"
+            )
+        evaluated: dict[str, ValueEnvelope] = {}
+        values: dict[str, Any] = {}
+        maximum = DataClassification.PUBLIC
+        for name, expression in statement.fields:
+            output = declared[name]
+            if expression.type_info != output.type_info:
+                raise RuntimeContractError(
+                    f"EMIT type does not match output schema: {name}"
+                )
+            result = await self._evaluate(ctx, expression, tools)
+            self._validate_runtime_type(
+                result.value, output.type_info, f"output {name}"
+            )
+            if not classification_allows(
+                result.classification, output.classification
+            ):
+                raise RuntimeContractError(
+                    f"EMIT classification exceeds output schema: {name}"
+                )
+            evaluated[name] = result
+            values[name] = result.value
+            maximum = highest_classification(maximum, result.classification)
+        fields = {field.name: evaluated[field.name] for field in ctx.skill.outputs}
+        ctx.outputs.append(EmitRecord(fields))
+        ctx.resource_guard.record_emit()
+        ctx.audit.emit(
+            "EMIT_COMPLETED",
+            {"node_id": statement.node_id, "values": values},
+            maximum,
+        )
 
     async def _execute_check(
         self,
@@ -496,6 +547,7 @@ class RuntimeEngine:
                 "EXPRESSION_TYPE_MISMATCH",
                 "expression type mismatch",
             )
+        ctx.observe_completeness(result.completeness)
         ctx.resource_guard.check_deadline()
         if isinstance(result.value, list):
             ctx.resource_guard.check_collection(len(result.value))
@@ -797,6 +849,7 @@ class RuntimeEngine:
             skill_version=ctx.skill.skill_version,
             semantic_hash=ctx.skill.semantic_hash,
             status=status,
+            completeness=ctx.result_completeness(status),
             checks=tuple(ctx.checks),
             outputs=tuple(ctx.outputs),
             resources=ctx.usage(),
@@ -819,6 +872,7 @@ class RuntimeEngine:
             {
                 "execution_id": ctx.request.execution_id,
                 "status": status.value,
+                "completeness": ctx.result_completeness(status).value,
                 "error_code": normalized_code,
                 "category": category,
                 "message": message,
