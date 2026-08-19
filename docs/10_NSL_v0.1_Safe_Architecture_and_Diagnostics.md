@@ -96,6 +96,12 @@ Slice 0008에서 `SourceDiagnosticContext`를 공통 진단 구성 요소로 추
 
 미선언 Tool, Tool 인자 이름 집합, 일부 Tool Contract 및 resource bound 오류는 여전히 AST SourceSpan을 진단에 전달하지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0008 종료 시점에도 `PARTIAL`을 유지한다.
 
+### Slice 0009 재평가
+
+Slice 0009에서 잘못된 `Money<CURRENCY>` 선언은 통화 Token의 Line/Column, Snippet, Logical Path를 보존하는 Parser 오류로 반환된다. Mixed Currency는 `MoneyError` 계층을 통해 사용자에게 안전한 Runtime 오류로 반환되지만 Source 기반 Compile Diagnostic은 아니다.
+
+Slice 0008에서 확인한 Tool 선언, Tool 인자 이름 집합, 일부 Tool Contract 및 resource bound 오류의 SourceSpan 공백은 그대로 남아 있다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0009 종료 시점에도 `PARTIAL`을 유지한다.
+
 ## 7. Acceptance
 
 각 Requirement 변경 후 `tools/run_quality.py`로 Traceability, 전체 Regression, Statement/Branch Coverage를 반복 검증했다. Slice 완료 기준은 다음과 같다.

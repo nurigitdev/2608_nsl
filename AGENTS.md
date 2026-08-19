@@ -67,6 +67,11 @@ The quality command also validates `requirements/nsl_v0_1_traceability.json`. Do
 - Follow the v0.1 arithmetic matrix: Int division returns Decimal, Decimal arithmetic stays Decimal, and Money allows only same-type addition/subtraction.
 - Allow ordering only for Int, Decimal, and same-currency Money; equality requires exact matching types.
 - Restrict `sum` to `List<Int>`, `List<Decimal>`, and `List<Money<CURRENCY>>`.
+- Construct Money only from finite Python `decimal.Decimal` amounts and three-letter uppercase ASCII currency codes.
+- Keep Money amount and currency immutable and serialize both fields explicitly.
+- Route Money collection aggregation through Core `sum_money()`; an empty collection returns zero in its statically declared currency.
+- Never perform automatic currency conversion. Mixed-currency arithmetic, comparison, and aggregation must raise `CurrencyMismatchError`.
+- Treat `MoneyError` as an expected, user-safe Runtime semantic failure; unrelated exceptions must remain protected.
 - `ir` must not depend on syntax, compiler, runtime, audit, or replay.
 - `compiler` must not depend on runtime, audit, or replay.
 - `runtime` must not depend on syntax or compiler.

@@ -10,6 +10,7 @@ NSL은 NeX-AE가 선택한 업무 Skill을 제한된 규칙과 Canonical Tool Co
   -> Secure Include Resolver / AST Composer
   -> Symbol Table / Scope Resolution
   -> Static Type Checker / Bool Strictness
+  -> Decimal Money / Currency Semantics
   -> Tool and resource validation
   -> Immutable SkillObject / Canonical .nso
   -> Runtime
@@ -81,6 +82,10 @@ The suite covers:
 - exact Decimal literals without binary floating point types
 - strict Bool assertions, comparisons, and negative truthiness cases
 - direct Static Type Checker boundary and robustness tests
+- finite Decimal-only Money values and immutable amount/currency fields
+- ISO 4217 three-letter currency form at Core and Source boundaries
+- same-currency Money arithmetic, aggregation, and explicit mixed-currency failure
+- Money boundary, robustness, codec, and Runtime integration tests
 
 Commits and remote synchronization must not proceed when the quality command fails.
 
@@ -94,7 +99,7 @@ The Runtime has no direct filesystem, network, SQL, Web Framework, NeX-AE, or LL
 
 ## Current Scope
 
-The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. Slice 0002 establishes the verifiable SRS baseline, Slice 0003 fixes the Safe Architecture and Diagnostics boundary, Slice 0004 fixes the Source Model and Lexer contract, Slice 0005 fixes Parser and AST conformance, Slice 0006 adds secure Include resolution and structured composition, Slice 0007 fixes Symbol and Scope semantics, and Slice 0008 fixes Static Type and Bool Strictness semantics. SourceSpan propagation is complete through Symbol/Scope and type diagnostics; some tool declaration, tool argument-set, and resource-bound Semantic Diagnostics remain `PARTIAL` for a later Semantic Slice.
+The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. Slice 0002 establishes the verifiable SRS baseline, Slice 0003 fixes the Safe Architecture and Diagnostics boundary, Slice 0004 fixes the Source Model and Lexer contract, Slice 0005 fixes Parser and AST conformance, Slice 0006 adds secure Include resolution and structured composition, Slice 0007 fixes Symbol and Scope semantics, Slice 0008 fixes Static Type and Bool Strictness semantics, and Slice 0009 fixes Decimal Money and Currency semantics. SourceSpan propagation is complete through Symbol/Scope and type diagnostics; some tool declaration, tool argument-set, and resource-bound Semantic Diagnostics remain `PARTIAL` for a later Semantic Slice.
 
 Include Sources are supplied through an injected `IncludeResolver`. Compiler Core performs canonical path validation and enforces configurable depth, file-count, and UTF-8 byte limits; it does not read the filesystem directly. Include dependency metadata remains in `CompilationResult` and is removed before immutable Runtime IR is produced.
 

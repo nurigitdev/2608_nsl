@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from enum import StrEnum
-from typing import Any
+from typing import Any, Iterable
 
 
 class Presence(StrEnum):
@@ -49,6 +49,32 @@ _CLASSIFICATION_RANK = {
 }
 
 
+class MoneyError(ValueError):
+    """Base class for expected, user-safe Money semantic failures."""
+
+
+class MoneyValidationError(MoneyError):
+    pass
+
+
+class CurrencyMismatchError(MoneyError):
+    pass
+
+
+def _require_currency_code(currency: str) -> None:
+    valid = (
+        isinstance(currency, str)
+        and len(currency) == 3
+        and currency.isascii()
+        and currency.isalpha()
+        and currency.isupper()
+    )
+    if not valid:
+        raise MoneyValidationError(
+            "currency must be a 3-letter uppercase ISO 4217 code"
+        )
+
+
 def highest_classification(
     *values: DataClassification,
 ) -> DataClassification:
@@ -68,12 +94,15 @@ class Money:
     currency: str
 
     def __post_init__(self) -> None:
+        if not isinstance(self.amount, Decimal) or not self.amount.is_finite():
+            raise MoneyValidationError("Money amount must be a finite Decimal")
         if not self.currency:
-            raise ValueError("currency is required")
+            raise MoneyValidationError("currency is required")
+        _require_currency_code(self.currency)
 
     def _require_currency(self, other: Money) -> None:
         if self.currency != other.currency:
-            raise ValueError(
+            raise CurrencyMismatchError(
                 f"currency mismatch: {self.currency} != {other.currency}"
             )
 
@@ -94,6 +123,15 @@ class Money:
         return self.amount < other.amount
 
 
+def sum_money(values: Iterable[Money], currency: str) -> Money:
+    total = Money(Decimal("0"), currency)
+    for value in values:
+        if not isinstance(value, Money):
+            raise MoneyValidationError("Money sum requires Money values")
+        total = total + value
+    return total
+
+
 @dataclass(frozen=True, slots=True)
 class TypeRef:
     kind: str
@@ -102,6 +140,10 @@ class TypeRef:
     item: TypeRef | None = None
     fields: tuple[tuple[str, TypeRef], ...] = ()
     enum_values: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.kind == "money":
+            _require_currency_code(self.currency)
 
     def field(self, name: str) -> TypeRef:
         for field_name, field_type in self.fields:
@@ -150,6 +192,7 @@ def domain(name: str) -> TypeRef:
 
 
 def money_type(currency: str) -> TypeRef:
+    _require_currency_code(currency)
     return TypeRef(kind="money", currency=currency)
 
 
@@ -224,11 +267,25 @@ def encode_value(value: Any) -> Any:
 
 def decode_value(value: Any) -> Any:
     if isinstance(value, dict) and value.get("$type") == "Money":
-        return Money(Decimal(value["amount"]), value["currency"])
+        return Money(
+            _decode_decimal_string(value.get("amount"), "Money amount"),
+            value.get("currency"),
+        )
     if isinstance(value, dict) and value.get("$type") == "Decimal":
-        return Decimal(value["value"])
+        return _decode_decimal_string(value.get("value"), "Decimal value")
     if isinstance(value, dict):
         return {key: decode_value(item) for key, item in value.items()}
     if isinstance(value, list):
         return [decode_value(item) for item in value]
     return value
+
+
+def _decode_decimal_string(value: Any, label: str) -> Decimal:
+    if not isinstance(value, str):
+        raise ValueError(f"encoded {label} must be a decimal string")
+    try:
+        return Decimal(value)
+    except InvalidOperation as error:
+        raise ValueError(
+            f"encoded {label} must be a decimal string"
+        ) from error

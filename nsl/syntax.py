@@ -653,9 +653,16 @@ class Parser:
         name = token.value
         if name == "Money":
             self._expect("<")
-            currency = self._expect_kind(TokenKind.IDENTIFIER).value
+            currency_token = self._expect_kind(TokenKind.IDENTIFIER)
             self._expect(">")
-            return money_type(currency)
+            try:
+                return money_type(currency_token.value)
+            except ValueError as error:
+                raise self._error(
+                    DiagnosticCode.PAR_UNKNOWN_TYPE,
+                    f"invalid Money currency: {currency_token.value}",
+                    currency_token,
+                ) from error
         if name == "List":
             self._expect("<")
             item_type = self._type()

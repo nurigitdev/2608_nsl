@@ -72,8 +72,8 @@ def test_repository_traceability_baseline_is_complete() -> None:
     )
     assert report.priority_counts == {"MAY": 1, "MUST": 294, "SHOULD": 30}
     assert report.status_counts == {
-        "IMPLEMENTED": 138,
-        "PARTIAL": 142,
+        "IMPLEMENTED": 144,
+        "PARTIAL": 136,
         "PLANNED": 45,
     }
     assert sum(report.target_slice_counts.values()) == 325

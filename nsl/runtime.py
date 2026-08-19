@@ -13,11 +13,12 @@ from .core import (
     Completeness,
     DataClassification,
     ExecutionStatus,
-    Money,
+    MoneyError,
     Presence,
     TypeRef,
     ValueEnvelope,
     highest_classification,
+    sum_money,
 )
 from .diagnostics import DiagnosticCode
 from .ir import (
@@ -188,7 +189,7 @@ class RuntimeEngine:
                 str(error),
                 ExecutionStatus.LIMIT_EXCEEDED,
             )
-        except RuntimeContractError as error:
+        except (RuntimeContractError, MoneyError) as error:
             return self._failed(
                 ctx, DiagnosticCode.RUNTIME_EVALUATION, "RUNTIME", str(error)
             )
@@ -408,10 +409,9 @@ class RuntimeEngine:
                     f"unsupported built-in: {expression.function}"
                 )
             if expression.type_info.kind == "money":
-                currency = expression.type_info.currency
-                value = Money(Decimal("0"), currency)
-                for item in argument.value:
-                    value = value + item
+                value = sum_money(
+                    argument.value, expression.type_info.currency
+                )
             else:
                 value = sum(argument.value)
             return ValueEnvelope(
