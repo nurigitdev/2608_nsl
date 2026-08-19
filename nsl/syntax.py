@@ -8,12 +8,16 @@ from typing import Any, TypeAlias
 from .core import (
     BOOL,
     CHECK_STATUS,
+    DATE,
+    DATETIME,
+    DECIMAL,
     INT,
     STRING,
     YEAR,
     DataClassification,
     TypeRef,
     domain,
+    list_type,
     money_type,
     primitive,
 )
@@ -542,11 +546,15 @@ class Parser:
         "String": STRING,
         "Int": INT,
         "Bool": BOOL,
+        "Date": DATE,
+        "DateTime": DATETIME,
+        "Decimal": DECIMAL,
         "Year": YEAR,
         "TeamId": domain("TeamId"),
+        "EmployeeId": domain("EmployeeId"),
         "ProjectCode": domain("ProjectCode"),
+        "OrganizationId": domain("OrganizationId"),
         "CheckStatus": CHECK_STATUS,
-        "Decimal": primitive("Decimal"),
     }
     _PRECEDENCE = {
         "==": 10,
@@ -648,6 +656,11 @@ class Parser:
             currency = self._expect_kind(TokenKind.IDENTIFIER).value
             self._expect(">")
             return money_type(currency)
+        if name == "List":
+            self._expect("<")
+            item_type = self._type()
+            self._expect(">")
+            return list_type(item_type)
         try:
             return self._TYPE_NAMES[name]
         except KeyError as error:

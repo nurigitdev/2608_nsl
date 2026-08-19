@@ -8,6 +8,7 @@ from .audit import AuditRecorder, AuditSink, SnapshotStore, value_hash
 from .core import (
     BOOL,
     CHECK_RESULT,
+    DECIMAL,
     CheckStatus,
     Completeness,
     DataClassification,
@@ -262,6 +263,8 @@ class RuntimeEngine:
             valid = isinstance(value, str)
         elif type_info.name == "Bool":
             valid = isinstance(value, bool)
+        elif type_info == DECIMAL:
+            valid = isinstance(value, Decimal)
         if not valid:
             raise RuntimeContractError(f"runtime type mismatch for {name}")
 
@@ -437,8 +440,13 @@ class RuntimeEngine:
             completeness = self._combine_completeness(
                 left.completeness, right.completeness
             )
+            value = (
+                Decimal(left.value) / Decimal(right.value)
+                if expression.operator == "DIV" and expression.type_info == DECIMAL
+                else operations[expression.operator]()
+            )
             return ValueEnvelope(
-                operations[expression.operator](),
+                value,
                 expression.type_info,
                 Presence.PRESENT,
                 completeness,

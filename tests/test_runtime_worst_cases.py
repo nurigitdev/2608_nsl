@@ -11,6 +11,7 @@ from nsl.audit import AuditRecorder, InMemoryAuditSink
 from nsl.compiler import NslCompiler
 from nsl.core import (
     BOOL,
+    DECIMAL,
     INT,
     STRING,
     CheckStatus,
@@ -253,7 +254,7 @@ def context_for_direct_evaluation(runtime_fixture) -> tuple[RuntimeEngine, _Exec
         ("ADD", 5),
         ("SUB", 1),
         ("MUL", 6),
-        ("DIV", 1.5),
+        ("DIV", Decimal("1.5")),
         ("LT", False),
         ("LE", False),
         ("GT", True),
@@ -264,7 +265,13 @@ def context_for_direct_evaluation(runtime_fixture) -> tuple[RuntimeEngine, _Exec
 )
 def test_runtime_binary_operator_matrix(runtime_fixture, operator, expected) -> None:
     engine, context, tools = context_for_direct_evaluation(runtime_fixture)
-    result_type = BOOL if operator in {"LT", "LE", "GT", "GE", "EQ", "NE"} else INT
+    result_type = (
+        BOOL
+        if operator in {"LT", "LE", "GT", "GE", "EQ", "NE"}
+        else DECIMAL
+        if operator == "DIV"
+        else INT
+    )
     expression = BinaryExpr(
         "expr-op",
         operator,
@@ -363,8 +370,11 @@ def test_validate_runtime_type_bool_string_domain_and_unchecked_record(
 ) -> None:
     _, _, engine, _, _ = runtime_fixture
     engine._validate_runtime_type(True, BOOL, "bool")
+    engine._validate_runtime_type(Decimal("0.1"), DECIMAL, "decimal")
     engine._validate_runtime_type("text", STRING, "string")
     engine._validate_runtime_type("TEAM", domain("TeamId"), "team")
     engine._validate_runtime_type({}, PARENT_PROJECT, "record")
     with pytest.raises(RuntimeError, match="runtime type mismatch"):
         engine._validate_runtime_type(1, BOOL, "bool")
+    with pytest.raises(RuntimeError, match="runtime type mismatch"):
+        engine._validate_runtime_type(0.1, DECIMAL, "decimal")

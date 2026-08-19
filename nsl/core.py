@@ -168,6 +168,9 @@ def enum_type(name: str, *values: str) -> TypeRef:
 BOOL = primitive("Bool")
 INT = primitive("Int")
 STRING = primitive("String")
+DECIMAL = primitive("Decimal")
+DATE = primitive("Date")
+DATETIME = primitive("DateTime")
 YEAR = primitive("Year")
 CHECK_STATUS = enum_type("CheckStatus", "PASS", "FAIL", "UNKNOWN")
 CHECK_RESULT = record_type("CheckResult", status=CHECK_STATUS)
@@ -229,4 +232,3 @@ def decode_value(value: Any) -> Any:
     if isinstance(value, list):
         return [decode_value(item) for item in value]
     return value
-

@@ -5,12 +5,10 @@ from hashlib import sha256
 from typing import Any
 
 from .core import (
-    BOOL,
     CHECK_RESULT,
     DataClassification,
     TypeRef,
     classification_allows,
-    list_type,
 )
 from .diagnostics import CompileError, DiagnosticCode, DiagnosticPhase, compile_error
 from .ir import (
@@ -66,6 +64,7 @@ from .syntax import (
     Parser,
 )
 from .tools import ToolContract, ToolContractCatalog
+from .type_system import StaticTypeChecker
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,6 +132,7 @@ class _Lowerer:
         self.ast = ast
         self.node_counters: dict[str, int] = {}
         self.symbol_table = SymbolTable(sources)
+        self.type_checker = StaticTypeChecker(sources)
         self.tools_by_id: dict[str, tuple[RequiredTool, ToolContract]] = {}
 
     def _node_id(self, kind: str) -> str:
@@ -326,18 +326,18 @@ class _Lowerer:
                 )
             elif isinstance(statement, AstForeach):
                 collection, classification = self._lower_expr(statement.collection)
-                if collection.type_info.kind != "list" or collection.type_info.item is None:
-                    raise compile_error(
-                        DiagnosticCode.SEM_FOREACH_COLLECTION_TYPE,
-                        DiagnosticPhase.SEMANTIC,
-                        "foreach collection must be List<T>",
-                    )
+                item_type = self.type_checker.require_list(
+                    collection.type_info,
+                    DiagnosticCode.SEM_FOREACH_COLLECTION_TYPE,
+                    "foreach collection must be List<T>",
+                    statement.collection.span,
+                )
                 scope_id = self.symbol_table.enter_scope(ScopeKind.FOREACH)
                 try:
                     iterator = self._add_binding(
                         statement.iterator,
                         "ITERATOR",
-                        collection.type_info.item,
+                        item_type,
                         classification,
                         statement,
                     )
@@ -355,12 +355,9 @@ class _Lowerer:
                 )
             elif isinstance(statement, AstCheck):
                 condition, _ = self._lower_expr(statement.condition)
-                if condition.type_info != BOOL:
-                    raise compile_error(
-                        DiagnosticCode.SEM_CHECK_CONDITION_TYPE,
-                        DiagnosticPhase.SEMANTIC,
-                        "CHECK assert must have Bool type",
-                    )
+                self.type_checker.require_bool(
+                    condition.type_info, statement.condition.span
+                )
                 binding = self._add_binding(
                     statement.check_id,
                     "CHECK",
@@ -392,12 +389,13 @@ class _Lowerer:
                 for name, ast_expression in statement.fields:
                     expression, classification = self._lower_expr(ast_expression)
                     output = declared[name]
-                    if expression.type_info != output.type_info:
-                        raise compile_error(
-                            DiagnosticCode.SEM_OUTPUT_TYPE,
-                            DiagnosticPhase.SEMANTIC,
-                            f"output type mismatch for {name}",
-                        )
+                    self.type_checker.require_exact(
+                        expression.type_info,
+                        output.type_info,
+                        DiagnosticCode.SEM_OUTPUT_TYPE,
+                        f"output type mismatch for {name}",
+                        ast_expression.span,
+                    )
                     if not classification_allows(classification, output.classification):
                         raise compile_error(
                             DiagnosticCode.SEM_OUTPUT_CLASSIFICATION,
@@ -424,26 +422,17 @@ class _Lowerer:
             classification = binding.classification
             current_type = binding.type_info
             for field in ast.parts[1:]:
-                try:
-                    if current_type.kind == "list" and current_type.item is not None:
-                        field_type = current_type.item.field(field)
-                        current_type = list_type(field_type)
-                        expression = ProjectionExpr(
-                            self._node_id("expr"), expression, field, current_type
-                        )
-                    elif current_type.kind == "record":
-                        current_type = current_type.field(field)
-                        expression = FieldExpr(
-                            self._node_id("expr"), expression, field, current_type
-                        )
-                    else:
-                        raise KeyError(field)
-                except KeyError as error:
-                    raise compile_error(
-                        DiagnosticCode.SEM_UNKNOWN_FIELD,
-                        DiagnosticPhase.SEMANTIC,
-                        f"type {current_type.kind} has no field {field}",
-                    ) from error
+                current_type, projected = self.type_checker.field_result(
+                    current_type, field, ast.span
+                )
+                if projected:
+                    expression = ProjectionExpr(
+                        self._node_id("expr"), expression, field, current_type
+                    )
+                else:
+                    expression = FieldExpr(
+                        self._node_id("expr"), expression, field, current_type
+                    )
             return expression, classification
         if isinstance(ast, AstCall):
             arguments = [self._lower_expr(item) for item in ast.arguments]
@@ -454,33 +443,21 @@ class _Lowerer:
                     f"unsupported built-in call: {ast.name}",
                 )
             argument, classification = arguments[0]
-            if argument.type_info.kind != "list" or argument.type_info.item is None:
-                raise compile_error(
-                    DiagnosticCode.SEM_SUM_ARGUMENT_TYPE,
-                    DiagnosticPhase.SEMANTIC,
-                    "sum requires List<Int|Decimal|Money>",
-                )
-            if argument.type_info.item.kind not in {"primitive", "money"}:
-                raise compile_error(
-                    DiagnosticCode.SEM_SUM_ARGUMENT_TYPE,
-                    DiagnosticPhase.SEMANTIC,
-                    "sum requires List<Int|Decimal|Money>",
-                )
+            result_type = self.type_checker.sum_result(
+                argument.type_info, ast.span
+            )
             return (
                 CallExpr(
-                    self._node_id("expr"), "sum", (argument,), argument.type_info.item
+                    self._node_id("expr"), "sum", (argument,), result_type
                 ),
                 classification,
             )
         if isinstance(ast, AstBinary):
             left, left_classification = self._lower_expr(ast.left)
             right, right_classification = self._lower_expr(ast.right)
-            if left.type_info != right.type_info:
-                raise compile_error(
-                    DiagnosticCode.SEM_BINARY_TYPE,
-                    DiagnosticPhase.SEMANTIC,
-                    f"binary type mismatch for {ast.operator}",
-                )
+            result_type = self.type_checker.binary_result(
+                ast.operator, left.type_info, right.type_info, ast.span
+            )
             operator_map = {
                 "+": "ADD",
                 "-": "SUB",
@@ -493,7 +470,6 @@ class _Lowerer:
                 "==": "EQ",
                 "!=": "NE",
             }
-            result_type = BOOL if ast.operator in {"<", "<=", ">", ">=", "==", "!="} else left.type_info
             classification = max(
                 (left_classification, right_classification),
                 key=lambda item: list(DataClassification).index(item),
@@ -528,12 +504,13 @@ class _Lowerer:
             arguments: list[tuple[str, Any]] = []
             for name, ast_value in ast.arguments:
                 value, _ = self._lower_expr(ast_value)
-                if value.type_info != contract.input_type(name):
-                    raise compile_error(
-                        DiagnosticCode.SEM_TOOL_ARGUMENT_TYPE,
-                        DiagnosticPhase.SEMANTIC,
-                        f"tool argument type mismatch: {ast.tool_id}.{name}",
-                    )
+                self.type_checker.require_exact(
+                    value.type_info,
+                    contract.input_type(name),
+                    DiagnosticCode.SEM_TOOL_ARGUMENT_TYPE,
+                    f"tool argument type mismatch: {ast.tool_id}.{name}",
+                    ast_value.span,
+                )
                 arguments.append((name, value))
             return (
                 ReadExpr(

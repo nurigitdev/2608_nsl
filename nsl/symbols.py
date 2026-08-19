@@ -7,10 +7,8 @@ from .core import DataClassification, TypeRef
 from .diagnostics import (
     CompileError,
     DiagnosticCode,
-    DiagnosticPhase,
-    SourceLocation,
-    compile_error,
 )
+from .semantic_diagnostics import SourceDiagnosticContext
 from .source import SourceFile, SourceSpan
 
 
@@ -45,7 +43,7 @@ class _ScopeFrame:
 
 class SymbolTable:
     def __init__(self, sources: tuple[SourceFile, ...]) -> None:
-        self._sources = {source.source_id: source for source in sources}
+        self._diagnostics = SourceDiagnosticContext(sources)
         self._scope_counter = 1
         self._symbol_counter = 0
         self._frames = [_ScopeFrame("scope0001", ScopeKind.SKILL)]
@@ -82,7 +80,7 @@ class SymbolTable:
         span: SourceSpan | None,
     ) -> SymbolBinding:
         if any(name in frame.bindings for frame in self._frames):
-            raise self._error(
+            raise self._diagnostics.error(
                 DiagnosticCode.SEM_DUPLICATE_SYMBOL,
                 f"duplicate symbol or shadowing is forbidden: {name}",
                 span,
@@ -107,31 +105,8 @@ class SymbolTable:
             binding = frame.bindings.get(name)
             if binding is not None:
                 return binding
-        raise self._error(
+        raise self._diagnostics.error(
             DiagnosticCode.SEM_UNKNOWN_IDENTIFIER,
             f"unknown identifier: {name}",
             span,
-        )
-
-    def _error(
-        self,
-        code: DiagnosticCode,
-        message: str,
-        span: SourceSpan | None,
-    ) -> CompileError:
-        if span is None:
-            return compile_error(code, DiagnosticPhase.SEMANTIC, message)
-        source = self._sources.get(span.source_id)
-        if source is None:
-            return compile_error(code, DiagnosticPhase.SEMANTIC, message)
-        start = span.start
-        lines = source.text.splitlines()
-        snippet = lines[start.line - 1] if start.line <= len(lines) else None
-        return compile_error(
-            code,
-            DiagnosticPhase.SEMANTIC,
-            message,
-            SourceLocation(start.line, start.column),
-            snippet,
-            source.logical_path,
         )

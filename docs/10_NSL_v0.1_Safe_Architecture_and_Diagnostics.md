@@ -90,6 +90,12 @@ Architecture test는 문자열 검색이 아니라 Python AST를 사용한다.
 
 두 요구사항은 미완료 상태를 숨기지 않고 `PARTIAL`로 유지한다. Source, Token, Parser AST, Include, Symbol/Scope까지의 위치 보존은 완료했으며, 남은 Semantic Diagnostic 연결은 후속 Semantic Slice에서 완료한다.
 
+### Slice 0008 재평가
+
+Slice 0008에서 `SourceDiagnosticContext`를 공통 진단 구성 요소로 추출하고 `StaticTypeChecker`가 이를 사용하도록 했다. 이에 따라 foreach collection, CHECK condition, output expression, record/list field, `sum`, binary expression, Tool input type 오류는 원래 Source의 Line/Column, Snippet, Logical Path를 보존한다.
+
+미선언 Tool, Tool 인자 이름 집합, 일부 Tool Contract 및 resource bound 오류는 여전히 AST SourceSpan을 진단에 전달하지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0008 종료 시점에도 `PARTIAL`을 유지한다.
+
 ## 7. Acceptance
 
 각 Requirement 변경 후 `tools/run_quality.py`로 Traceability, 전체 Regression, Statement/Branch Coverage를 반복 검증했다. Slice 완료 기준은 다음과 같다.

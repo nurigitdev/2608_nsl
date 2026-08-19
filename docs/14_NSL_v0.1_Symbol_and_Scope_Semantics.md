@@ -59,8 +59,8 @@ Slice 0007에 할당된 8개 Requirement는 모두 구현되었으며 할당 범
 
 ## 5. Slice 0003 PARTIAL 재평가
 
-- `NSL-ERR-002`: Symbol/Scope Semantic 오류에 Line/Column과 Logical Path가 추가됐다. type, tool, resource 등 나머지 Semantic 오류의 위치 연결이 남아 `PARTIAL`을 유지한다.
-- `NSL-ERR-003`: Symbol/Scope Semantic 오류에 Source Snippet이 추가됐다. 나머지 Semantic 오류의 Snippet 연결이 남아 `PARTIAL`을 유지한다.
+- `NSL-ERR-002`: Slice 0008에서 Symbol/Scope에 더해 type 및 Tool input type 오류에도 Line/Column과 Logical Path가 추가됐다. 일부 tool declaration, argument-set, resource 오류의 위치 연결이 남아 `PARTIAL`을 유지한다.
+- `NSL-ERR-003`: Slice 0008에서 type 및 Tool input type 오류에도 Source Snippet이 추가됐다. 위 일반 Semantic 오류의 Snippet 연결이 남아 `PARTIAL`을 유지한다.
 
 두 요구사항은 Compiler의 모든 Source 오류가 동일한 위치 계약을 만족한 뒤에만 `IMPLEMENTED`로 승격한다.
 

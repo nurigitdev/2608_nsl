@@ -58,6 +58,15 @@ The quality command also validates `requirements/nsl_v0_1_traceability.json`. Do
 - Allow name reuse across completed sibling scopes, but reject same-scope duplicates and all active ancestor shadowing in NSL v0.1.
 - Resolve identifiers only after declaration; foreach iterators and local bindings must not escape their block.
 - Keep collection field access source-oriented in AST and lower it to Projection only after type analysis.
+- Route compiler type rules through `StaticTypeChecker`; do not add ad hoc type comparisons to the lowerer.
+- Keep source-aware Semantic errors in `SourceDiagnosticContext` so included Source locations and snippets are preserved.
+- Track `List<T>` element types through foreach iterators and collection field projections.
+- Represent NSL `Decimal` values with Python `decimal.Decimal`; never add Float or Double source types.
+- Require exact `Bool` for CHECK assertions. Do not use Python truthiness or implicit Bool conversion.
+- Allow Bool equality and inequality only; reject Bool ordering and arithmetic at compile time.
+- Follow the v0.1 arithmetic matrix: Int division returns Decimal, Decimal arithmetic stays Decimal, and Money allows only same-type addition/subtraction.
+- Allow ordering only for Int, Decimal, and same-currency Money; equality requires exact matching types.
+- Restrict `sum` to `List<Int>`, `List<Decimal>`, and `List<Money<CURRENCY>>`.
 - `ir` must not depend on syntax, compiler, runtime, audit, or replay.
 - `compiler` must not depend on runtime, audit, or replay.
 - `runtime` must not depend on syntax or compiler.
