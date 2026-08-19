@@ -44,8 +44,11 @@ from .runtime_models import (
     ExecutionResult,
     ImmutableBindingError,
     LimitExceeded,
+    MAX_FOREACH_NESTING_DEPTH,
     ResourceUsage,
+    RuntimeClock,
     RuntimeErrorInfo,
+    SystemRuntimeClock,
     ExecutionContext,
 )
 from .security import AuthorizationError, StaticAuthorizer
@@ -87,12 +90,16 @@ class RuntimeEngine:
         authorizer: StaticAuthorizer | None = None,
         debug_mode: bool = False,
         debug_trace_sink: Callable[[str], None] | None = None,
+        runtime_clock: RuntimeClock | None = None,
     ) -> None:
         self.tool_catalog = tool_catalog
         self.tool_validator = ToolContractValidator()
         self.authorizer = authorizer or StaticAuthorizer()
         self.debug_mode = debug_mode
         self.debug_trace_sink = debug_trace_sink
+        self.runtime_clock = (
+            runtime_clock if runtime_clock is not None else SystemRuntimeClock()
+        )
 
     async def execute(
         self,
@@ -103,8 +110,9 @@ class RuntimeEngine:
         snapshot_store: SnapshotStore | None = None,
     ) -> ExecutionResult:
         audit = AuditRecorder(audit_sink, request.data_policy)
-        ctx = ExecutionContext(skill, request, audit)
+        ctx = ExecutionContext(skill, request, audit, self.runtime_clock)
         try:
+            ctx.resource_guard.check_deadline()
             self._preflight(skill)
             skill_scopes = frozenset({"nsl:skill:execute"})
             skill_decision = self.authorizer.authorize(
@@ -159,6 +167,7 @@ class RuntimeEngine:
             )
             self._bind_inputs_and_contexts(ctx)
             await self._execute_block(ctx, skill.body, tools)
+            ctx.resource_guard.check_deadline()
             result = self._result(ctx, ExecutionStatus.COMPLETED)
             audit.emit(
                 "EXECUTION_COMPLETED",
@@ -279,6 +288,8 @@ class RuntimeEngine:
                 raise RuntimeContractError(f"missing required input: {spec.name}")
             value = ctx.request.inputs[spec.name]
             self._validate_runtime_type(value, spec.type_info, spec.name)
+            if isinstance(value, list):
+                ctx.resource_guard.observe_collection(len(value))
             ctx.bind_input(
                 spec.symbol_id,
                 ValueEnvelope.complete(value, spec.type_info, spec.classification),
@@ -293,6 +304,8 @@ class RuntimeEngine:
                         f"missing runtime context path: {'.'.join(spec.path)}"
                     ) from error
             self._validate_runtime_type(value, spec.type_info, spec.name)
+            if isinstance(value, list):
+                ctx.resource_guard.observe_collection(len(value))
             ctx.bind_context(
                 spec.symbol_id,
                 ValueEnvelope.complete(value, spec.type_info, spec.classification),
@@ -318,6 +331,7 @@ class RuntimeEngine:
         tools: ToolExecutionPort,
     ) -> None:
         for statement in statements:
+            ctx.resource_guard.check_deadline()
             ctx.audit.emit(
                 "STATEMENT_STARTED",
                 {"node_id": statement.node_id, "kind": type(statement).__name__},
@@ -325,32 +339,7 @@ class RuntimeEngine:
             if isinstance(statement, LetStatement):
                 await self._execute_let(ctx, statement, tools)
             elif isinstance(statement, ForeachStatement):
-                collection = await self._evaluate(ctx, statement.collection, tools)
-                values = collection.value
-                if len(values) > statement.max_iterations:
-                    raise LimitExceeded(
-                        f"foreach {statement.node_id} exceeds max {statement.max_iterations}"
-                    )
-                for value in values:
-                    ctx.resources.loop_iterations += 1
-                    if ctx.resources.loop_iterations > ctx.skill.limits.loop_iterations:
-                        raise LimitExceeded("loop iteration limit exceeded")
-                    ctx.push_frame()
-                    try:
-                        ctx.bind(
-                            statement.iterator_symbol_id,
-                            ValueEnvelope(
-                                value,
-                                collection.type_info.item,
-                                Presence.PRESENT,
-                                collection.completeness,
-                                collection.classification,
-                                collection.provenance_refs,
-                            ),
-                        )
-                        await self._execute_block(ctx, statement.body, tools)
-                    finally:
-                        ctx.pop_frame()
+                await self._execute_foreach(ctx, statement, tools)
             elif isinstance(statement, CheckStatement):
                 predicate = await self._evaluate(ctx, statement.condition, tools)
                 if predicate.type_info != BOOL:
@@ -388,8 +377,7 @@ class RuntimeEngine:
                     },
                 )
             elif isinstance(statement, EmitStatement):
-                if ctx.resources.emitted_rows >= ctx.skill.limits.emitted_rows:
-                    raise LimitExceeded("emitted row limit exceeded")
+                ctx.resource_guard.before_emit()
                 values: dict[str, Any] = {}
                 classifications: dict[str, DataClassification] = {}
                 maximum = DataClassification.PUBLIC
@@ -399,7 +387,7 @@ class RuntimeEngine:
                     classifications[name] = result.classification
                     maximum = highest_classification(maximum, result.classification)
                 ctx.outputs.append(EmitRecord(values, classifications))
-                ctx.resources.emitted_rows += 1
+                ctx.resource_guard.record_emit()
                 ctx.audit.emit(
                     "EMIT_COMPLETED",
                     {"node_id": statement.node_id, "values": values},
@@ -411,6 +399,53 @@ class RuntimeEngine:
                 "STATEMENT_COMPLETED",
                 {"node_id": statement.node_id, "kind": type(statement).__name__},
             )
+
+    async def _execute_foreach(
+        self,
+        ctx: ExecutionContext,
+        statement: ForeachStatement,
+        tools: ToolExecutionPort,
+    ) -> None:
+        if ctx.foreach_depth >= MAX_FOREACH_NESTING_DEPTH:
+            raise LimitExceeded(
+                f"foreach nesting depth exceeds {MAX_FOREACH_NESTING_DEPTH}"
+            )
+        ctx.foreach_depth += 1
+        try:
+            await self._execute_foreach_body(ctx, statement, tools)
+        finally:
+            ctx.foreach_depth -= 1
+
+    async def _execute_foreach_body(
+        self,
+        ctx: ExecutionContext,
+        statement: ForeachStatement,
+        tools: ToolExecutionPort,
+    ) -> None:
+        collection = await self._evaluate(ctx, statement.collection, tools)
+        values = collection.value
+        if len(values) > statement.max_iterations:
+            raise LimitExceeded(
+                f"foreach {statement.node_id} exceeds max {statement.max_iterations}"
+            )
+        for value in values:
+            ctx.resource_guard.before_loop_iteration()
+            ctx.push_frame()
+            try:
+                ctx.bind(
+                    statement.iterator_symbol_id,
+                    ValueEnvelope(
+                        value,
+                        collection.type_info.item,
+                        Presence.PRESENT,
+                        collection.completeness,
+                        collection.classification,
+                        collection.provenance_refs,
+                    ),
+                )
+                await self._execute_block(ctx, statement.body, tools)
+            finally:
+                ctx.pop_frame()
 
     async def _execute_let(
         self,
@@ -441,6 +476,7 @@ class RuntimeEngine:
         ):
             raise TypeError(expression)
         try:
+            ctx.resource_guard.check_deadline()
             result = await self._evaluate_ir(ctx, expression, tools)
         except (
             AuthorizationError,
@@ -460,6 +496,9 @@ class RuntimeEngine:
                 "EXPRESSION_TYPE_MISMATCH",
                 "expression type mismatch",
             )
+        ctx.resource_guard.check_deadline()
+        if isinstance(result.value, list):
+            ctx.resource_guard.check_collection(len(result.value))
         return result
 
     async def _evaluate_ir(
@@ -589,9 +628,7 @@ class RuntimeEngine:
             name: await self._evaluate(ctx, value, tools)
             for name, value in expression.arguments
         }
-        ctx.resources.tool_calls += 1
-        if ctx.resources.tool_calls > ctx.skill.limits.tool_calls:
-            raise LimitExceeded("tool call limit exceeded")
+        ctx.resource_guard.before_tool_call()
         ctx.invocation_counter += 1
         invocation_id = f"inv{ctx.invocation_counter:04d}"
         argument_values = {
@@ -623,17 +660,53 @@ class RuntimeEngine:
             principal=ctx.request.principal,
             authorization_decision_ref=decision.decision_id,
         )
+        remaining_duration_ms = ctx.resource_guard.remaining_duration_ms()
+        timeout_ms = min(contract.timeout_ms, remaining_duration_ms)
+        duration_limited = remaining_duration_ms <= contract.timeout_ms
         try:
             self.tool_validator.validate_request(request, contract)
             raw_result = await execute_with_timeout(
-                tools, request, contract.timeout_ms
+                tools, request, timeout_ms
             )
             result = self.tool_validator.validate_result_structure(
                 raw_result, request
             )
             self.tool_validator.validate_result(result, contract)
             self.tool_validator.validate_result_hash(result)
+            ctx.resource_guard.check_deadline()
+        except LimitExceeded:
+            ctx.audit.emit(
+                "TOOL_FAILED",
+                {
+                    "node_id": expression.node_id,
+                    "invocation_id": invocation_id,
+                    "tool_id": required.tool_id,
+                    "error_code": "RESOURCE_LIMIT_EXCEEDED",
+                    "output": {
+                        "status": "LIMIT_EXCEEDED",
+                        "error_code": "RESOURCE_LIMIT_EXCEEDED",
+                    },
+                },
+            )
+            raise
         except ToolExecutionError as error:
+            if error.code == "TOOL_TIMEOUT" and duration_limited:
+                ctx.audit.emit(
+                    "TOOL_FAILED",
+                    {
+                        "node_id": expression.node_id,
+                        "invocation_id": invocation_id,
+                        "tool_id": required.tool_id,
+                        "error_code": "RESOURCE_LIMIT_EXCEEDED",
+                        "output": {
+                            "status": "LIMIT_EXCEEDED",
+                            "error_code": "RESOURCE_LIMIT_EXCEEDED",
+                        },
+                    },
+                )
+                raise LimitExceeded(
+                    "execution duration limit exceeded"
+                ) from error
             ctx.audit.emit(
                 "TOOL_FAILED",
                 {
@@ -690,11 +763,7 @@ class RuntimeEngine:
             # Preserve the partial value so strict CHECK semantics can yield UNKNOWN.
             pass
         if isinstance(result.value, list):
-            ctx.resources.max_collection_size_seen = max(
-                ctx.resources.max_collection_size_seen, len(result.value)
-            )
-            if len(result.value) > ctx.skill.limits.collection_size:
-                raise LimitExceeded("collection size limit exceeded")
+            ctx.resource_guard.observe_collection(len(result.value))
         provenance_ref = f"prov:{invocation_id}:{result.result_hash[7:19]}"
         return result.to_value(provenance_ref)
 

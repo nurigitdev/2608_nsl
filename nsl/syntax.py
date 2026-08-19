@@ -511,6 +511,7 @@ class AstLimits(AstNode):
     loop_iterations: int
     emitted_rows: int
     collection_size: int
+    duration_ms: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -838,15 +839,27 @@ class Parser:
         self._expect("{")
         values: dict[str, int] = {}
         while self.current.value != "}":
-            name = self._expect_kind(TokenKind.IDENTIFIER).value
-            values[name] = int(self._expect_kind(TokenKind.INTEGER).value)
+            name_token = self._expect_kind(TokenKind.IDENTIFIER)
+            name = name_token.value
+            if name in values:
+                raise self._error(
+                    DiagnosticCode.PAR_INVALID_LIMIT_FIELDS,
+                    f"duplicate limit field: {name}",
+                    name_token,
+                )
+            value_kind = (
+                TokenKind.DURATION if name == "duration" else TokenKind.INTEGER
+            )
+            values[name] = int(self._expect_kind(value_kind).value)
             self._expect(";")
         end_token = self._expect("}")
         required = {"tool_calls", "loop_iterations", "emitted_rows", "collection_size"}
-        if set(values) != required:
+        allowed = required | {"duration"}
+        if not required.issubset(values) or not set(values).issubset(allowed):
             raise self._error(
                 DiagnosticCode.PAR_INVALID_LIMIT_FIELDS,
-                f"limits must define exactly: {', '.join(sorted(required))}",
+                f"limits must define exactly: {', '.join(sorted(required))}; "
+                "duration is optional",
                 self.current,
             )
         if any(value <= 0 for value in values.values()):
@@ -855,7 +868,12 @@ class Parser:
                 "all limits must be positive",
                 self.current,
             )
-        return AstLimits(**values, span=self._span(start_token, end_token))
+        duration_ms = values.pop("duration", 60_000)
+        return AstLimits(
+            **values,
+            duration_ms=duration_ms,
+            span=self._span(start_token, end_token),
+        )
 
     def _fields(
         self, keyword: str, with_path: bool = False

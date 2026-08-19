@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0018",
+  "current_slice": "0019",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -355,6 +355,24 @@
     "NSL-TST-011": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-011"], "evidence": ["tests/test_runtime_worst_cases.py::test_runtime_preflight_rejects_malformed_or_unsupported_ir"]},
     "NSL-TST-018": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-018"], "evidence": ["tests/test_vertical_slice.py::test_missing_tool_scope_is_denied_before_provider_call"]},
     "NSL-TST-019": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-019"], "evidence": ["tests/test_vertical_slice.py::test_confidential_values_are_redacted_from_audit"]},
-    "NSL-TST-020": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-020"], "evidence": ["tests/test_vertical_slice.py::test_replay_snapshot_is_tenant_isolated"]}
+    "NSL-TST-020": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-020"], "evidence": ["tests/test_vertical_slice.py::test_replay_snapshot_is_tenant_isolated"]},
+    "NSL-FOR-001": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-FOR-001"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_for_001_foreach_requires_explicit_maximum"]},
+    "NSL-FOR-002": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-FOR-002"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_for_002_foreach_accepts_minimum_positive_integer", "tests/test_foreach_and_runtime_limits.py::test_for_002_foreach_rejects_non_positive_or_non_integer_maximum"]},
+    "NSL-FOR-003": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-FOR-003"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_for_003_runtime_tracks_actual_foreach_iterations"]},
+    "NSL-FOR-004": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-FOR-004"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_for_004_foreach_stops_before_body_when_collection_exceeds_max"]},
+    "NSL-FOR-005": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-FOR-005"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_for_005_language_rejects_unbounded_loop_constructs"]},
+    "NSL-FOR-006": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-FOR-006"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_for_006_runtime_limits_nested_foreach_execution_depth"]},
+    "NSL-FOR-007": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-FOR-007"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_for_007_foreach_preserves_deterministic_collection_order"]},
+    "NSL-FOR-008": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-FOR-008"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_for_008_parallel_foreach_is_not_supported"]},
+    "NSL-LIM-001": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-LIM-001"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_lim_001_skill_defines_explicit_resource_limits", "tests/test_foreach_and_runtime_limits.py::test_lim_001_omitted_duration_uses_explicit_canonical_default", "tests/test_foreach_and_runtime_limits.py::test_lim_001_rejects_invalid_resource_limit_definitions"]},
+    "NSL-LIM-002": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-LIM-002"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_lim_002_runtime_tracks_each_executed_tool_call", "tests/test_foreach_and_runtime_limits.py::test_lim_002_tool_call_over_limit_is_blocked_before_execution"]},
+    "NSL-LIM-003": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-LIM-003"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_lim_003_runtime_tracks_and_limits_loop_iterations"]},
+    "NSL-LIM-004": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-LIM-004"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_lim_004_runtime_tracks_and_limits_emitted_rows"]},
+    "NSL-LIM-005": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-LIM-005"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_lim_005_runtime_enforces_total_duration_boundary", "tests/test_foreach_and_runtime_limits.py::test_lim_005_remaining_duration_caps_tool_timeout", "tests/test_foreach_and_runtime_limits.py::test_lim_005_forged_zero_duration_is_rejected_at_runtime", "tests/test_foreach_and_runtime_limits.py::test_lim_005_expired_deadline_has_no_remaining_tool_timeout"]},
+    "NSL-LIM-006": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-LIM-006"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_lim_006_collection_limit_applies_to_all_expression_results", "tests/test_foreach_and_runtime_limits.py::test_lim_006_collection_limit_applies_at_external_value_boundaries"]},
+    "NSL-LIM-007": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-LIM-007"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_lim_007_every_resource_limit_returns_limit_exceeded"]},
+    "NSL-LIM-008": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-LIM-008"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_lim_008_resource_limit_is_never_reported_as_check_fail"]},
+    "NSL-TST-006": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-TST-006"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_tst_006_foreach_declared_bound_and_worst_case_excess"]},
+    "NSL-TST-009": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-TST-009"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_tst_009_runtime_reports_integrated_resource_usage", "tests/test_foreach_and_runtime_limits.py::test_lim_007_every_resource_limit_returns_limit_exceeded"]}
   }
 }

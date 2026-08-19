@@ -284,6 +284,7 @@ class _Lowerer:
             loop_iterations=self.ast.limits.loop_iterations,
             emitted_rows=self.ast.limits.emitted_rows,
             collection_size=self.ast.limits.collection_size,
+            duration_ms=self.ast.limits.duration_ms,
         )
         body = self._lower_block(self.ast.body, outputs)
         try:

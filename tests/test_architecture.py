@@ -80,6 +80,7 @@ ALLOWED_EXTERNAL_MODULES = {
     "hashlib",
     "json",
     "pathlib",
+    "time",
     "traceback",
     "typing",
 }

@@ -156,6 +156,12 @@ Slice 0018은 미등록 READ tool reference를 예상하지 못한 예외가 아
 
 그러나 변조된 IR의 READ 오류는 `.ns` Source가 아니라 IR node에 관한 오류이며, Unsupported language/risk와 일부 EMIT schema/classification Source 오류에도 AST SourceSpan 연결이 남아 있다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0018 종료 시점에도 `PARTIAL`을 유지한다.
 
+### Slice 0019 재평가
+
+Slice 0019는 FOREACH와 Runtime Resource Limit 초과를 안정적인 `NSL-E6001`, `RESOURCE` category, `LIMIT_EXCEEDED` 실행 상태로 구조화한다. Runtime 오류는 Compile된 IR의 node 또는 실행 resource에 관한 것이며 `.ns` Source의 Line/Column과 Snippet을 새로 제공하지 않는다.
+
+Unsupported language/risk와 일부 EMIT schema/classification Source 오류의 AST SourceSpan 연결도 남아 있다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0019 종료 시점에도 `PARTIAL`을 유지한다.
+
 ## 7. Acceptance
 
 각 Requirement 변경 후 `tools/run_quality.py`로 Traceability, 전체 Regression, Statement/Branch Coverage를 반복 검증했다. Slice 완료 기준은 다음과 같다.

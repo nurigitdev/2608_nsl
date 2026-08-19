@@ -171,6 +171,7 @@ class ResourceLimits:
     loop_iterations: int
     emitted_rows: int
     collection_size: int
+    duration_ms: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -367,6 +368,7 @@ def skill_to_data(
             "loop_iterations": skill.limits.loop_iterations,
             "emitted_rows": skill.limits.emitted_rows,
             "collection_size": skill.limits.collection_size,
+            "duration_ms": skill.limits.duration_ms,
         },
         "inputs": [
             {

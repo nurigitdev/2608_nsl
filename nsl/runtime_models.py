@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from time import monotonic_ns
+from typing import Any, Mapping, Protocol
 
 from .audit import AuditRecorder
 from .core import (
@@ -12,7 +13,7 @@ from .core import (
     ValueEnvelope,
     encode_value,
 )
-from .ir import SkillObject
+from .ir import ResourceLimits, SkillObject
 from .security import DataHandlingPolicy, ExecutionPrincipal
 
 
@@ -20,8 +21,24 @@ class LimitExceeded(RuntimeError):
     pass
 
 
+MAX_FOREACH_NESTING_DEPTH = 16
+_NANOSECONDS_PER_MILLISECOND = 1_000_000
+_DURATION_LIMIT_MESSAGE = "execution duration limit exceeded"
+
+
 class ImmutableBindingError(RuntimeError):
     detail_code = "IMMUTABLE_BINDING_ERROR"
+
+
+class RuntimeClock(Protocol):
+    def monotonic_ns(self) -> int: ...
+
+
+class SystemRuntimeClock:
+    __slots__ = ()
+
+    def monotonic_ns(self) -> int:
+        return monotonic_ns()
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,10 +143,79 @@ class _ResourceMeter:
 
 
 @dataclass(slots=True)
+class ResourceGuard:
+    limits: ResourceLimits
+    meter: _ResourceMeter
+    clock: RuntimeClock
+    started_ns: int = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.started_ns = self.clock.monotonic_ns()
+
+    def _remaining_duration_ns(self) -> int:
+        elapsed_ns = self.clock.monotonic_ns() - self.started_ns
+        return self.limits.duration_ms * _NANOSECONDS_PER_MILLISECOND - elapsed_ns
+
+    def check_deadline(self) -> None:
+        if self._remaining_duration_ns() <= 0:
+            raise LimitExceeded(_DURATION_LIMIT_MESSAGE)
+
+    def remaining_duration_ms(self) -> int:
+        remaining_ns = self._remaining_duration_ns()
+        if remaining_ns <= 0:
+            raise LimitExceeded(_DURATION_LIMIT_MESSAGE)
+        return (
+            remaining_ns + _NANOSECONDS_PER_MILLISECOND - 1
+        ) // _NANOSECONDS_PER_MILLISECOND
+
+    @staticmethod
+    def _consume(current: int, limit: int, message: str) -> int:
+        if current >= limit:
+            raise LimitExceeded(message)
+        return current + 1
+
+    def before_tool_call(self) -> None:
+        self.check_deadline()
+        self.meter.tool_calls = self._consume(
+            self.meter.tool_calls,
+            self.limits.tool_calls,
+            "tool call limit exceeded",
+        )
+
+    def before_loop_iteration(self) -> None:
+        self.check_deadline()
+        self.meter.loop_iterations = self._consume(
+            self.meter.loop_iterations,
+            self.limits.loop_iterations,
+            "loop iteration limit exceeded",
+        )
+
+    def before_emit(self) -> None:
+        self.check_deadline()
+        if self.meter.emitted_rows >= self.limits.emitted_rows:
+            raise LimitExceeded("emitted row limit exceeded")
+
+    def record_emit(self) -> None:
+        self.meter.emitted_rows += 1
+
+    def check_collection(self, size: int) -> None:
+        self.check_deadline()
+        if size > self.limits.collection_size:
+            raise LimitExceeded("collection size limit exceeded")
+
+    def observe_collection(self, size: int) -> None:
+        self.meter.max_collection_size_seen = max(
+            self.meter.max_collection_size_seen, size
+        )
+        self.check_collection(size)
+
+
+@dataclass(slots=True)
 class ExecutionContext:
     skill: SkillObject
     request: ExecutionRequest
     audit: AuditRecorder
+    runtime_clock: RuntimeClock = field(default_factory=SystemRuntimeClock)
     input_values: dict[str, ValueEnvelope] = field(default_factory=dict)
     context_values: dict[str, ValueEnvelope] = field(default_factory=dict)
     frames: list[dict[str, ValueEnvelope]] = field(
@@ -142,6 +228,13 @@ class ExecutionContext:
     outputs: list[EmitRecord] = field(default_factory=list)
     resources: _ResourceMeter = field(default_factory=_ResourceMeter)
     invocation_counter: int = 0
+    foreach_depth: int = 0
+    resource_guard: ResourceGuard = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        self.resource_guard = ResourceGuard(
+            self.skill.limits, self.resources, self.runtime_clock
+        )
 
     def _is_bound(self, symbol_id: str) -> bool:
         return (

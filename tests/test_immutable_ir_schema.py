@@ -167,12 +167,14 @@ def test_ir_007_nso_contains_explicit_resource_limits() -> None:
         "loop_iterations": 10,
         "emitted_rows": 10,
         "collection_size": 1000,
+        "duration_ms": 60_000,
     }
     assert payload["limits"] == {
         "tool_calls": loaded.limits.tool_calls,
         "loop_iterations": loaded.limits.loop_iterations,
         "emitted_rows": loaded.limits.emitted_rows,
         "collection_size": loaded.limits.collection_size,
+        "duration_ms": loaded.limits.duration_ms,
     }
 
 

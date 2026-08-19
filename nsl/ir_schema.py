@@ -421,10 +421,22 @@ def validate_nso_document(value: Any) -> None:
         root["limits"],
         "$.limits",
         frozenset(
-            {"tool_calls", "loop_iterations", "emitted_rows", "collection_size"}
+            {
+                "tool_calls",
+                "loop_iterations",
+                "emitted_rows",
+                "collection_size",
+                "duration_ms",
+            }
         ),
     )
-    for name in ("tool_calls", "loop_iterations", "emitted_rows", "collection_size"):
+    for name in (
+        "tool_calls",
+        "loop_iterations",
+        "emitted_rows",
+        "collection_size",
+        "duration_ms",
+    ):
         _integer(limits[name], f"$.limits.{name}", 1)
 
     for index, input_spec in enumerate(_array(root["inputs"], "$.inputs")):
