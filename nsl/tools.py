@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -38,6 +39,7 @@ class DuplicateToolContractError(ValueError):
 
 
 TOOL_VERSION_COMPATIBILITY_POLICY = "EXACT"
+MAX_TOOL_TIMEOUT_MS = 2_147_483_647
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +53,7 @@ class ToolContract:
     output_type: TypeRef
     required_scope: str
     output_classification: DataClassification
+    timeout_ms: int = 30_000
     risk: str = "READ_ONLY"
     empty_is_valid: bool = True
 
@@ -77,6 +80,14 @@ class ToolContract:
             raise ValueError("tool input schema must contain TypeRef values")
         if not isinstance(self.output_type, TypeRef):
             raise ValueError("tool output schema must be a TypeRef")
+        if (
+            type(self.timeout_ms) is not int
+            or self.timeout_ms < 1
+            or self.timeout_ms > MAX_TOOL_TIMEOUT_MS
+        ):
+            raise ValueError(
+                f"tool timeout_ms must be between 1 and {MAX_TOOL_TIMEOUT_MS}"
+            )
 
     @property
     def contract_hash(self) -> str:
@@ -92,6 +103,7 @@ class ToolContract:
             "output": self.output_type.to_data(),
             "required_scope": self.required_scope,
             "output_classification": self.output_classification.value,
+            "timeout_ms": self.timeout_ms,
             "empty_is_valid": self.empty_is_valid,
         }
         return "sha256:" + sha256(canonical_json(payload)).hexdigest()
@@ -184,6 +196,10 @@ class ToolResultEnvelope:
         )
 
 
+def tool_result_hash(value: Any) -> str:
+    return "sha256:" + sha256(canonical_json(encode_value(value))).hexdigest()
+
+
 def value_conforms_to_type(value: Any, type_info: TypeRef) -> bool:
     if type_info.kind == "primitive":
         expected = {
@@ -255,11 +271,67 @@ class ToolContractValidator:
                     f"argument type does not match contract: {request.tool_id}.{name}",
                 )
 
-    def validate_result(self, value: Any, contract: ToolContract) -> None:
+    def validate_result_structure(
+        self, result: Any, request: ToolCallRequest
+    ) -> ToolResultEnvelope:
+        if not isinstance(result, ToolResultEnvelope):
+            raise ToolExecutionError(
+                "MALFORMED_TOOL_RESULT",
+                f"tool result is not a structured envelope: {request.tool_id}",
+            )
+        if (
+            result.invocation_id != request.invocation_id
+            or result.tool_id != request.tool_id
+            or result.tool_version != request.tool_version
+        ):
+            raise ToolExecutionError(
+                "TOOL_RESULT_IDENTITY_MISMATCH",
+                f"tool result identity does not match request: {request.tool_id}",
+            )
+        if (
+            not isinstance(result.type_info, TypeRef)
+            or not isinstance(result.presence, Presence)
+            or not isinstance(result.completeness, Completeness)
+            or not isinstance(result.classification, DataClassification)
+            or (
+                result.snapshot_ref is not None
+                and (
+                    not isinstance(result.snapshot_ref, str)
+                    or not result.snapshot_ref
+                )
+            )
+        ):
+            raise ToolExecutionError(
+                "MALFORMED_TOOL_RESULT",
+                f"tool result metadata is malformed: {request.tool_id}",
+            )
+        return result
+
+    def validate_result_value(self, value: Any, contract: ToolContract) -> None:
         if not value_conforms_to_type(value, contract.output_type):
             raise ToolExecutionError(
                 "OUTPUT_CONTRACT_VIOLATION",
                 f"result does not match contract: {contract.tool_id}",
+            )
+
+    def validate_result(
+        self, result: ToolResultEnvelope, contract: ToolContract
+    ) -> None:
+        if (
+            result.type_info != contract.output_type
+            or result.classification != contract.output_classification
+        ):
+            raise ToolExecutionError(
+                "OUTPUT_CONTRACT_VIOLATION",
+                f"result metadata does not match contract: {contract.tool_id}",
+            )
+        self.validate_result_value(result.value, contract)
+
+    def validate_result_hash(self, result: ToolResultEnvelope) -> None:
+        if result.result_hash != tool_result_hash(result.value):
+            raise ToolExecutionError(
+                "TOOL_RESULT_HASH_MISMATCH",
+                f"tool result hash does not match value: {result.tool_id}",
             )
 
 
@@ -270,6 +342,22 @@ class ToolExecutor(Protocol):
 
 
 ToolExecutionPort = ToolExecutor
+
+
+async def execute_with_timeout(
+    executor: ToolExecutor,
+    request: ToolCallRequest,
+    timeout_ms: int,
+) -> ToolResultEnvelope:
+    try:
+        return await asyncio.wait_for(
+            executor.execute(request), timeout=timeout_ms / 1000
+        )
+    except TimeoutError as error:
+        raise ToolExecutionError(
+            "TOOL_TIMEOUT",
+            f"tool timed out after {timeout_ms} ms: {request.tool_id}",
+        ) from error
 
 
 FixtureHandler = Callable[[Mapping[str, Any]], Any]
@@ -303,11 +391,9 @@ class MockToolExecutor:
         }
         self.call_count += 1
         value = self.handlers[request.tool_id](raw_arguments)
-        self.validator.validate_result(value, contract)
+        self.validator.validate_result_value(value, contract)
         presence = Presence.EMPTY if value == [] or value is None else Presence.PRESENT
-        result_hash = "sha256:" + sha256(
-            canonical_json(encode_value(value))
-        ).hexdigest()
+        result_hash = tool_result_hash(value)
         return ToolResultEnvelope(
             invocation_id=request.invocation_id,
             tool_id=request.tool_id,

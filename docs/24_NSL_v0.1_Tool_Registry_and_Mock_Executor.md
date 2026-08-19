@@ -35,7 +35,10 @@ Version은 leading zero가 없는 canonical `major.minor.patch` 숫자 형식만
 - 순서가 보존된 Input 이름/Type schema
 - Output Type schema
 - Required Scope와 Output Classification
+- Tool Timeout
 - Empty result policy
+
+Slice 0018은 Tool Timeout을 canonical `timeout_ms` 필드로 구체화했으며 이 값도 contract hash에 포함한다.
 
 Capability는 비어 있지 않아야 한다. Input 이름은 비어 있지 않고 중복될 수 없으며 Input/Output schema는 `TypeRef`여야 한다. 고객별 endpoint, credential, MCP provider binding은 Canonical Contract, Registry, NSL Source와 NSO에 포함하지 않는다.
 

@@ -150,6 +150,12 @@ Slice 0017은 Tool Registry의 중복·Version·Schema 오류와 Runtime의 requ
 
 Unsupported language/risk와 일부 EMIT schema/classification Source 오류에는 여전히 해당 AST SourceSpan이 연결되지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0017 종료 시점에도 `PARTIAL`을 유지한다.
 
+### Slice 0018 재평가
+
+Slice 0018은 미등록 READ tool reference를 예상하지 못한 예외가 아닌 안정적인 Runtime Contract 오류로 전환하고, parameter·result·timeout 오류를 명시적인 Tool 오류로 구조화한다. 정상 Source의 중복 READ parameter는 기존 AST SourceSpan을 사용해 Compiler 진단 위치를 제공한다.
+
+그러나 변조된 IR의 READ 오류는 `.ns` Source가 아니라 IR node에 관한 오류이며, Unsupported language/risk와 일부 EMIT schema/classification Source 오류에도 AST SourceSpan 연결이 남아 있다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0018 종료 시점에도 `PARTIAL`을 유지한다.
+
 ## 7. Acceptance
 
 각 Requirement 변경 후 `tools/run_quality.py`로 Traceability, 전체 Regression, Statement/Branch Coverage를 반복 검증했다. Slice 완료 기준은 다음과 같다.

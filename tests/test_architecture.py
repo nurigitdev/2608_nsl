@@ -225,10 +225,22 @@ def test_arc_005_external_access_uses_tool_execution_port() -> None:
         and node.func.value.id == "tools"
         and node.func.attr == "execute"
     ]
+    timeout_port_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "execute_with_timeout"
+        and node.args
+        and isinstance(node.args[0], ast.Name)
+        and node.args[0].id == "tools"
+    ]
 
     assert "ToolExecutionPort" in imported_tool_names
     assert "MockToolExecutor" not in imported_tool_names
-    assert port_calls, "Runtime must route business-system access through tools.execute"
+    assert port_calls or timeout_port_calls, (
+        "Runtime must route business-system access through the ToolExecutor port"
+    )
 
 
 def test_arc_006_runtime_has_no_direct_infrastructure_dependency() -> None:

@@ -530,9 +530,10 @@ class _Lowerer:
                     f"tool not declared in requires: {ast.tool_id}",
                     ast.span,
                 ) from error
-            provided = {name for name, _ in ast.arguments}
+            provided_names = tuple(name for name, _ in ast.arguments)
+            provided = set(provided_names)
             expected = {name for name, _ in contract.input_types}
-            if provided != expected:
+            if provided != expected or len(provided_names) != len(provided):
                 raise self.diagnostics.error(
                     DiagnosticCode.SEM_TOOL_ARGUMENTS,
                     f"tool arguments for {ast.tool_id} must be {sorted(expected)}",

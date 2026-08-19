@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0017",
+  "current_slice": "0018",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -322,7 +322,14 @@
     "NSL-MNY-007": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-MNY-007"], "evidence": ["tests/test_core_and_security.py::test_money_arithmetic_comparison_and_currency_guard", "tests/test_money_semantics.py::test_tst_005_runtime_reports_mixed_currency_as_explicit_failure"]},
     "NSL-REQ-002": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-REQ-002"], "evidence": ["tests/test_vertical_slice.py::test_compile_rejects_undeclared_tool"]},
     "NSL-REQ-006": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-REQ-006"], "evidence": ["tests/test_syntax_and_compiler_boundaries.py::test_compiler_rejects_write_contract"]},
+    "NSL-READ-001": {"status": "IMPLEMENTED", "target_slice": "0018", "verification": ["TEST-READ-001"], "evidence": ["tests/test_read_execution_semantics.py::test_read_001_runtime_rejects_unregistered_tool_reference_before_call", "tests/test_runtime_worst_cases.py::test_sec_007_only_registered_tools_can_reach_executor"]},
+    "NSL-READ-002": {"status": "IMPLEMENTED", "target_slice": "0018", "verification": ["TEST-READ-002"], "evidence": ["tests/test_read_execution_semantics.py::test_read_002_compiler_rejects_duplicate_tool_parameter_names", "tests/test_read_execution_semantics.py::test_read_002_runtime_rejects_duplicate_parameter_before_call"]},
+    "NSL-READ-003": {"status": "IMPLEMENTED", "target_slice": "0018", "verification": ["TEST-READ-003"], "evidence": ["tests/test_read_execution_semantics.py::test_read_003_runtime_requires_structured_tool_result", "tests/test_read_execution_semantics.py::test_read_003_structured_envelope_supports_non_collection_schema"]},
+    "NSL-READ-004": {"status": "IMPLEMENTED", "target_slice": "0018", "verification": ["TEST-READ-004"], "evidence": ["tests/test_read_execution_semantics.py::test_read_004_runtime_validates_result_against_tool_contract"]},
     "NSL-READ-005": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-READ-005"], "evidence": ["tests/test_vertical_slice.py::test_tool_failure_is_not_converted_to_empty_data"]},
+    "NSL-READ-006": {"status": "IMPLEMENTED", "target_slice": "0018", "verification": ["TEST-READ-006"], "evidence": ["tests/test_read_execution_semantics.py::test_read_006_tool_contract_rejects_invalid_timeout", "tests/test_read_execution_semantics.py::test_read_006_timeout_is_an_explicit_tool_error"]},
+    "NSL-READ-007": {"status": "IMPLEMENTED", "target_slice": "0018", "verification": ["TEST-READ-007"], "evidence": ["tests/test_read_execution_semantics.py::test_read_007_audit_records_each_invocation_input_and_output", "tests/test_read_execution_semantics.py::test_read_007_audit_records_failed_invocation_output", "tests/test_read_execution_semantics.py::test_read_007_completed_output_is_audited_before_collection_limit"]},
+    "NSL-READ-008": {"status": "IMPLEMENTED", "target_slice": "0018", "verification": ["TEST-READ-008"], "evidence": ["tests/test_read_execution_semantics.py::test_read_008_result_hash_is_canonical_and_deterministic", "tests/test_read_execution_semantics.py::test_read_008_runtime_rejects_unverified_result_hash"]},
     "NSL-VAL-005": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-VAL-005"], "evidence": ["tests/test_vertical_slice.py::test_tool_failure_is_not_converted_to_empty_data"]},
     "NSL-VAL-006": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-VAL-006"], "evidence": ["tests/test_vertical_slice.py::test_partial_tool_data_cannot_produce_pass"]},
     "NSL-VAL-011": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-VAL-011"], "evidence": ["tests/test_runtime_worst_cases.py::test_budget_exceeded_produces_fail_not_execution_error"]},

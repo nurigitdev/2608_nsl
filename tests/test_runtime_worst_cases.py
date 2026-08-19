@@ -125,7 +125,8 @@ def test_sec_007_only_registered_tools_can_reach_executor(runtime_fixture) -> No
 
     assert result.status is ExecutionStatus.FAILED
     assert result.error is not None
-    assert result.error.code == "NSL-E8002"
+    assert result.error.code == "NSL-E8001"
+    assert result.error.message == "read references unregistered tool: tool9999"
     assert tools.call_count == 0
 
 

@@ -57,6 +57,7 @@ from .tools import (
     ToolRegistry,
     UnknownToolContractError,
     IncompatibleToolVersionError,
+    execute_with_timeout,
 )
 
 
@@ -548,78 +549,154 @@ class RuntimeEngine:
                 highest_classification(left.classification, right.classification),
                 tuple(dict.fromkeys(left.provenance_refs + right.provenance_refs)),
             )
-        else:
-            required = next(
+        return await self._execute_read(ctx, expression, tools)
+
+    async def _execute_read(
+        self,
+        ctx: ExecutionContext,
+        expression: ReadExpr,
+        tools: ToolExecutionPort,
+    ) -> ValueEnvelope:
+        required = next(
+            (
                 item
                 for item in ctx.skill.required_tools
                 if item.tool_ref == expression.tool_ref
+            ),
+            None,
+        )
+        if required is None:
+            raise RuntimeContractError(
+                f"read references unregistered tool: {expression.tool_ref}"
             )
-            decision = self.authorizer.authorize(
-                ctx.request.principal,
-                f"tool:{required.tool_id}:execute",
-                frozenset({required.required_scope}),
+        contract = self.tool_catalog.resolve(required.tool_id, required.version)
+        argument_names = tuple(name for name, _ in expression.arguments)
+        expected_names = {name for name, _ in contract.input_types}
+        if (
+            set(argument_names) != expected_names
+            or len(argument_names) != len(set(argument_names))
+        ):
+            raise ToolExecutionError(
+                "TOOL_ARGUMENT_MISMATCH",
+                f"argument names do not match contract: {required.tool_id}",
             )
-            arguments = {
-                name: await self._evaluate(ctx, value, tools)
-                for name, value in expression.arguments
-            }
-            ctx.resources.tool_calls += 1
-            if ctx.resources.tool_calls > ctx.skill.limits.tool_calls:
-                raise LimitExceeded("tool call limit exceeded")
-            ctx.invocation_counter += 1
-            invocation_id = f"inv{ctx.invocation_counter:04d}"
+        decision = self.authorizer.authorize(
+            ctx.request.principal,
+            f"tool:{required.tool_id}:execute",
+            frozenset({required.required_scope}),
+        )
+        arguments = {
+            name: await self._evaluate(ctx, value, tools)
+            for name, value in expression.arguments
+        }
+        ctx.resources.tool_calls += 1
+        if ctx.resources.tool_calls > ctx.skill.limits.tool_calls:
+            raise LimitExceeded("tool call limit exceeded")
+        ctx.invocation_counter += 1
+        invocation_id = f"inv{ctx.invocation_counter:04d}"
+        argument_values = {
+            name: envelope.value for name, envelope in arguments.items()
+        }
+        argument_hash = value_hash(argument_values)
+        ctx.audit.emit(
+            "TOOL_STARTED",
+            {
+                "node_id": expression.node_id,
+                "invocation_id": invocation_id,
+                "tool_id": required.tool_id,
+                "argument_hash": argument_hash,
+                "input": {
+                    "argument_names": list(arguments),
+                    "argument_hash": argument_hash,
+                },
+                "authorization_decision_ref": decision.decision_id,
+            },
+        )
+        request = ToolCallRequest(
+            execution_id=ctx.request.execution_id,
+            invocation_id=invocation_id,
+            node_id=expression.node_id,
+            tool_id=required.tool_id,
+            tool_version=required.version,
+            contract_hash=required.contract_hash,
+            arguments=arguments,
+            principal=ctx.request.principal,
+            authorization_decision_ref=decision.decision_id,
+        )
+        try:
+            self.tool_validator.validate_request(request, contract)
+            raw_result = await execute_with_timeout(
+                tools, request, contract.timeout_ms
+            )
+            result = self.tool_validator.validate_result_structure(
+                raw_result, request
+            )
+            self.tool_validator.validate_result(result, contract)
+            self.tool_validator.validate_result_hash(result)
+        except ToolExecutionError as error:
             ctx.audit.emit(
-                "TOOL_STARTED",
+                "TOOL_FAILED",
                 {
                     "node_id": expression.node_id,
                     "invocation_id": invocation_id,
                     "tool_id": required.tool_id,
-                    "argument_hash": value_hash(
-                        {name: envelope.value for name, envelope in arguments.items()}
-                    ),
-                    "authorization_decision_ref": decision.decision_id,
+                    "error_code": error.code,
+                    "output": {
+                        "status": "TOOL_ERROR",
+                        "error_code": error.code,
+                    },
                 },
             )
-            request = ToolCallRequest(
-                execution_id=ctx.request.execution_id,
-                invocation_id=invocation_id,
-                node_id=expression.node_id,
-                tool_id=required.tool_id,
-                tool_version=required.version,
-                contract_hash=required.contract_hash,
-                arguments=arguments,
-                principal=ctx.request.principal,
-                authorization_decision_ref=decision.decision_id,
-            )
-            contract = self.tool_catalog.resolve(required.tool_id, required.version)
-            self.tool_validator.validate_request(request, contract)
-            result = await tools.execute(request)
-            if (
-                result.completeness != Completeness.COMPLETE
-                and not expression.result_policy.accept_partial
-            ):
-                # Preserve the partial value so strict CHECK semantics can yield UNKNOWN.
-                pass
-            if isinstance(result.value, list):
-                ctx.resources.max_collection_size_seen = max(
-                    ctx.resources.max_collection_size_seen, len(result.value)
-                )
-                if len(result.value) > ctx.skill.limits.collection_size:
-                    raise LimitExceeded("collection size limit exceeded")
-            provenance_ref = f"prov:{invocation_id}:{result.result_hash[7:19]}"
+            raise
+        except Exception:
             ctx.audit.emit(
-                "TOOL_COMPLETED",
+                "TOOL_FAILED",
                 {
                     "node_id": expression.node_id,
                     "invocation_id": invocation_id,
                     "tool_id": required.tool_id,
+                    "error_code": "UNEXPECTED_TOOL_ERROR",
+                    "output": {
+                        "status": "FAILED",
+                        "error_code": "UNEXPECTED_TOOL_ERROR",
+                    },
+                },
+            )
+            raise
+        ctx.audit.emit(
+            "TOOL_COMPLETED",
+            {
+                "node_id": expression.node_id,
+                "invocation_id": invocation_id,
+                "tool_id": required.tool_id,
+                "result_hash": result.result_hash,
+                "snapshot_ref": result.snapshot_ref,
+                "presence": result.presence.value,
+                "completeness": result.completeness.value,
+                "output": {
                     "result_hash": result.result_hash,
                     "snapshot_ref": result.snapshot_ref,
+                    "type": result.type_info.to_data(),
                     "presence": result.presence.value,
                     "completeness": result.completeness.value,
+                    "classification": result.classification.value,
                 },
+            },
+        )
+        if (
+            result.completeness != Completeness.COMPLETE
+            and not expression.result_policy.accept_partial
+        ):
+            # Preserve the partial value so strict CHECK semantics can yield UNKNOWN.
+            pass
+        if isinstance(result.value, list):
+            ctx.resources.max_collection_size_seen = max(
+                ctx.resources.max_collection_size_seen, len(result.value)
             )
-            return result.to_value(provenance_ref)
+            if len(result.value) > ctx.skill.limits.collection_size:
+                raise LimitExceeded("collection size limit exceeded")
+        provenance_ref = f"prov:{invocation_id}:{result.result_hash[7:19]}"
+        return result.to_value(provenance_ref)
 
     def _combine_completeness(
         self, left: Completeness, right: Completeness
