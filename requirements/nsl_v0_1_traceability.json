@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0019",
+  "current_slice": "0020",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -373,6 +373,16 @@
     "NSL-LIM-007": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-LIM-007"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_lim_007_every_resource_limit_returns_limit_exceeded"]},
     "NSL-LIM-008": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-LIM-008"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_lim_008_resource_limit_is_never_reported_as_check_fail"]},
     "NSL-TST-006": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-TST-006"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_tst_006_foreach_declared_bound_and_worst_case_excess"]},
-    "NSL-TST-009": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-TST-009"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_tst_009_runtime_reports_integrated_resource_usage", "tests/test_foreach_and_runtime_limits.py::test_lim_007_every_resource_limit_returns_limit_exceeded"]}
+    "NSL-TST-009": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-TST-009"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_tst_009_runtime_reports_integrated_resource_usage", "tests/test_foreach_and_runtime_limits.py::test_lim_007_every_resource_limit_returns_limit_exceeded"]},
+    "NSL-VAL-001": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-VAL-001"], "evidence": ["tests/test_check_and_false_pass.py::test_val_001_check_evaluates_only_exact_bool_values", "tests/test_check_and_false_pass.py::test_val_001_forged_truthy_bool_value_cannot_pass_at_runtime"]},
+    "NSL-VAL-002": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-VAL-002"], "evidence": ["tests/test_check_and_false_pass.py::test_val_002_complete_true_predicate_becomes_pass"]},
+    "NSL-VAL-003": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-VAL-003"], "evidence": ["tests/test_check_and_false_pass.py::test_val_003_complete_false_predicate_becomes_fail"]},
+    "NSL-VAL-004": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-VAL-004"], "evidence": ["tests/test_check_and_false_pass.py::test_val_004_indeterminate_predicate_becomes_unknown"]},
+    "NSL-VAL-007": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-VAL-007"], "evidence": ["tests/test_check_and_false_pass.py::test_val_007_check_result_and_used_facts_are_audited"]},
+    "NSL-VAL-008": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-VAL-008"], "evidence": ["tests/test_check_and_false_pass.py::test_val_008_check_message_is_included_in_runtime_result"]},
+    "NSL-VAL-009": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-VAL-009"], "evidence": ["tests/test_check_and_false_pass.py::test_val_009_simple_check_uses_strict_rule_evaluator"]},
+    "NSL-VAL-010": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-VAL-010"], "evidence": ["tests/test_check_and_false_pass.py::test_val_010_reasoning_validator_has_typed_future_adapter_boundary"]},
+    "NSL-FP-002": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-FP-002"], "evidence": ["tests/test_check_and_false_pass.py::test_fp_002_missing_required_tool_result_cannot_reach_check"]},
+    "NSL-FP-005": {"status": "IMPLEMENTED", "target_slice": "0020", "verification": ["TEST-FP-005"], "evidence": ["tests/test_check_and_false_pass.py::test_fp_005_data_completeness_is_recorded_in_audit"]}
   }
 }

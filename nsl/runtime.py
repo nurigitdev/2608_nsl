@@ -7,10 +7,8 @@ from typing import Any, Callable
 from .audit import AuditRecorder, AuditSink, SnapshotStore, value_hash
 from .builtins import BuiltinError, V0_1_BUILTINS
 from .core import (
-    BOOL,
     CHECK_RESULT,
     DECIMAL,
-    CheckStatus,
     Completeness,
     DataClassification,
     ExecutionStatus,
@@ -38,7 +36,6 @@ from .ir import (
     SymbolRefExpr,
 )
 from .runtime_models import (
-    CheckResult,
     EmitRecord,
     ExecutionRequest,
     ExecutionResult,
@@ -62,6 +59,7 @@ from .tools import (
     IncompatibleToolVersionError,
     execute_with_timeout,
 )
+from .validation import CheckEvaluationError, StrictRuleEvaluator
 
 
 class RuntimeContractError(RuntimeError):
@@ -97,6 +95,7 @@ class RuntimeEngine:
         self.authorizer = authorizer or StaticAuthorizer()
         self.debug_mode = debug_mode
         self.debug_trace_sink = debug_trace_sink
+        self.check_evaluator = StrictRuleEvaluator()
         self.runtime_clock = (
             runtime_clock if runtime_clock is not None else SystemRuntimeClock()
         )
@@ -341,41 +340,7 @@ class RuntimeEngine:
             elif isinstance(statement, ForeachStatement):
                 await self._execute_foreach(ctx, statement, tools)
             elif isinstance(statement, CheckStatement):
-                predicate = await self._evaluate(ctx, statement.condition, tools)
-                if predicate.type_info != BOOL:
-                    raise RuntimeContractError("CHECK predicate is not Bool")
-                if predicate.completeness == Completeness.COMPLETE:
-                    status = CheckStatus.PASS if predicate.value else CheckStatus.FAIL
-                else:
-                    status = CheckStatus.UNKNOWN
-                check = CheckResult(
-                    statement.check_id,
-                    status,
-                    statement.severity,
-                    statement.message,
-                    predicate.completeness,
-                    predicate.provenance_refs,
-                )
-                ctx.checks.append(check)
-                ctx.bind_check(
-                    statement.result_symbol_id,
-                    ValueEnvelope.complete(
-                        {"status": status.value},
-                        CHECK_RESULT,
-                        DataClassification.INTERNAL,
-                        predicate.provenance_refs,
-                    ),
-                )
-                ctx.audit.emit(
-                    "CHECK_COMPLETED",
-                    {
-                        "node_id": statement.node_id,
-                        "check_id": statement.check_id,
-                        "status": status.value,
-                        "completeness": predicate.completeness.value,
-                        "provenance_refs": list(predicate.provenance_refs),
-                    },
-                )
+                await self._execute_check(ctx, statement, tools)
             elif isinstance(statement, EmitStatement):
                 ctx.resource_guard.before_emit()
                 values: dict[str, Any] = {}
@@ -399,6 +364,41 @@ class RuntimeEngine:
                 "STATEMENT_COMPLETED",
                 {"node_id": statement.node_id, "kind": type(statement).__name__},
             )
+
+    async def _execute_check(
+        self,
+        ctx: ExecutionContext,
+        statement: CheckStatement,
+        tools: ToolExecutionPort,
+    ) -> None:
+        predicate = await self._evaluate(ctx, statement.condition, tools)
+        try:
+            check = self.check_evaluator.evaluate(statement, predicate)
+        except CheckEvaluationError as error:
+            raise RuntimeContractError(str(error)) from error
+        ctx.checks.append(check)
+        ctx.bind_check(
+            statement.result_symbol_id,
+            ValueEnvelope.complete(
+                {"status": check.status.value},
+                CHECK_RESULT,
+                DataClassification.INTERNAL,
+                predicate.provenance_refs,
+            ),
+        )
+        ctx.audit.emit(
+            "CHECK_COMPLETED",
+            {
+                "node_id": statement.node_id,
+                "check_id": statement.check_id,
+                "status": check.status.value,
+                "condition_node_id": check.condition_node_id,
+                "presence": check.presence.value,
+                "completeness": check.completeness.value,
+                "reason": check.reason_code,
+                "provenance_refs": list(check.provenance_refs),
+            },
+        )
 
     async def _execute_foreach(
         self,
@@ -673,6 +673,15 @@ class RuntimeEngine:
             )
             self.tool_validator.validate_result(result, contract)
             self.tool_validator.validate_result_hash(result)
+            if (
+                expression.result_policy.required
+                and result.presence is Presence.EMPTY
+                and not expression.result_policy.empty_is_valid
+            ):
+                raise ToolExecutionError(
+                    "REQUIRED_TOOL_RESULT_MISSING",
+                    f"required tool result is missing: {required.tool_id}",
+                )
             ctx.resource_guard.check_deadline()
         except LimitExceeded:
             ctx.audit.emit(

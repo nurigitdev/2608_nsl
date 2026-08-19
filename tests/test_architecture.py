@@ -28,6 +28,7 @@ RUNTIME_KERNEL_MODULES = {
     "runtime.py",
     "runtime_models.py",
     "security.py",
+    "validation.py",
 }
 LANGUAGE_CORE_MODULES = {
     "bounds.py",
@@ -157,6 +158,7 @@ def called_attributes(path: Path) -> set[str]:
         ("type_system", {"ir", "syntax", "compiler", "runtime", "tools"}),
         ("runtime", {"syntax", "compiler"}),
         ("runtime_models", {"syntax", "compiler"}),
+        ("validation", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
     ],
 )
 def test_module_dependency_boundaries(module_name, forbidden) -> None:

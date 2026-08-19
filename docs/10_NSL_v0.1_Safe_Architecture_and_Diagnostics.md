@@ -162,6 +162,12 @@ Slice 0019는 FOREACH와 Runtime Resource Limit 초과를 안정적인 `NSL-E600
 
 Unsupported language/risk와 일부 EMIT schema/classification Source 오류의 AST SourceSpan 연결도 남아 있다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0019 종료 시점에도 `PARTIAL`을 유지한다.
 
+### Slice 0020 재평가
+
+Slice 0020은 CHECK 결과에 condition IR node, Presence, Completeness, 판정 사유와 provenance를 보존하고 Audit에 기록한다. 이는 실행 중 사용된 Fact와 판단 근거를 추적하는 Runtime 의미론이며 `.ns` Source의 Line/Column 또는 Snippet을 새로 제공하는 Compile Diagnostic은 아니다.
+
+Unsupported language/risk와 일부 EMIT schema/classification Source 오류의 AST SourceSpan 연결도 남아 있다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0020 종료 시점에도 `PARTIAL`을 유지한다.
+
 ## 7. Acceptance
 
 각 Requirement 변경 후 `tools/run_quality.py`로 Traceability, 전체 Regression, Statement/Branch Coverage를 반복 검증했다. Slice 완료 기준은 다음과 같다.

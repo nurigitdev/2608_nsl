@@ -60,8 +60,11 @@ class CheckResult:
     status: CheckStatus
     severity: str
     message: str
+    condition_node_id: str
+    presence: Presence
     completeness: Completeness
     provenance_refs: tuple[str, ...]
+    reason_code: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,7 +114,10 @@ class ExecutionResult:
                     "status": check.status.value,
                     "severity": check.severity,
                     "message": check.message,
+                    "condition_node_id": check.condition_node_id,
+                    "presence": check.presence.value,
                     "completeness": check.completeness.value,
+                    "reason_code": check.reason_code,
                 }
                 for check in self.checks
             ],
