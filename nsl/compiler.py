@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from typing import Any
 
+from .bounds import StaticBoundAnalyzer, UnboundedStructureError
 from .core import (
     CHECK_RESULT,
     DataClassification,
@@ -30,7 +31,6 @@ from .ir import (
     ResourceLimits,
     ResultPolicy,
     SkillObject,
-    StaticAnalysis,
     Statement,
     SymbolRefExpr,
     SymbolSpec,
@@ -274,25 +274,34 @@ class _Lowerer:
             collection_size=self.ast.limits.collection_size,
         )
         body = self._lower_block(self.ast.body, outputs)
-        bounds = self._bounds(body)
-        analysis = StaticAnalysis(*bounds, bounded=True)
+        try:
+            analysis = StaticBoundAnalyzer().analyze(body)
+        except UnboundedStructureError as error:
+            raise self.diagnostics.error(
+                DiagnosticCode.SEM_UNBOUNDED_STRUCTURE,
+                f"static execution bound cannot be proven: {error}",
+                self.ast.span,
+            ) from error
         if analysis.max_tool_calls > limits.tool_calls:
-            raise compile_error(
+            raise self.diagnostics.error(
                 DiagnosticCode.SEM_TOOL_CALL_BOUND,
-                DiagnosticPhase.SEMANTIC,
-                "static tool call bound exceeds declared limit",
+                f"static tool call bound {analysis.max_tool_calls} exceeds "
+                f"declared limit {limits.tool_calls}",
+                self.ast.limits.span,
             )
         if analysis.max_loop_iterations > limits.loop_iterations:
-            raise compile_error(
+            raise self.diagnostics.error(
                 DiagnosticCode.SEM_LOOP_BOUND,
-                DiagnosticPhase.SEMANTIC,
-                "static loop bound exceeds declared limit",
+                f"static loop bound {analysis.max_loop_iterations} exceeds "
+                f"declared limit {limits.loop_iterations}",
+                self.ast.limits.span,
             )
         if analysis.max_emit_records > limits.emitted_rows:
-            raise compile_error(
+            raise self.diagnostics.error(
                 DiagnosticCode.SEM_EMIT_BOUND,
-                DiagnosticPhase.SEMANTIC,
-                "static emit bound exceeds declared limit",
+                f"static emit bound {analysis.max_emit_records} exceeds "
+                f"declared limit {limits.emitted_rows}",
+                self.ast.limits.span,
             )
 
         return SkillObject(
@@ -538,40 +547,3 @@ class _Lowerer:
                 contract.output_classification,
             )
         raise TypeError(ast)
-
-    def _bounds(self, statements: tuple[Statement, ...]) -> tuple[int, int, int]:
-        tool_calls = 0
-        loop_iterations = 0
-        emits = 0
-        for statement in statements:
-            if isinstance(statement, LetStatement):
-                tool_calls += self._expr_tool_calls(statement.value)
-            elif isinstance(statement, ForeachStatement):
-                collection_calls = self._expr_tool_calls(statement.collection)
-                body_calls, body_loops, body_emits = self._bounds(statement.body)
-                tool_calls += collection_calls + statement.max_iterations * body_calls
-                loop_iterations += statement.max_iterations * (1 + body_loops)
-                emits += statement.max_iterations * body_emits
-            elif isinstance(statement, CheckStatement):
-                tool_calls += self._expr_tool_calls(statement.condition)
-            elif isinstance(statement, EmitStatement):
-                emits += 1
-                tool_calls += sum(
-                    self._expr_tool_calls(value) for _, value in statement.fields
-                )
-        return tool_calls, loop_iterations, emits
-
-    def _expr_tool_calls(self, expression: Any) -> int:
-        if isinstance(expression, ReadExpr):
-            return 1 + sum(
-                self._expr_tool_calls(value) for _, value in expression.arguments
-            )
-        if isinstance(expression, (FieldExpr, ProjectionExpr)):
-            return self._expr_tool_calls(expression.source)
-        if isinstance(expression, CallExpr):
-            return sum(self._expr_tool_calls(item) for item in expression.arguments)
-        if isinstance(expression, BinaryExpr):
-            return self._expr_tool_calls(expression.left) + self._expr_tool_calls(
-                expression.right
-            )
-        return 0

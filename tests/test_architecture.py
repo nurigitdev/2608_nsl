@@ -28,6 +28,7 @@ RUNTIME_KERNEL_MODULES = {
     "security.py",
 }
 LANGUAGE_CORE_MODULES = {
+    "bounds.py",
     "builtins.py",
     "compiler.py",
     "core.py",
@@ -141,6 +142,7 @@ def called_attributes(path: Path) -> set[str]:
     ("module_name", "forbidden"),
     [
         ("core", {"ir", "syntax", "compiler", "runtime", "tools"}),
+        ("bounds", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
         ("syntax", {"ir", "compiler", "runtime", "tools", "audit", "replay"}),
         ("ir", {"syntax", "compiler", "runtime", "audit", "replay"}),
         ("compiler", {"runtime", "runtime_models", "audit", "replay"}),

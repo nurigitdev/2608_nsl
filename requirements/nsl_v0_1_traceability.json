@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0011",
+  "current_slice": "0012",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -251,6 +251,11 @@
     "NSL-BLT-007": {"status": "IMPLEMENTED", "target_slice": "0010", "verification": ["TEST-BLT-007"], "evidence": ["tests/test_builtin_semantics.py::test_blt_007_count_returns_collection_size", "tests/test_builtin_semantics.py::test_blt_007_count_compiles_and_runs_through_the_shared_registry"]},
     "NSL-BLT-008": {"status": "IMPLEMENTED", "target_slice": "0010", "verification": ["TEST-BLT-008"], "evidence": ["tests/test_builtin_semantics.py::test_blt_008_empty_ordering_aggregation_is_an_explicit_error", "tests/test_builtin_semantics.py::test_blt_008_malformed_builtin_contracts_fail_closed", "tests/test_builtin_semantics.py::test_blt_008_builtin_error_cannot_become_skill_pass"]},
     "NSL-BLT-009": {"status": "IMPLEMENTED", "target_slice": "0010", "verification": ["TEST-BLT-009"], "evidence": ["tests/test_builtin_semantics.py::test_blt_009_coalesce_is_disabled_in_the_v0_1_baseline"]},
+    "NSL-BND-001": {"status": "IMPLEMENTED", "target_slice": "0012", "verification": ["TEST-BND-001"], "evidence": ["tests/test_static_bounds.py::test_bnd_001_compiler_calculates_exact_maximum_tool_calls"]},
+    "NSL-BND-002": {"status": "IMPLEMENTED", "target_slice": "0012", "verification": ["TEST-BND-002"], "evidence": ["tests/test_static_bounds.py::test_bnd_002_nested_foreach_max_drives_worst_case_resource_analysis"]},
+    "NSL-BND-003": {"status": "IMPLEMENTED", "target_slice": "0012", "verification": ["TEST-BND-003"], "evidence": ["tests/test_static_bounds.py::test_bnd_003_tool_call_bound_accepts_equality_and_rejects_one_over"]},
+    "NSL-BND-004": {"status": "IMPLEMENTED", "target_slice": "0012", "verification": ["TEST-BND-004"], "evidence": ["tests/test_static_bounds.py::test_bnd_004_source_cannot_declare_an_unbounded_loop", "tests/test_static_bounds.py::test_bnd_004_compiler_fails_closed_when_bound_analysis_cannot_prove_safety"]},
+    "NSL-BND-005": {"status": "IMPLEMENTED", "target_slice": "0012", "verification": ["TEST-BND-005"], "evidence": ["tests/test_static_bounds.py::test_bnd_005_nso_contains_and_round_trips_static_bound_analysis"]},
     "NSL-ARC-012": {"status": "IMPLEMENTED", "target_slice": "0011", "verification": ["TEST-ARC-012"], "evidence": ["tests/test_tool_contracts.py::test_arc_012_compiler_resolves_canonical_contract_not_customer_binding"]},
     "NSL-REQ-001": {"status": "IMPLEMENTED", "target_slice": "0011", "verification": ["TEST-REQ-001"], "evidence": ["tests/test_tool_contracts.py::test_req_001_every_read_requires_an_explicit_tool_declaration"]},
     "NSL-REQ-003": {"status": "IMPLEMENTED", "target_slice": "0011", "verification": ["TEST-REQ-003"], "evidence": ["tests/test_tool_contracts.py::test_req_003_compile_checks_canonical_tool_existence"]},

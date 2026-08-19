@@ -114,6 +114,12 @@ Slice 0011에서 `requires`의 각 Tool 선언을 독립적인 `AstRequiredTool`
 
 Tool 계약 영역의 Source Diagnostic 공백은 해소됐지만, static resource bound와 일부 상위 Semantic/EMIT 오류는 아직 SourceSpan을 전달하지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0011 종료 시점에도 `PARTIAL`을 유지한다.
 
+### Slice 0012 재평가
+
+Slice 0012에서 Tool Call, Loop, Emit의 static resource bound 초과 오류가 `limits` 선언의 Line/Column, Snippet, Logical Path를 보존하도록 통합됐다. 분석 불가능한 실행 구조도 안정적인 `NSL-E6104`와 Source 위치를 가진 Compile 오류로 닫힌다.
+
+Resource Bound 영역의 Source Diagnostic 공백은 해소됐지만, unsupported language/risk와 일부 EMIT schema/classification 오류는 아직 해당 AST SourceSpan을 전달하지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0012 종료 시점에도 `PARTIAL`을 유지한다.
+
 ## 7. Acceptance
 
 각 Requirement 변경 후 `tools/run_quality.py`로 Traceability, 전체 Regression, Statement/Branch Coverage를 반복 검증했다. Slice 완료 기준은 다음과 같다.
