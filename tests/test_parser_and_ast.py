@@ -385,7 +385,10 @@ def test_par_016_root_and_include_fragment_parse_modes_are_distinct() -> None:
 
     assert isinstance(fragment, AstIncludeFragment)
     assert tuple(item.path for item in fragment.includes) == ("base.ns",)
-    assert fragment.requires == (("PROJECT.TOOL", "1.0.0"),)
+    assert tuple(
+        (item.tool_id, item.version) for item in fragment.requires
+    ) == (("PROJECT.TOOL", "1.0.0"),)
+    assert fragment.requires[0].span is not None
     assert tuple(item.name for item in fragment.contexts) == ("team_id",)
     assert len(fragment.limits) == 1
     assert fragment.span is not None

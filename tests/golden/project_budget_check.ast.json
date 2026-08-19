@@ -6,8 +6,16 @@
   "risk": "READ_VALIDATE",
   "includes": [],
   "requires": [
-    ["PROJECT.LIST_PARENT_PROJECTS", "1.0.0"],
-    ["PROJECT.LIST_CHILD_PROJECTS", "1.0.0"]
+    {
+      "node": "AstRequiredTool",
+      "tool_id": "PROJECT.LIST_PARENT_PROJECTS",
+      "version": "1.0.0"
+    },
+    {
+      "node": "AstRequiredTool",
+      "tool_id": "PROJECT.LIST_CHILD_PROJECTS",
+      "version": "1.0.0"
+    }
   ],
   "limits": {
     "node": "AstLimits",

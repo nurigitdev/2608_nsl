@@ -131,7 +131,7 @@ def test_parser_boundary_failures(source, message) -> None:
             ),
             "duplicate required tool",
         ),
-        (SOURCE.replace('version "1.0.0";\n    }', 'version "9.0.0";\n    }', 1), "unknown tool contract"),
+        (SOURCE.replace('version "1.0.0";\n    }', 'version "9.0.0";\n    }', 1), "incompatible tool version"),
         (SOURCE.replace("team_id: TeamId", "year: TeamId"), "duplicate symbol"),
         (SOURCE.replace("assert spent <= parent.budget", "assert spent"), "CHECK assert must have Bool"),
         (SOURCE.replace("foreach parent in parents", "foreach parent in year"), "foreach collection must be List"),

@@ -108,6 +108,12 @@ Slice 0010에서 Built-in 이름과 Signature 오류가 `StaticTypeChecker`의 `
 
 그러나 미선언 Tool, Tool 인자 이름 집합, 일부 Tool Contract 및 resource bound 오류에는 여전히 SourceSpan이 연결되지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0010 종료 시점에도 `PARTIAL`을 유지한다.
 
+### Slice 0011 재평가
+
+Slice 0011에서 `requires`의 각 Tool 선언을 독립적인 `AstRequiredTool` Source Node로 승격했다. 중복 Tool, 존재하지 않는 Canonical Contract, 호환되지 않는 Version, non-READ Capability 오류는 해당 선언의 Line/Column, Snippet, Logical Path를 보존한다. 미선언 `read`, Tool 인자 이름 집합, Tool 인자 Type 오류도 원래 `AstRead` 또는 인자 SourceSpan을 사용한다.
+
+Tool 계약 영역의 Source Diagnostic 공백은 해소됐지만, static resource bound와 일부 상위 Semantic/EMIT 오류는 아직 SourceSpan을 전달하지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0011 종료 시점에도 `PARTIAL`을 유지한다.
+
 ## 7. Acceptance
 
 각 Requirement 변경 후 `tools/run_quality.py`로 Traceability, 전체 Regression, Statement/Branch Coverage를 반복 검증했다. Slice 완료 기준은 다음과 같다.

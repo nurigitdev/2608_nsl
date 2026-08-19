@@ -333,7 +333,7 @@ class SourceComposer:
         if not isinstance(root, AstSkill):
             raise TypeError("source bundle root must be AstSkill")
 
-        requires_by_id = dict(root.requires)
+        requires_by_id = {item.tool_id: item for item in root.requires}
         contexts_by_name = {item.name: item for item in root.contexts}
         limits = root.limits
         sources_by_id = {source.source_id: source for source in bundle.sources}
@@ -362,15 +362,16 @@ class SourceComposer:
             fragment = unit.ast
             if not isinstance(fragment, AstIncludeFragment):
                 raise TypeError("source bundle fragments must be AstIncludeFragment")
-            for tool_id, version in fragment.requires:
-                existing = requires_by_id.get(tool_id)
-                if existing is not None and existing != version:
+            for requirement in fragment.requires:
+                existing = requires_by_id.get(requirement.tool_id)
+                if existing is not None and existing.version != requirement.version:
                     raise composition_error(
                         DiagnosticCode.INC_TOOL_VERSION_CONFLICT,
-                        f"conflicting include tool versions: {tool_id}",
-                        fragment,
+                        f"conflicting include tool versions: {requirement.tool_id}",
+                        requirement,
                     )
-                requires_by_id[tool_id] = version
+                if existing is None:
+                    requires_by_id[requirement.tool_id] = requirement
             for context in fragment.contexts:
                 if context.name in contexts_by_name:
                     raise composition_error(
@@ -398,7 +399,7 @@ class SourceComposer:
         return replace(
             root,
             includes=(),
-            requires=tuple(requires_by_id.items()),
+            requires=tuple(requires_by_id.values()),
             contexts=tuple(contexts_by_name.values()),
             limits=limits,
         )

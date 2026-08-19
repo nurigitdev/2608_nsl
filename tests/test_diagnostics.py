@@ -75,7 +75,7 @@ def test_err_004_public_message_is_separate_from_internal_exception() -> None:
         NslCompiler(build_tool_catalog()).compile(source)
 
     error = captured.value
-    assert error.public_message.startswith("unknown tool contract")
+    assert error.public_message.startswith("incompatible tool version")
     assert isinstance(error.__cause__, KeyError)
     assert repr(error.__cause__) not in error.public_message
     assert not hasattr(error.diagnostic, "internal_exception")

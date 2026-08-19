@@ -94,6 +94,7 @@ AST_NODE_NAMES = {
     "AstNode",
     "AstPath",
     "AstRead",
+    "AstRequiredTool",
     "AstSkill",
 }
 

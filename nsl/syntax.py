@@ -519,9 +519,15 @@ class AstIncludeDeclaration(AstNode):
 
 
 @dataclass(frozen=True, slots=True)
+class AstRequiredTool(AstNode):
+    tool_id: str
+    version: str
+
+
+@dataclass(frozen=True, slots=True)
 class AstIncludeFragment(AstNode):
     includes: tuple[AstIncludeDeclaration, ...]
-    requires: tuple[tuple[str, str], ...]
+    requires: tuple[AstRequiredTool, ...]
     contexts: tuple[AstFieldSpec, ...]
     limits: tuple[AstLimits, ...]
 
@@ -533,7 +539,7 @@ class AstSkill(AstNode):
     skill_version: str
     risk: str
     includes: tuple[AstIncludeDeclaration, ...]
-    requires: tuple[tuple[str, str], ...]
+    requires: tuple[AstRequiredTool, ...]
     limits: AstLimits | None
     inputs: tuple[AstFieldSpec, ...]
     contexts: tuple[AstFieldSpec, ...]
@@ -710,7 +716,7 @@ class Parser:
         skill_version = ""
         risk = ""
         includes: list[AstIncludeDeclaration] = []
-        requires: tuple[tuple[str, str], ...] = ()
+        requires: tuple[AstRequiredTool, ...] = ()
         limits: AstLimits | None = None
         inputs: tuple[AstFieldSpec, ...] = ()
         contexts: tuple[AstFieldSpec, ...] = ()
@@ -768,7 +774,7 @@ class Parser:
     def _parse_include_fragment(self) -> AstIncludeFragment:
         start_token = self.current
         includes: list[AstIncludeDeclaration] = []
-        requires: list[tuple[str, str]] = []
+        requires: list[AstRequiredTool] = []
         contexts: list[AstFieldSpec] = []
         limits: list[AstLimits] = []
 
@@ -808,17 +814,23 @@ class Parser:
             path, span=self._span(start_token, end_token)
         )
 
-    def _requires(self) -> tuple[tuple[str, str], ...]:
+    def _requires(self) -> tuple[AstRequiredTool, ...]:
         self._expect("requires")
         self._expect("{")
-        items: list[tuple[str, str]] = []
+        items: list[AstRequiredTool] = []
         while not self._accept("}"):
-            self._expect("tool")
+            start_token = self._expect("tool")
             tool_id = self._qualified_name()
             self._expect("version")
             version = self._expect_kind(TokenKind.STRING).value
-            self._expect(";")
-            items.append((tool_id, version))
+            end_token = self._expect(";")
+            items.append(
+                AstRequiredTool(
+                    tool_id,
+                    version,
+                    span=self._span(start_token, end_token),
+                )
+            )
         return tuple(items)
 
     def _limits(self) -> AstLimits:

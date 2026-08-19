@@ -281,7 +281,7 @@ def test_inc_009_compatible_requires_are_set_merged() -> None:
     composed = SourceComposer().compose(
         SourceBundleBuilder(resolver).build(root)
     )
-    assert composed.requires == (
+    assert tuple((item.tool_id, item.version) for item in composed.requires) == (
         ("PROJECT.LIST_PARENT_PROJECTS", "1.0.0"),
         ("PROJECT.LIST_CHILD_PROJECTS", "1.0.0"),
     )
@@ -299,6 +299,27 @@ def test_inc_009_compatible_requires_are_set_merged() -> None:
     with pytest.raises(CompileError) as captured:
         SourceComposer().compose(conflict_bundle)
     assert captured.value.code == DiagnosticCode.INC_TOOL_VERSION_CONFLICT
+
+
+def test_inc_009_new_fragment_requirement_preserves_its_source_span() -> None:
+    root = _root_with_includes("new_requirement.ns")
+    fragment = SourceFile.from_text(
+        "skills/new_requirement.ns",
+        'requires { tool PROJECT.NEW_TOOL version "1.0.0"; }',
+    )
+
+    composed = SourceComposer().compose(
+        SourceBundleBuilder(MemoryIncludeResolver((fragment,))).build(root)
+    )
+
+    added = next(
+        item for item in composed.requires if item.tool_id == "PROJECT.NEW_TOOL"
+    )
+    assert added.version == "1.0.0"
+    assert added.span is not None
+    assert added.span.source_id == fragment.source_id
+    assert added.span.start.line == 1
+    assert added.span.start.column == 12
 
 
 @pytest.mark.parametrize(

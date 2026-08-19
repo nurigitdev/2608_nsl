@@ -44,6 +44,7 @@ from .includes import (
     SourceManifestEntry,
     manifest_entry,
 )
+from .semantic_diagnostics import SourceDiagnosticContext
 from .source import SourceFile, coerce_source
 from .symbols import ScopeKind, SymbolBinding, SymbolNamespace, SymbolTable
 from .syntax import (
@@ -63,7 +64,12 @@ from .syntax import (
     Lexer,
     Parser,
 )
-from .tools import ToolContract, ToolContractCatalog
+from .tools import (
+    IncompatibleToolVersionError,
+    ToolContract,
+    ToolContractCatalog,
+    UnknownToolContractError,
+)
 from .type_system import StaticTypeChecker
 
 
@@ -133,6 +139,7 @@ class _Lowerer:
         self.node_counters: dict[str, int] = {}
         self.symbol_table = SymbolTable(sources)
         self.type_checker = StaticTypeChecker(sources)
+        self.diagnostics = SourceDiagnosticContext(sources)
         self.tools_by_id: dict[str, tuple[RequiredTool, ToolContract]] = {}
 
     def _node_id(self, kind: str) -> str:
@@ -184,26 +191,35 @@ class _Lowerer:
             )
 
         required_tools: list[RequiredTool] = []
-        for index, (tool_id, version) in enumerate(self.ast.requires, start=1):
+        for index, declaration in enumerate(self.ast.requires, start=1):
+            tool_id = declaration.tool_id
+            version = declaration.version
             if tool_id in self.tools_by_id:
-                raise compile_error(
+                raise self.diagnostics.error(
                     DiagnosticCode.SEM_DUPLICATE_TOOL,
-                    DiagnosticPhase.SEMANTIC,
                     f"duplicate required tool: {tool_id}",
+                    declaration.span,
                 )
             try:
-                contract = self.catalog.get(tool_id, version)
-            except KeyError as error:
-                raise compile_error(
+                contract = self.catalog.resolve(tool_id, version)
+            except UnknownToolContractError as error:
+                raise self.diagnostics.error(
                     DiagnosticCode.SEM_UNKNOWN_TOOL_CONTRACT,
-                    DiagnosticPhase.SEMANTIC,
                     f"unknown tool contract: {tool_id}@{version}",
+                    declaration.span,
+                ) from error
+            except IncompatibleToolVersionError as error:
+                raise self.diagnostics.error(
+                    DiagnosticCode.SEM_INCOMPATIBLE_TOOL_VERSION,
+                    f"incompatible tool version: {tool_id}@{version}",
+                    declaration.span,
                 ) from error
             if contract.capability != "READ":
-                raise compile_error(
+                raise self.diagnostics.error(
                     DiagnosticCode.SEM_WRITE_TOOL_FORBIDDEN,
-                    DiagnosticPhase.SEMANTIC,
-                    f"WRITE tool is forbidden in v0.1: {tool_id}",
+                    f"{contract.capability} tool capability is forbidden "
+                    f"in v0.1: {tool_id}",
+                    declaration.span,
                 )
             requirement = RequiredTool(
                 tool_ref=f"tool{index:04d}",
@@ -487,18 +503,18 @@ class _Lowerer:
             try:
                 requirement, contract = self.tools_by_id[ast.tool_id]
             except KeyError as error:
-                raise compile_error(
+                raise self.diagnostics.error(
                     DiagnosticCode.SEM_UNDECLARED_TOOL,
-                    DiagnosticPhase.SEMANTIC,
                     f"tool not declared in requires: {ast.tool_id}",
+                    ast.span,
                 ) from error
             provided = {name for name, _ in ast.arguments}
             expected = {name for name, _ in contract.input_types}
             if provided != expected:
-                raise compile_error(
+                raise self.diagnostics.error(
                     DiagnosticCode.SEM_TOOL_ARGUMENTS,
-                    DiagnosticPhase.SEMANTIC,
                     f"tool arguments for {ast.tool_id} must be {sorted(expected)}",
+                    ast.span,
                 )
             arguments: list[tuple[str, Any]] = []
             for name, ast_value in ast.arguments:

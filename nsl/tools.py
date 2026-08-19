@@ -22,8 +22,21 @@ class ToolExecutionError(RuntimeError):
         self.code = code
 
 
+class UnknownToolContractError(KeyError):
+    pass
+
+
+class IncompatibleToolVersionError(KeyError):
+    pass
+
+
+TOOL_VERSION_COMPATIBILITY_POLICY = "EXACT"
+
+
 @dataclass(frozen=True, slots=True)
 class ToolContract:
+    """Canonical business contract without customer-specific binding data."""
+
     tool_id: str
     version: str
     capability: str
@@ -31,6 +44,7 @@ class ToolContract:
     output_type: TypeRef
     required_scope: str
     output_classification: DataClassification
+    risk: str = "READ_ONLY"
     empty_is_valid: bool = True
 
     @property
@@ -39,6 +53,7 @@ class ToolContract:
             "tool_id": self.tool_id,
             "version": self.version,
             "capability": self.capability,
+            "risk": self.risk,
             "inputs": [
                 {"name": name, "type": type_info.to_data()}
                 for name, type_info in self.input_types
@@ -68,6 +83,23 @@ class ToolContractCatalog:
             return self._contracts[(tool_id, version)]
         except KeyError as error:
             raise KeyError(f"unknown tool contract: {tool_id}@{version}") from error
+
+    def resolve(self, tool_id: str, requested_version: str) -> ToolContract:
+        available_versions = tuple(
+            version
+            for registered_tool_id, version in self._contracts
+            if registered_tool_id == tool_id
+        )
+        if not available_versions:
+            raise UnknownToolContractError(
+                f"unknown tool contract: {tool_id}@{requested_version}"
+            )
+        try:
+            return self._contracts[(tool_id, requested_version)]
+        except KeyError as error:
+            raise IncompatibleToolVersionError(
+                f"incompatible tool version: {tool_id}@{requested_version}"
+            ) from error
 
 
 @dataclass(frozen=True, slots=True)
