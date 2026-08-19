@@ -320,6 +320,37 @@ def test_py_003_ast_nodes_are_explicit_dataclasses() -> None:
         assert fields, f"{name} must declare typed fields"
 
 
+def test_py_006_runtime_core_minimizes_async_framework_dependencies() -> None:
+    async_frameworks = {
+        "anyio",
+        "asyncio",
+        "curio",
+        "trio",
+        "twisted",
+        "uvloop",
+    }
+    violations: dict[str, list[str]] = {}
+    for module_name in ("runtime.py", "runtime_models.py"):
+        imported = absolute_imports(NSL / module_name)
+        forbidden = sorted(
+            module
+            for module in imported
+            if module.split(".", 1)[0] in async_frameworks
+        )
+        if forbidden:
+            violations[module_name] = forbidden
+
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    dependencies = project["project"].get("dependencies", [])
+    forbidden_dependencies = sorted(
+        dependency
+        for dependency in dependencies
+        if dependency.split("[", 1)[0].split("=", 1)[0].lower() in async_frameworks
+    )
+    assert not violations, f"Runtime imports async frameworks: {violations}"
+    assert not forbidden_dependencies
+
+
 def test_sec_001_eval_is_forbidden() -> None:
     violations = sorted(
         path.name
@@ -329,6 +360,15 @@ def test_sec_001_eval_is_forbidden() -> None:
     assert not violations, f"eval() is forbidden in NSL modules: {violations}"
 
 
+def test_rt_007_runtime_kernel_never_calls_python_eval() -> None:
+    violations = sorted(
+        module_name
+        for module_name in RUNTIME_KERNEL_MODULES
+        if "eval" in direct_function_calls(NSL / module_name)
+    )
+    assert not violations, f"Runtime kernel calls eval(): {violations}"
+
+
 def test_sec_002_exec_is_forbidden() -> None:
     violations = sorted(
         path.name
@@ -336,6 +376,97 @@ def test_sec_002_exec_is_forbidden() -> None:
         if "exec" in direct_function_calls(path)
     )
     assert not violations, f"exec() is forbidden in NSL modules: {violations}"
+
+
+def test_rt_008_runtime_kernel_never_calls_python_exec() -> None:
+    violations = sorted(
+        module_name
+        for module_name in RUNTIME_KERNEL_MODULES
+        if "exec" in direct_function_calls(NSL / module_name)
+    )
+    assert not violations, f"Runtime kernel calls exec(): {violations}"
+
+
+def test_rt_009_runtime_forbids_arbitrary_python_object_reflection() -> None:
+    forbidden_functions = {
+        "__import__",
+        "compile",
+        "delattr",
+        "dir",
+        "getattr",
+        "globals",
+        "hasattr",
+        "locals",
+        "setattr",
+        "vars",
+    }
+    forbidden_methods = {"__getattribute__", "__subclasses__"}
+    violations: dict[str, list[str]] = {}
+    for module_name in ("runtime.py", "runtime_models.py"):
+        path = NSL / module_name
+        found = sorted(
+            (direct_function_calls(path) & forbidden_functions)
+            | (called_attributes(path) & forbidden_methods)
+        )
+        if found:
+            violations[module_name] = found
+    assert not violations, f"Runtime uses reflection APIs: {violations}"
+
+
+def test_rt_010_runtime_evaluator_directly_dispatches_every_ir_expression() -> None:
+    tree = ast.parse((NSL / "runtime.py").read_text(encoding="utf-8"))
+    runtime = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "RuntimeEngine"
+    )
+    evaluator = next(
+        node
+        for node in runtime.body
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "_evaluate"
+    )
+    dispatched = {
+        call.args[1].id
+        for call in ast.walk(evaluator)
+        if isinstance(call, ast.Call)
+        and isinstance(call.func, ast.Name)
+        and call.func.id == "isinstance"
+        and len(call.args) >= 2
+        and isinstance(call.args[0], ast.Name)
+        and call.args[0].id == "expression"
+        and isinstance(call.args[1], ast.Name)
+    }
+    expected = {
+        "BinaryExpr",
+        "CallExpr",
+        "FieldExpr",
+        "LiteralExpr",
+        "ProjectionExpr",
+        "ReadExpr",
+        "SymbolRefExpr",
+    }
+    assert dispatched == expected
+    assert "eval" not in direct_function_calls(NSL / "runtime.py")
+    assert "exec" not in direct_function_calls(NSL / "runtime.py")
+
+
+def test_rt_012_runtime_has_no_source_ast_interpreter_path() -> None:
+    forbidden_modules = {"compiler", "source", "syntax"}
+    violations: dict[str, list[str]] = {}
+    for module_name in ("runtime", "runtime_models"):
+        path = NSL / f"{module_name}.py"
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        found = sorted(local_imports(module_name) & forbidden_modules)
+        ast_names = sorted(
+            {
+                node.id
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Name) and node.id.startswith("Ast")
+            }
+        )
+        if found or ast_names:
+            violations[module_name] = found + ast_names
+    assert not violations, f"Runtime exposes a Source AST path: {violations}"
 
 
 def test_sec_003_arbitrary_module_import_is_forbidden() -> None:

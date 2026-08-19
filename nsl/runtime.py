@@ -45,7 +45,7 @@ from .runtime_models import (
     LimitExceeded,
     ResourceUsage,
     RuntimeErrorInfo,
-    _ExecutionContext,
+    ExecutionContext,
 )
 from .security import AuthorizationError, StaticAuthorizer
 from .tools import (
@@ -85,7 +85,7 @@ class RuntimeEngine:
         snapshot_store: SnapshotStore | None = None,
     ) -> ExecutionResult:
         audit = AuditRecorder(audit_sink, request.data_policy)
-        ctx = _ExecutionContext(skill, request, audit)
+        ctx = ExecutionContext(skill, request, audit)
         try:
             self._preflight(skill)
             skill_scopes = frozenset({"nsl:skill:execute"})
@@ -139,7 +139,6 @@ class RuntimeEngine:
                     "context_hash": value_hash(dict(request.runtime_context)),
                 },
             )
-            ctx.frames.append({})
             self._bind_inputs_and_contexts(ctx)
             await self._execute_block(ctx, skill.body, tools)
             result = self._result(ctx, ExecutionStatus.COMPLETED)
@@ -231,13 +230,13 @@ class RuntimeEngine:
             if required.capability != "READ":
                 raise RuntimeContractError("WRITE capability is forbidden")
 
-    def _bind_inputs_and_contexts(self, ctx: _ExecutionContext) -> None:
+    def _bind_inputs_and_contexts(self, ctx: ExecutionContext) -> None:
         for spec in ctx.skill.inputs:
             if spec.required and spec.name not in ctx.request.inputs:
                 raise RuntimeContractError(f"missing required input: {spec.name}")
             value = ctx.request.inputs[spec.name]
             self._validate_runtime_type(value, spec.type_info, spec.name)
-            ctx.bind(
+            ctx.bind_input(
                 spec.symbol_id,
                 ValueEnvelope.complete(value, spec.type_info, spec.classification),
             )
@@ -251,7 +250,7 @@ class RuntimeEngine:
                         f"missing runtime context path: {'.'.join(spec.path)}"
                     ) from error
             self._validate_runtime_type(value, spec.type_info, spec.name)
-            ctx.bind(
+            ctx.bind_context(
                 spec.symbol_id,
                 ValueEnvelope.complete(value, spec.type_info, spec.classification),
             )
@@ -271,7 +270,7 @@ class RuntimeEngine:
 
     async def _execute_block(
         self,
-        ctx: _ExecutionContext,
+        ctx: ExecutionContext,
         statements: tuple[Statement, ...],
         tools: ToolExecutionPort,
     ) -> None:
@@ -293,20 +292,22 @@ class RuntimeEngine:
                     ctx.resources.loop_iterations += 1
                     if ctx.resources.loop_iterations > ctx.skill.limits.loop_iterations:
                         raise LimitExceeded("loop iteration limit exceeded")
-                    ctx.frames.append({})
-                    ctx.bind(
-                        statement.iterator_symbol_id,
-                        ValueEnvelope(
-                            value,
-                            collection.type_info.item,
-                            Presence.PRESENT,
-                            collection.completeness,
-                            collection.classification,
-                            collection.provenance_refs,
-                        ),
-                    )
-                    await self._execute_block(ctx, statement.body, tools)
-                    ctx.frames.pop()
+                    ctx.push_frame()
+                    try:
+                        ctx.bind(
+                            statement.iterator_symbol_id,
+                            ValueEnvelope(
+                                value,
+                                collection.type_info.item,
+                                Presence.PRESENT,
+                                collection.completeness,
+                                collection.classification,
+                                collection.provenance_refs,
+                            ),
+                        )
+                        await self._execute_block(ctx, statement.body, tools)
+                    finally:
+                        ctx.pop_frame()
             elif isinstance(statement, CheckStatement):
                 predicate = await self._evaluate(ctx, statement.condition, tools)
                 if predicate.type_info != BOOL:
@@ -324,7 +325,7 @@ class RuntimeEngine:
                     predicate.provenance_refs,
                 )
                 ctx.checks.append(check)
-                ctx.bind(
+                ctx.bind_check(
                     statement.result_symbol_id,
                     ValueEnvelope.complete(
                         {"status": status.value},
@@ -370,7 +371,7 @@ class RuntimeEngine:
 
     async def _evaluate(
         self,
-        ctx: _ExecutionContext,
+        ctx: ExecutionContext,
         expression: Expression,
         tools: ToolExecutionPort,
     ) -> ValueEnvelope:
@@ -539,7 +540,7 @@ class RuntimeEngine:
 
     def _result(
         self,
-        ctx: _ExecutionContext,
+        ctx: ExecutionContext,
         status: ExecutionStatus,
         error: RuntimeErrorInfo | None = None,
     ) -> ExecutionResult:
@@ -557,7 +558,7 @@ class RuntimeEngine:
 
     def _failed(
         self,
-        ctx: _ExecutionContext,
+        ctx: ExecutionContext,
         code: str | DiagnosticCode,
         category: str,
         message: str,

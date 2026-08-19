@@ -28,6 +28,10 @@ class ExecutionRequest:
     principal: ExecutionPrincipal
     data_policy: DataHandlingPolicy = DataHandlingPolicy()
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.execution_id, str) or not self.execution_id.strip():
+            raise ValueError("execution_id must be a non-empty string")
+
 
 @dataclass(frozen=True, slots=True)
 class CheckResult:
@@ -118,26 +122,73 @@ class _ResourceMeter:
 
 
 @dataclass(slots=True)
-class _ExecutionContext:
+class ExecutionContext:
     skill: SkillObject
     request: ExecutionRequest
     audit: AuditRecorder
-    frames: list[dict[str, ValueEnvelope]] = field(default_factory=list)
+    input_values: dict[str, ValueEnvelope] = field(default_factory=dict)
+    context_values: dict[str, ValueEnvelope] = field(default_factory=dict)
+    frames: list[dict[str, ValueEnvelope]] = field(
+        default_factory=lambda: [{}]
+    )
+    check_frames: list[dict[str, ValueEnvelope]] = field(
+        default_factory=lambda: [{}]
+    )
     checks: list[CheckResult] = field(default_factory=list)
     outputs: list[EmitRecord] = field(default_factory=list)
     resources: _ResourceMeter = field(default_factory=_ResourceMeter)
     invocation_counter: int = 0
 
-    def bind(self, symbol_id: str, value: ValueEnvelope) -> None:
-        frame = self.frames[-1]
-        if symbol_id in frame:
+    def _is_bound(self, symbol_id: str) -> bool:
+        return (
+            symbol_id in self.input_values
+            or symbol_id in self.context_values
+            or any(symbol_id in frame for frame in self.frames)
+            or any(symbol_id in frame for frame in self.check_frames)
+        )
+
+    def _bind_once(
+        self,
+        namespace: dict[str, ValueEnvelope],
+        symbol_id: str,
+        value: ValueEnvelope,
+    ) -> None:
+        if self._is_bound(symbol_id):
             raise RuntimeError(f"immutable symbol already bound: {symbol_id}")
-        frame[symbol_id] = value
+        namespace[symbol_id] = value
+
+    def bind_input(self, symbol_id: str, value: ValueEnvelope) -> None:
+        self._bind_once(self.input_values, symbol_id, value)
+
+    def bind_context(self, symbol_id: str, value: ValueEnvelope) -> None:
+        self._bind_once(self.context_values, symbol_id, value)
+
+    def bind(self, symbol_id: str, value: ValueEnvelope) -> None:
+        self._bind_once(self.frames[-1], symbol_id, value)
+
+    def bind_check(self, symbol_id: str, value: ValueEnvelope) -> None:
+        self._bind_once(self.check_frames[-1], symbol_id, value)
+
+    def push_frame(self) -> None:
+        self.frames.append({})
+        self.check_frames.append({})
+
+    def pop_frame(self) -> None:
+        if len(self.frames) == 1 or len(self.check_frames) == 1:
+            raise RuntimeError("cannot pop the root execution frame")
+        self.frames.pop()
+        self.check_frames.pop()
 
     def resolve(self, symbol_id: str) -> ValueEnvelope:
         for frame in reversed(self.frames):
             if symbol_id in frame:
                 return frame[symbol_id]
+        for frame in reversed(self.check_frames):
+            if symbol_id in frame:
+                return frame[symbol_id]
+        for namespace in (self.context_values, self.input_values):
+            if symbol_id in namespace:
+                return namespace[symbol_id]
         raise RuntimeError(f"unknown symbol: {symbol_id}")
 
     def usage(self) -> ResourceUsage:
@@ -147,3 +198,6 @@ class _ExecutionContext:
             self.resources.emitted_rows,
             self.resources.max_collection_size_seen,
         )
+
+
+_ExecutionContext = ExecutionContext
