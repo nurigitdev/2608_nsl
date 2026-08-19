@@ -208,9 +208,12 @@ def test_tst_005_runtime_reports_mixed_currency_as_explicit_failure() -> None:
         )
     )
 
-    assert result.status is ExecutionStatus.FAILED
+    assert result.status is ExecutionStatus.TOOL_ERROR
     assert result.error is not None
-    assert result.error.code == DiagnosticCode.RUNTIME_EVALUATION
-    assert result.error.message == "currency mismatch: KRW != USD"
+    assert result.error.code == DiagnosticCode.TOOL_EXECUTION_FAILURE
+    assert result.error.detail_code == "OUTPUT_CONTRACT_VIOLATION"
+    assert result.error.message == (
+        "result does not match contract: PROJECT.LIST_CHILD_PROJECTS"
+    )
     assert result.checks == ()
     assert result.outputs == ()

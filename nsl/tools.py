@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime
+from decimal import Decimal
 from hashlib import sha256
-from typing import Any, Callable, Mapping, Protocol
+from typing import Any, Callable, Mapping, Protocol, runtime_checkable
 
 from .core import (
     Completeness,
     DataClassification,
+    Money,
     Presence,
     TypeRef,
     ValueEnvelope,
@@ -30,6 +33,10 @@ class IncompatibleToolVersionError(KeyError):
     pass
 
 
+class DuplicateToolContractError(ValueError):
+    pass
+
+
 TOOL_VERSION_COMPATIBILITY_POLICY = "EXACT"
 
 
@@ -46,6 +53,30 @@ class ToolContract:
     output_classification: DataClassification
     risk: str = "READ_ONLY"
     empty_is_valid: bool = True
+
+    def __post_init__(self) -> None:
+        version_parts = (
+            self.version.split(".") if isinstance(self.version, str) else []
+        )
+        valid_version = len(version_parts) == 3 and all(
+            part.isascii()
+            and part.isdigit()
+            and (part == "0" or not part.startswith("0"))
+            for part in version_parts
+        )
+        if not valid_version:
+            raise ValueError("tool version must use canonical major.minor.patch form")
+        if not isinstance(self.capability, str) or not self.capability.strip():
+            raise ValueError("tool capability must be a non-empty string")
+        names = tuple(name for name, _ in self.input_types)
+        if not all(isinstance(name, str) and name.strip() for name in names):
+            raise ValueError("tool input names must be non-empty strings")
+        if len(names) != len(set(names)):
+            raise ValueError("tool input names must be unique")
+        if not all(isinstance(type_info, TypeRef) for _, type_info in self.input_types):
+            raise ValueError("tool input schema must contain TypeRef values")
+        if not isinstance(self.output_type, TypeRef):
+            raise ValueError("tool output schema must be a TypeRef")
 
     @property
     def contract_hash(self) -> str:
@@ -72,11 +103,25 @@ class ToolContract:
         raise KeyError(name)
 
 
+@runtime_checkable
+class ToolRegistry(Protocol):
+    def get(self, tool_id: str, version: str) -> ToolContract:
+        ...
+
+    def resolve(self, tool_id: str, requested_version: str) -> ToolContract:
+        ...
+
+
 class ToolContractCatalog:
     def __init__(self, contracts: tuple[ToolContract, ...]) -> None:
-        self._contracts = {
-            (contract.tool_id, contract.version): contract for contract in contracts
-        }
+        self._contracts: dict[tuple[str, str], ToolContract] = {}
+        for contract in contracts:
+            key = (contract.tool_id, contract.version)
+            if key in self._contracts:
+                raise DuplicateToolContractError(
+                    f"duplicate tool contract: {contract.tool_id}@{contract.version}"
+                )
+            self._contracts[key] = contract
 
     def get(self, tool_id: str, version: str) -> ToolContract:
         try:
@@ -139,9 +184,92 @@ class ToolResultEnvelope:
         )
 
 
-class ToolExecutionPort(Protocol):
+def value_conforms_to_type(value: Any, type_info: TypeRef) -> bool:
+    if type_info.kind == "primitive":
+        expected = {
+            "Bool": bool,
+            "Date": date,
+            "DateTime": datetime,
+            "Decimal": Decimal,
+            "Int": int,
+            "String": str,
+            "Year": int,
+        }.get(type_info.name)
+        if expected is None:
+            return False
+        if type_info.name == "Date":
+            return type(value) is date
+        if type_info.name in {"Int", "Year"}:
+            return type(value) is int
+        return isinstance(value, expected)
+    if type_info.kind == "domain":
+        return isinstance(value, str)
+    if type_info.kind == "money":
+        return isinstance(value, Money) and value.currency == type_info.currency
+    if type_info.kind == "list":
+        return (
+            isinstance(value, list)
+            and type_info.item is not None
+            and all(value_conforms_to_type(item, type_info.item) for item in value)
+        )
+    if type_info.kind == "record":
+        expected_fields = dict(type_info.fields)
+        return (
+            isinstance(value, Mapping)
+            and set(value) == set(expected_fields)
+            and all(
+                value_conforms_to_type(value[name], field_type)
+                for name, field_type in expected_fields.items()
+            )
+        )
+    if type_info.kind == "enum":
+        return isinstance(value, str) and value in type_info.enum_values
+    return False
+
+
+class ToolContractValidator:
+    __slots__ = ()
+
+    def validate_request(
+        self, request: ToolCallRequest, contract: ToolContract
+    ) -> None:
+        if request.contract_hash != contract.contract_hash:
+            raise ToolExecutionError(
+                "TOOL_CONTRACT_MISMATCH", f"contract changed: {request.tool_id}"
+            )
+        expected_arguments = dict(contract.input_types)
+        if set(request.arguments) != set(expected_arguments):
+            raise ToolExecutionError(
+                "TOOL_ARGUMENT_MISMATCH",
+                f"argument names do not match contract: {request.tool_id}",
+            )
+        for name, expected_type in expected_arguments.items():
+            argument = request.arguments[name]
+            if (
+                not isinstance(argument, ValueEnvelope)
+                or argument.type_info != expected_type
+                or not value_conforms_to_type(argument.value, expected_type)
+            ):
+                raise ToolExecutionError(
+                    "TOOL_ARGUMENT_TYPE_MISMATCH",
+                    f"argument type does not match contract: {request.tool_id}.{name}",
+                )
+
+    def validate_result(self, value: Any, contract: ToolContract) -> None:
+        if not value_conforms_to_type(value, contract.output_type):
+            raise ToolExecutionError(
+                "OUTPUT_CONTRACT_VIOLATION",
+                f"result does not match contract: {contract.tool_id}",
+            )
+
+
+@runtime_checkable
+class ToolExecutor(Protocol):
     async def execute(self, request: ToolCallRequest) -> ToolResultEnvelope:
         ...
+
+
+ToolExecutionPort = ToolExecutor
 
 
 FixtureHandler = Callable[[Mapping[str, Any]], Any]
@@ -150,20 +278,22 @@ FixtureHandler = Callable[[Mapping[str, Any]], Any]
 class MockToolExecutor:
     def __init__(
         self,
-        catalog: ToolContractCatalog,
+        catalog: ToolRegistry,
         handlers: Mapping[str, FixtureHandler],
     ) -> None:
         self.catalog = catalog
         self.handlers = dict(handlers)
+        self.validator = ToolContractValidator()
         self.call_count = 0
 
     async def execute(self, request: ToolCallRequest) -> ToolResultEnvelope:
-        self.call_count += 1
-        contract = self.catalog.get(request.tool_id, request.tool_version)
-        if request.contract_hash != contract.contract_hash:
+        try:
+            contract = self.catalog.resolve(request.tool_id, request.tool_version)
+        except (UnknownToolContractError, IncompatibleToolVersionError) as error:
             raise ToolExecutionError(
-                "TOOL_CONTRACT_MISMATCH", f"contract changed: {request.tool_id}"
-            )
+                "TOOL_CONTRACT_MISMATCH", f"contract unavailable: {request.tool_id}"
+            ) from error
+        self.validator.validate_request(request, contract)
         if request.tool_id not in self.handlers:
             raise ToolExecutionError(
                 "MOCK_FIXTURE_NOT_FOUND", f"no fixture for {request.tool_id}"
@@ -171,7 +301,9 @@ class MockToolExecutor:
         raw_arguments = {
             name: envelope.value for name, envelope in request.arguments.items()
         }
+        self.call_count += 1
         value = self.handlers[request.tool_id](raw_arguments)
+        self.validator.validate_result(value, contract)
         presence = Presence.EMPTY if value == [] or value is None else Presence.PRESENT
         result_hash = "sha256:" + sha256(
             canonical_json(encode_value(value))

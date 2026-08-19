@@ -51,9 +51,12 @@ from .runtime_models import (
 from .security import AuthorizationError, StaticAuthorizer
 from .tools import (
     ToolCallRequest,
-    ToolContractCatalog,
+    ToolContractValidator,
     ToolExecutionError,
     ToolExecutionPort,
+    ToolRegistry,
+    UnknownToolContractError,
+    IncompatibleToolVersionError,
 )
 
 
@@ -79,12 +82,13 @@ _UNEXPECTED_RUNTIME_MESSAGE = "An unexpected runtime error occurred."
 class RuntimeEngine:
     def __init__(
         self,
-        tool_catalog: ToolContractCatalog,
+        tool_catalog: ToolRegistry,
         authorizer: StaticAuthorizer | None = None,
         debug_mode: bool = False,
         debug_trace_sink: Callable[[str], None] | None = None,
     ) -> None:
         self.tool_catalog = tool_catalog
+        self.tool_validator = ToolContractValidator()
         self.authorizer = authorizer or StaticAuthorizer()
         self.debug_mode = debug_mode
         self.debug_trace_sink = debug_trace_sink
@@ -252,7 +256,15 @@ class RuntimeEngine:
         if not skill.analysis.bounded:
             raise RuntimeContractError("unbounded skill")
         for required in skill.required_tools:
-            contract = self.tool_catalog.get(required.tool_id, required.version)
+            try:
+                contract = self.tool_catalog.resolve(
+                    required.tool_id, required.version
+                )
+            except (
+                UnknownToolContractError,
+                IncompatibleToolVersionError,
+            ) as error:
+                raise RuntimeContractError(str(error)) from error
             if contract.contract_hash != required.contract_hash:
                 raise RuntimeContractError(
                     f"tool contract mismatch: {required.tool_id}"
@@ -568,19 +580,20 @@ class RuntimeEngine:
                     "authorization_decision_ref": decision.decision_id,
                 },
             )
-            result = await tools.execute(
-                ToolCallRequest(
-                    execution_id=ctx.request.execution_id,
-                    invocation_id=invocation_id,
-                    node_id=expression.node_id,
-                    tool_id=required.tool_id,
-                    tool_version=required.version,
-                    contract_hash=required.contract_hash,
-                    arguments=arguments,
-                    principal=ctx.request.principal,
-                    authorization_decision_ref=decision.decision_id,
-                )
+            request = ToolCallRequest(
+                execution_id=ctx.request.execution_id,
+                invocation_id=invocation_id,
+                node_id=expression.node_id,
+                tool_id=required.tool_id,
+                tool_version=required.version,
+                contract_hash=required.contract_hash,
+                arguments=arguments,
+                principal=ctx.request.principal,
+                authorization_decision_ref=decision.decision_id,
             )
+            contract = self.tool_catalog.resolve(required.tool_id, required.version)
+            self.tool_validator.validate_request(request, contract)
+            result = await tools.execute(request)
             if (
                 result.completeness != Completeness.COMPLETE
                 and not expression.result_policy.accept_partial

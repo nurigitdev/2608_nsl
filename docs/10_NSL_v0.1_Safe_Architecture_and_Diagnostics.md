@@ -144,6 +144,12 @@ Slice 0016은 Expression 평가 오류에 안정적인 `NSL-E8001`, IR Expressio
 
 Unsupported language/risk와 일부 EMIT schema/classification Source 오류에는 여전히 해당 AST SourceSpan이 연결되지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0016 종료 시점에도 `PARTIAL`을 유지한다.
 
+### Slice 0017 재평가
+
+Slice 0017은 Tool Registry의 중복·Version·Schema 오류와 Runtime의 required Tool resolution 및 contract mismatch를 안정적인 Registry/Runtime 오류로 처리한다. 이 오류들은 Canonical Tool Contract 또는 실행 중 IR 위치에 관한 것이며 `.ns` Source의 Line/Column 또는 Snippet을 새로 제공하지 않는다.
+
+Unsupported language/risk와 일부 EMIT schema/classification Source 오류에는 여전히 해당 AST SourceSpan이 연결되지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0017 종료 시점에도 `PARTIAL`을 유지한다.
+
 ## 7. Acceptance
 
 각 Requirement 변경 후 `tools/run_quality.py`로 Traceability, 전체 Regression, Statement/Branch Coverage를 반복 검증했다. Slice 완료 기준은 다음과 같다.
