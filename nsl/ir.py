@@ -6,6 +6,7 @@ import json
 from typing import Any, TypeAlias
 
 from .core import DataClassification, TypeRef, decode_value, encode_value
+from .data_protection import ensure_no_credential_material
 from .integrity import source_manifest_sha256
 from .ir_schema import load_nso_json, validate_nso_document
 
@@ -517,11 +518,14 @@ def _statement_from_data(data: dict[str, Any]) -> Statement:
 class NsoCodec:
     @staticmethod
     def encode(skill: SkillObject) -> bytes:
-        return canonical_json(skill_to_data(skill))
+        payload = skill_to_data(skill)
+        ensure_no_credential_material(payload, ".nso")
+        return canonical_json(payload)
 
     @staticmethod
     def decode(data: bytes) -> SkillObject:
         raw = load_nso_json(data)
+        ensure_no_credential_material(raw, ".nso")
         validate_nso_document(raw)
         symbols = tuple(
             SymbolSpec(

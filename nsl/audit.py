@@ -10,6 +10,7 @@ from .core import (
     classification_allows,
     encode_value,
 )
+from .data_protection import redact_data
 from .ir import canonical_json
 from .security import DataHandlingPolicy, ExecutionPrincipal
 
@@ -66,7 +67,7 @@ class AuditRecorder:
         if classification_allows(
             classification, self.policy.max_trace_classification
         ):
-            safe_payload = encode_value(payload)
+            safe_payload = encode_value(redact_data(payload))
         else:
             safe_payload = {
                 "redacted": True,

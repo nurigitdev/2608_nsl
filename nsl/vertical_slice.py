@@ -27,7 +27,11 @@ from .replay import (
     load_replay_inputs,
 )
 from .runtime import ExecutionRequest, ExecutionResult, RuntimeEngine
-from .security import DataHandlingPolicy, ExecutionPrincipal
+from .security import (
+    DataHandlingPolicy,
+    ExecutionPrincipal,
+    PrincipalVerification,
+)
 from .tools import MockToolExecutor, ToolContract, ToolContractCatalog
 
 
@@ -118,6 +122,7 @@ def build_principal(
     tenant_id: str = "tenant-nex",
     include_tool_scope: bool = True,
     include_replay_scope: bool = True,
+    verified: bool = True,
 ) -> ExecutionPrincipal:
     scopes = {"nsl:skill:execute"}
     if include_tool_scope:
@@ -131,6 +136,11 @@ def build_principal(
         roles=frozenset({"FINANCE_ANALYST"}),
         scopes=frozenset(scopes),
         auth_context_ref="auth-context-demo-001",
+        verification=(
+            PrincipalVerification.VERIFIED
+            if verified
+            else PrincipalVerification.UNVERIFIED
+        ),
     )
 
 

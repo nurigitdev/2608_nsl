@@ -21,9 +21,11 @@ from .core import (
     TypeRef,
     ValueEnvelope,
     classification_allows,
+    encode_value,
     highest_classification,
 )
 from .diagnostics import DiagnosticCode
+from .data_protection import collect_sensitive_text, redact_text
 from .ir import (
     BinaryExpr,
     CallExpr,
@@ -53,7 +55,12 @@ from .runtime_models import (
     SystemRuntimeClock,
     ExecutionContext,
 )
-from .security import AuthorizationError, StaticAuthorizer
+from .security import (
+    AuthorizationError,
+    ExecutionPrincipal,
+    RuntimeEnvironment,
+    StaticAuthorizer,
+)
 from .tools import (
     ToolCallRequest,
     ToolContractValidator,
@@ -94,6 +101,7 @@ class RuntimeEngine:
         debug_mode: bool = False,
         debug_trace_sink: Callable[[str], None] | None = None,
         runtime_clock: RuntimeClock | None = None,
+        environment: RuntimeEnvironment = RuntimeEnvironment.PRODUCTION,
     ) -> None:
         self.tool_catalog = tool_catalog
         self.tool_validator = ToolContractValidator()
@@ -104,6 +112,9 @@ class RuntimeEngine:
         self.runtime_clock = (
             runtime_clock if runtime_clock is not None else SystemRuntimeClock()
         )
+        if not isinstance(environment, RuntimeEnvironment):
+            raise ValueError("environment must be a RuntimeEnvironment")
+        self.environment = environment
 
     async def execute(
         self,
@@ -114,16 +125,19 @@ class RuntimeEngine:
         snapshot_store: SnapshotStore | None = None,
     ) -> ExecutionResult:
         audit = AuditRecorder(audit_sink, request.data_policy)
+        try:
+            self._validate_execution_principal(request.principal)
+            skill_decision = self.authorizer.authorize(
+                request.principal,
+                f"skill:{skill.skill_id}:execute",
+                frozenset({"nsl:skill:execute"}),
+            )
+        except AuthorizationError as error:
+            return self._reject_execution(skill, request, audit, str(error))
         ctx = ExecutionContext(skill, request, audit, self.runtime_clock)
         try:
             ctx.resource_guard.check_deadline()
             self._preflight(skill)
-            skill_scopes = frozenset({"nsl:skill:execute"})
-            skill_decision = self.authorizer.authorize(
-                request.principal,
-                f"skill:{skill.skill_id}:execute",
-                skill_scopes,
-            )
             input_classification = DataClassification.PUBLIC
             for spec in skill.inputs:
                 input_classification = highest_classification(
@@ -242,7 +256,7 @@ class RuntimeEngine:
                 ctx, DiagnosticCode.RUNTIME_EVALUATION, "RUNTIME", str(error)
             )
         except Exception as error:
-            self._write_debug_trace(error)
+            self._write_debug_trace(error, self._sensitive_values(ctx))
             return self._failed(
                 ctx,
                 DiagnosticCode.RUNTIME_UNEXPECTED,
@@ -250,11 +264,56 @@ class RuntimeEngine:
                 _UNEXPECTED_RUNTIME_MESSAGE,
             )
 
-    def _write_debug_trace(self, error: Exception) -> None:
+    def _validate_execution_principal(self, principal: object) -> None:
+        if not isinstance(principal, ExecutionPrincipal):
+            raise AuthorizationError("verified execution principal is required")
+        principal.validate(
+            require_verified=self.environment is RuntimeEnvironment.PRODUCTION
+        )
+
+    def _reject_execution(
+        self,
+        skill: SkillObject,
+        request: ExecutionRequest,
+        audit: AuditRecorder,
+        message: str,
+    ) -> ExecutionResult:
+        message = redact_text(message)
+        audit.emit(
+            "EXECUTION_REJECTED",
+            {
+                "execution_id": request.execution_id,
+                "skill_id": skill.skill_id,
+                "error_code": DiagnosticCode.AUTHORIZATION_DENIED.value,
+                "category": "AUTHORIZATION",
+                "message": message,
+            },
+        )
+        return ExecutionResult(
+            execution_id=request.execution_id,
+            skill_id=skill.skill_id,
+            skill_version=skill.skill_version,
+            semantic_hash=skill.semantic_hash,
+            status=ExecutionStatus.FAILED,
+            completeness=Completeness.UNKNOWN,
+            checks=(),
+            outputs=(),
+            resources=ResourceUsage(0, 0, 0, 0),
+            error=RuntimeErrorInfo(
+                code=DiagnosticCode.AUTHORIZATION_DENIED.value,
+                category="AUTHORIZATION",
+                message=message,
+            ),
+        )
+
+    def _write_debug_trace(
+        self, error: Exception, sensitive_values: tuple[str, ...] = ()
+    ) -> None:
         if not self.debug_mode or self.debug_trace_sink is None:
             return
-        trace = "".join(
-            format_exception(type(error), error, error.__traceback__)
+        trace = redact_text(
+            "".join(format_exception(type(error), error, error.__traceback__)),
+            sensitive_values,
         )
         try:
             self.debug_trace_sink(trace)
@@ -867,6 +926,10 @@ class RuntimeEngine:
         node_id: str | None = None,
     ) -> ExecutionResult:
         normalized_code = str(code)
+        sensitive_values = self._sensitive_values(ctx)
+        message = redact_text(message, sensitive_values)
+        if detail_code is not None:
+            detail_code = redact_text(detail_code, sensitive_values)
         ctx.audit.emit(
             "EXECUTION_FAILED",
             {
@@ -890,3 +953,31 @@ class RuntimeEngine:
                 detail_code=detail_code,
             ),
         )
+
+    def _sensitive_values(self, ctx: ExecutionContext) -> tuple[str, ...]:
+        values: list[str] = []
+        namespaces = (
+            ctx.input_values,
+            ctx.context_values,
+            *ctx.frames,
+            *ctx.check_frames,
+        )
+        for namespace in namespaces:
+            for envelope in namespace.values():
+                if envelope.classification in {
+                    DataClassification.CONFIDENTIAL,
+                    DataClassification.RESTRICTED,
+                }:
+                    values.extend(
+                        collect_sensitive_text(encode_value(envelope.value))
+                    )
+        for record in ctx.outputs:
+            for envelope in record.fields.values():
+                if envelope.classification in {
+                    DataClassification.CONFIDENTIAL,
+                    DataClassification.RESTRICTED,
+                }:
+                    values.extend(
+                        collect_sensitive_text(encode_value(envelope.value))
+                    )
+        return tuple(dict.fromkeys(values))

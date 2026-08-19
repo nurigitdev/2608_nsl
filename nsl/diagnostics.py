@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+from .data_protection import redact_text
+
 
 class DiagnosticPhase(StrEnum):
     LEXER = "LEXER"
@@ -95,6 +97,13 @@ class Diagnostic:
     location: SourceLocation | None = None
     snippet: str | None = None
     logical_path: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "message", redact_text(self.message))
+        if self.snippet is not None:
+            object.__setattr__(self, "snippet", redact_text(self.snippet))
+        if self.logical_path is not None:
+            object.__setattr__(self, "logical_path", redact_text(self.logical_path))
 
 
 class CompileError(ValueError):

@@ -2,13 +2,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from enum import StrEnum
 from hashlib import sha256
 
 from .core import DataClassification
+from .data_protection import CredentialMaterialError, ensure_no_credential_material
 
 
 class AuthorizationError(RuntimeError):
     pass
+
+
+class RuntimeEnvironment(StrEnum):
+    PRODUCTION = "PRODUCTION"
+    DEVELOPMENT = "DEVELOPMENT"
+
+
+class PrincipalVerification(StrEnum):
+    UNVERIFIED = "UNVERIFIED"
+    VERIFIED = "VERIFIED"
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,15 +31,57 @@ class ExecutionPrincipal:
     roles: frozenset[str]
     scopes: frozenset[str]
     auth_context_ref: str
+    verification: PrincipalVerification
     on_behalf_of: str | None = None
 
-    def validate(self) -> None:
-        if not self.tenant_id or not self.subject_id:
+    def validate(self, *, require_verified: bool = False) -> None:
+        if (
+            not isinstance(self.tenant_id, str)
+            or not self.tenant_id.strip()
+            or not isinstance(self.subject_id, str)
+            or not self.subject_id.strip()
+        ):
             raise AuthorizationError("tenant_id and subject_id are required")
         if self.actor_type not in {"USER", "SERVICE"}:
             raise AuthorizationError("actor_type must be USER or SERVICE")
-        if not self.auth_context_ref:
+        if (
+            not isinstance(self.auth_context_ref, str)
+            or not self.auth_context_ref.strip()
+        ):
             raise AuthorizationError("auth_context_ref is required")
+        if not isinstance(self.roles, frozenset) or not all(
+            isinstance(role, str) and bool(role.strip()) for role in self.roles
+        ):
+            raise AuthorizationError("roles must be a set of non-empty strings")
+        if not isinstance(self.scopes, frozenset) or not all(
+            isinstance(scope, str) and bool(scope.strip()) for scope in self.scopes
+        ):
+            raise AuthorizationError("scopes must be a set of non-empty strings")
+        if self.on_behalf_of is not None and (
+            not isinstance(self.on_behalf_of, str) or not self.on_behalf_of.strip()
+        ):
+            raise AuthorizationError("on_behalf_of must be a non-empty string")
+        if not isinstance(self.verification, PrincipalVerification):
+            raise AuthorizationError("principal verification state is invalid")
+        if require_verified and self.verification is not PrincipalVerification.VERIFIED:
+            raise AuthorizationError("verified execution principal is required")
+        try:
+            ensure_no_credential_material(
+                {
+                    "tenant_id": self.tenant_id,
+                    "subject_id": self.subject_id,
+                    "actor_type": self.actor_type,
+                    "roles": tuple(self.roles),
+                    "scopes": tuple(self.scopes),
+                    "auth_context_ref": self.auth_context_ref,
+                    "on_behalf_of": self.on_behalf_of,
+                },
+                "ExecutionPrincipal",
+            )
+        except CredentialMaterialError as error:
+            raise AuthorizationError(
+                "credential material is forbidden in ExecutionPrincipal"
+            ) from error
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +122,14 @@ class StaticAuthorizer:
         required_scopes: frozenset[str],
     ) -> AuthorizationDecision:
         principal.validate()
+        if not isinstance(action, str) or not action.strip():
+            raise AuthorizationError("authorization action is required")
+        if not isinstance(required_scopes, frozenset) or not required_scopes:
+            raise AuthorizationError("explicit required scopes are required")
+        if not all(
+            isinstance(scope, str) and bool(scope.strip()) for scope in required_scopes
+        ):
+            raise AuthorizationError("required scopes must be non-empty strings")
         missing = required_scopes - principal.scopes
         effect = "DENY" if missing else "ALLOW"
         material = "|".join(
@@ -94,4 +156,3 @@ class StaticAuthorizer:
                 f"missing required scope(s) for {action}: {', '.join(sorted(missing))}"
             )
         return decision
-

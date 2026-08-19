@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0021",
+  "current_slice": "0022",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -344,16 +344,16 @@
     "NSL-RPL-002": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-RPL-002"], "evidence": ["tests/test_vertical_slice.py::test_vertical_slice_live_and_replay_are_equal"]},
     "NSL-RPL-003": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-RPL-003"], "evidence": ["tests/test_vertical_slice.py::test_vertical_slice_live_and_replay_are_equal"]},
     "NSL-RPL-004": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-RPL-004"], "evidence": ["tests/test_vertical_slice.py::test_vertical_slice_live_and_replay_are_equal"]},
-    "NSL-SEC-014": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-SEC-014"], "evidence": ["tests/test_core_and_security.py::test_authorizer_default_deny_and_allow"]},
+    "NSL-SEC-014": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-SEC-014"], "evidence": ["tests/test_core_and_security.py::test_authorizer_default_deny_and_allow", "tests/test_core_and_security.py::test_authorizer_default_deny_rejects_implicit_or_malformed_policy_inputs", "tests/test_principal_authorization_and_classification.py::test_sec_014_missing_skill_scope_is_rejected_before_context_and_provider"]},
     "NSL-SEC-015": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-SEC-015"], "evidence": ["tests/test_vertical_slice.py::test_missing_tool_scope_is_denied_before_provider_call"]},
-    "NSL-SEC-017": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-SEC-017"], "evidence": ["tests/test_core_and_security.py::test_classification_order_and_allowance"]},
+    "NSL-SEC-017": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-SEC-017"], "evidence": ["tests/test_core_and_security.py::test_classification_order_and_allowance", "tests/test_principal_authorization_and_classification.py::test_sec_017_data_classification_is_a_closed_four_level_lattice"]},
     "NSL-SEC-019": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-SEC-019"], "evidence": ["tests/test_vertical_slice.py::test_replay_snapshot_is_tenant_isolated"]},
     "NSL-SEC-022": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-SEC-022"], "evidence": ["tests/test_vertical_slice.py::test_replay_requires_separate_read_scope"]},
     "NSL-TST-007": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-007"], "evidence": ["tests/test_vertical_slice.py::test_tool_failure_is_not_converted_to_empty_data"]},
     "NSL-TST-008": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-008"], "evidence": ["tests/test_vertical_slice.py::test_partial_tool_data_cannot_produce_pass"]},
     "NSL-TST-010": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-010"], "evidence": ["tests/test_vertical_slice.py::test_vertical_slice_live_and_replay_are_equal"]},
     "NSL-TST-011": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-011"], "evidence": ["tests/test_runtime_worst_cases.py::test_runtime_preflight_rejects_malformed_or_unsupported_ir"]},
-    "NSL-TST-018": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-018"], "evidence": ["tests/test_vertical_slice.py::test_missing_tool_scope_is_denied_before_provider_call"]},
+    "NSL-TST-018": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-018"], "evidence": ["tests/test_vertical_slice.py::test_missing_tool_scope_is_denied_before_provider_call", "tests/test_principal_authorization_and_classification.py::test_sec_012_production_rejects_missing_unverified_or_malformed_principal"]},
     "NSL-TST-019": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-019"], "evidence": ["tests/test_vertical_slice.py::test_confidential_values_are_redacted_from_audit"]},
     "NSL-TST-020": {"status": "IMPLEMENTED", "target_slice": "0001", "verification": ["TEST-TST-020"], "evidence": ["tests/test_vertical_slice.py::test_replay_snapshot_is_tenant_isolated"]},
     "NSL-FOR-001": {"status": "IMPLEMENTED", "target_slice": "0019", "verification": ["TEST-FOR-001"], "evidence": ["tests/test_foreach_and_runtime_limits.py::test_for_001_foreach_requires_explicit_maximum"]},
@@ -392,6 +392,9 @@
     "NSL-EMT-006": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-EMT-006"], "evidence": ["tests/test_emit_and_structured_result.py::test_emt_006_execution_result_has_lossless_deterministic_json", "tests/test_emit_and_structured_result.py::test_emt_006_failed_result_serializes_structured_error_and_empty_outputs"]},
     "NSL-REL-003": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-REL-003"], "evidence": ["tests/test_emit_and_structured_result.py::test_rel_003_runtime_error_is_returned_as_structured_result"]},
     "NSL-REL-004": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-REL-004"], "evidence": ["tests/test_emit_and_structured_result.py::test_rel_004_tool_failure_has_explicit_status_and_detail_code"]},
-    "NSL-REL-005": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-REL-005"], "evidence": ["tests/test_emit_and_structured_result.py::test_rel_005_incomplete_data_is_not_reported_as_complete_execution_result", "tests/test_emit_and_structured_result.py::test_rel_005_complete_and_interrupted_result_boundaries"]}
+    "NSL-REL-005": {"status": "IMPLEMENTED", "target_slice": "0021", "verification": ["TEST-REL-005"], "evidence": ["tests/test_emit_and_structured_result.py::test_rel_005_incomplete_data_is_not_reported_as_complete_execution_result", "tests/test_emit_and_structured_result.py::test_rel_005_complete_and_interrupted_result_boundaries"]},
+    "NSL-SEC-012": {"status": "IMPLEMENTED", "target_slice": "0022", "verification": ["TEST-SEC-012"], "evidence": ["tests/test_principal_authorization_and_classification.py::test_sec_012_production_rejects_missing_unverified_or_malformed_principal", "tests/test_principal_authorization_and_classification.py::test_sec_012_production_accepts_verified_principal", "tests/test_principal_authorization_and_classification.py::test_sec_012_development_requires_structure_but_not_verification"]},
+    "NSL-SEC-016": {"status": "IMPLEMENTED", "target_slice": "0022", "verification": ["TEST-SEC-016"], "evidence": ["tests/test_principal_authorization_and_classification.py::test_sec_016_execution_request_rejects_raw_credentials", "tests/test_principal_authorization_and_classification.py::test_sec_016_nso_encode_and_decode_reject_raw_credentials", "tests/test_principal_authorization_and_classification.py::test_sec_016_audit_never_stores_raw_credentials", "tests/test_principal_authorization_and_classification.py::test_sec_016_runtime_storage_models_declare_no_credential_fields"]},
+    "NSL-SEC-021": {"status": "IMPLEMENTED", "target_slice": "0022", "verification": ["TEST-SEC-021"], "evidence": ["tests/test_principal_authorization_and_classification.py::test_sec_021_diagnostic_redacts_message_snippet_and_path", "tests/test_principal_authorization_and_classification.py::test_sec_021_lexer_diagnostic_never_exposes_source_credential", "tests/test_principal_authorization_and_classification.py::test_sec_021_tool_failure_redacts_credentials_and_classified_values", "tests/test_principal_authorization_and_classification.py::test_sec_021_debug_trace_redacts_credentials_and_classified_values"]}
   }
 }

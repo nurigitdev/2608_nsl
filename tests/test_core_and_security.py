@@ -33,6 +33,7 @@ from nsl.security import (
     AuthorizationError,
     DataHandlingPolicy,
     ExecutionPrincipal,
+    PrincipalVerification,
     StaticAuthorizer,
 )
 
@@ -133,6 +134,7 @@ def principal(**overrides) -> ExecutionPrincipal:
         "roles": frozenset({"FINANCE"}),
         "scopes": frozenset({"scope:a", "nsl:replay:read"}),
         "auth_context_ref": "auth-a",
+        "verification": PrincipalVerification.VERIFIED,
     }
     values.update(overrides)
     return ExecutionPrincipal(**values)
@@ -145,6 +147,12 @@ def principal(**overrides) -> ExecutionPrincipal:
         ({"subject_id": ""}, "subject_id"),
         ({"actor_type": "ROBOT"}, "actor_type"),
         ({"auth_context_ref": ""}, "auth_context_ref"),
+        ({"roles": frozenset({""})}, "roles"),
+        ({"roles": {"FINANCE"}}, "roles"),
+        ({"scopes": frozenset({""})}, "scopes"),
+        ({"scopes": {"scope:a"}}, "scopes"),
+        ({"on_behalf_of": ""}, "on_behalf_of"),
+        ({"verification": "VERIFIED"}, "verification state"),
     ],
 )
 def test_execution_principal_robustness(overrides, message) -> None:
@@ -168,6 +176,22 @@ def test_authorizer_default_deny_and_allow() -> None:
         authorizer.authorize(
             principal(), "read", frozenset({"scope:a", "scope:missing"})
         )
+
+
+@pytest.mark.parametrize(
+    ("action", "required_scopes", "message"),
+    (
+        ("", frozenset({"scope:a"}), "action"),
+        ("read", frozenset(), "explicit required scopes"),
+        ("read", {"scope:a"}, "explicit required scopes"),
+        ("read", frozenset({""}), "non-empty strings"),
+    ),
+)
+def test_authorizer_default_deny_rejects_implicit_or_malformed_policy_inputs(
+    action, required_scopes, message
+) -> None:
+    with pytest.raises(AuthorizationError, match=message):
+        StaticAuthorizer().authorize(principal(), action, required_scopes)
 
 
 def test_audit_plain_and_redacted_payloads() -> None:
@@ -209,4 +233,3 @@ def test_snapshot_store_not_found_scope_and_tenant_guards() -> None:
     )
     with pytest.raises(KeyError, match="snapshot not found"):
         store.get(missing, principal())
-

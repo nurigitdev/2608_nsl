@@ -13,6 +13,7 @@ from .core import (
     ExecutionStatus,
     ValueEnvelope,
 )
+from .data_protection import ensure_no_credential_material
 from .ir import ResourceLimits, SkillObject
 from .security import DataHandlingPolicy, ExecutionPrincipal
 
@@ -52,6 +53,17 @@ class ExecutionRequest:
     def __post_init__(self) -> None:
         if not isinstance(self.execution_id, str) or not self.execution_id.strip():
             raise ValueError("execution_id must be a non-empty string")
+        ensure_no_credential_material(
+            self.execution_id, "ExecutionRequest.execution_id"
+        )
+        if not isinstance(self.inputs, Mapping):
+            raise ValueError("inputs must be a mapping")
+        if not isinstance(self.runtime_context, Mapping):
+            raise ValueError("runtime_context must be a mapping")
+        ensure_no_credential_material(self.inputs, "ExecutionRequest.inputs")
+        ensure_no_credential_material(
+            self.runtime_context, "ExecutionRequest.runtime_context"
+        )
 
 
 @dataclass(frozen=True, slots=True)
