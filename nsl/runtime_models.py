@@ -5,7 +5,7 @@ from time import monotonic_ns
 from types import MappingProxyType
 from typing import Any, Mapping, Protocol
 
-from .audit import AuditRecorder
+from .audit import AuditRecorder, SnapshotStore
 from .core import (
     CheckStatus,
     Completeness,
@@ -235,6 +235,7 @@ class ExecutionContext:
     request: ExecutionRequest
     audit: AuditRecorder
     runtime_clock: RuntimeClock = field(default_factory=SystemRuntimeClock)
+    snapshot_store: SnapshotStore | None = None
     input_values: dict[str, ValueEnvelope] = field(default_factory=dict)
     context_values: dict[str, ValueEnvelope] = field(default_factory=dict)
     frames: list[dict[str, ValueEnvelope]] = field(
@@ -249,6 +250,7 @@ class ExecutionContext:
     data_completeness: Completeness = Completeness.COMPLETE
     invocation_counter: int = 0
     foreach_depth: int = 0
+    current_node_id: str | None = None
     resource_guard: ResourceGuard = field(init=False, repr=False)
 
     def __post_init__(self) -> None:

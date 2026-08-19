@@ -10,7 +10,9 @@ from .data_protection import CredentialMaterialError, ensure_no_credential_mater
 
 
 class AuthorizationError(RuntimeError):
-    pass
+    def __init__(self, message: str, decision_ref: str | None = None) -> None:
+        self.decision_ref = decision_ref
+        super().__init__(message)
 
 
 class RuntimeEnvironment(StrEnum):
@@ -153,6 +155,7 @@ class StaticAuthorizer:
         )
         if missing:
             raise AuthorizationError(
-                f"missing required scope(s) for {action}: {', '.join(sorted(missing))}"
+                f"missing required scope(s) for {action}: {', '.join(sorted(missing))}",
+                decision.decision_id,
             )
         return decision

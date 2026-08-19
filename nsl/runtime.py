@@ -5,7 +5,13 @@ from decimal import Decimal
 from traceback import format_exception
 from typing import Any, Callable
 
-from .audit import AuditRecorder, AuditSink, SnapshotStore, value_hash
+from .audit import (
+    RUNTIME_VERSION,
+    AuditRecorder,
+    AuditSink,
+    SnapshotStore,
+    value_hash,
+)
 from .builtins import BuiltinError, V0_1_BUILTINS
 from .core import (
     CHECK_RESULT,
@@ -124,7 +130,21 @@ class RuntimeEngine:
         audit_sink: AuditSink,
         snapshot_store: SnapshotStore | None = None,
     ) -> ExecutionResult:
-        audit = AuditRecorder(audit_sink, request.data_policy)
+        principal = (
+            request.principal
+            if isinstance(request.principal, ExecutionPrincipal)
+            else None
+        )
+        audit = AuditRecorder(
+            audit_sink,
+            request.data_policy,
+            execution_id=request.execution_id,
+            skill_id=skill.skill_id,
+            skill_version=skill.skill_version,
+            semantic_hash=skill.semantic_hash,
+            runtime_version=RUNTIME_VERSION,
+            principal=principal,
+        )
         try:
             self._validate_execution_principal(request.principal)
             skill_decision = self.authorizer.authorize(
@@ -133,8 +153,20 @@ class RuntimeEngine:
                 frozenset({"nsl:skill:execute"}),
             )
         except AuthorizationError as error:
-            return self._reject_execution(skill, request, audit, str(error))
-        ctx = ExecutionContext(skill, request, audit, self.runtime_clock)
+            return self._reject_execution(
+                skill,
+                request,
+                audit,
+                str(error),
+                error.decision_ref,
+            )
+        ctx = ExecutionContext(
+            skill,
+            request,
+            audit,
+            self.runtime_clock,
+            snapshot_store,
+        )
         try:
             ctx.resource_guard.check_deadline()
             self._preflight(skill)
@@ -170,17 +202,33 @@ class RuntimeEngine:
                     "skill_id": skill.skill_id,
                     "skill_version": skill.skill_version,
                     "semantic_hash": skill.semantic_hash,
+                    "runtime_version": RUNTIME_VERSION,
                     "tenant_id": request.principal.tenant_id,
                     "subject_id": request.principal.subject_id,
+                    "auth_context_ref": request.principal.auth_context_ref,
                     "authorization_decision_ref": skill_decision.decision_id,
                     "input_snapshot_ref": None
                     if input_ref is None
                     else input_ref.snapshot_id,
                     "input_hash": value_hash(dict(request.inputs)),
+                    "input": {
+                        "snapshot_ref": None
+                        if input_ref is None
+                        else input_ref.snapshot_id,
+                        "value_hash": value_hash(dict(request.inputs)),
+                        "classification": input_classification.value,
+                    },
                     "context_snapshot_ref": None
                     if context_ref is None
                     else context_ref.snapshot_id,
                     "context_hash": value_hash(dict(request.runtime_context)),
+                    "context": {
+                        "snapshot_ref": None
+                        if context_ref is None
+                        else context_ref.snapshot_id,
+                        "value_hash": value_hash(dict(request.runtime_context)),
+                        "classification": context_classification.value,
+                    },
                 },
             )
             self._bind_inputs_and_contexts(ctx)
@@ -195,6 +243,7 @@ class RuntimeEngine:
                     "completeness": result.completeness.value,
                     "output_count": len(result.outputs),
                     "check_count": len(result.checks),
+                    "authorization_decision_ref": skill_decision.decision_id,
                 },
             )
             return result
@@ -204,6 +253,7 @@ class RuntimeEngine:
                 DiagnosticCode.AUTHORIZATION_DENIED,
                 "AUTHORIZATION",
                 str(error),
+                authorization_decision_ref=error.decision_ref,
             )
         except PermissionError as error:
             return self._failed(
@@ -277,6 +327,7 @@ class RuntimeEngine:
         request: ExecutionRequest,
         audit: AuditRecorder,
         message: str,
+        authorization_decision_ref: str | None,
     ) -> ExecutionResult:
         message = redact_text(message)
         audit.emit(
@@ -284,9 +335,23 @@ class RuntimeEngine:
             {
                 "execution_id": request.execution_id,
                 "skill_id": skill.skill_id,
+                "skill_version": skill.skill_version,
+                "semantic_hash": skill.semantic_hash,
+                "runtime_version": RUNTIME_VERSION,
                 "error_code": DiagnosticCode.AUTHORIZATION_DENIED.value,
                 "category": "AUTHORIZATION",
                 "message": message,
+                "location": {"phase": "AUTHORIZATION", "node_id": None},
+                "cause": {
+                    "error_code": DiagnosticCode.AUTHORIZATION_DENIED.value,
+                    "detail_code": None,
+                },
+                "authorization_decision_ref": authorization_decision_ref,
+                "authorization_decision_status": (
+                    "NOT_EVALUATED"
+                    if authorization_decision_ref is None
+                    else "DENY"
+                ),
             },
         )
         return ExecutionResult(
@@ -407,6 +472,8 @@ class RuntimeEngine:
     ) -> None:
         for statement in statements:
             ctx.resource_guard.check_deadline()
+            previous_node_id = ctx.current_node_id
+            ctx.current_node_id = statement.node_id
             ctx.audit.emit(
                 "STATEMENT_STARTED",
                 {"node_id": statement.node_id, "kind": type(statement).__name__},
@@ -425,6 +492,7 @@ class RuntimeEngine:
                 "STATEMENT_COMPLETED",
                 {"node_id": statement.node_id, "kind": type(statement).__name__},
             )
+            ctx.current_node_id = previous_node_id
 
     async def _execute_emit(
         self,
@@ -469,10 +537,23 @@ class RuntimeEngine:
         fields = {field.name: evaluated[field.name] for field in ctx.skill.outputs}
         ctx.outputs.append(EmitRecord(fields))
         ctx.resource_guard.record_emit()
+        emit_ref = None
+        if ctx.snapshot_store is not None:
+            emit_ref = ctx.snapshot_store.put(
+                ctx.request.principal.tenant_id,
+                values,
+                maximum,
+                ctx.request.data_policy.snapshot_retention_days,
+            )
         ctx.audit.emit(
             "EMIT_COMPLETED",
             {"node_id": statement.node_id, "values": values},
             maximum,
+            secure_snapshot_ref=emit_ref,
+            redacted_metadata={
+                "node_id": statement.node_id,
+                "field_names": list(values),
+            },
         )
 
     async def _execute_check(
@@ -746,6 +827,19 @@ class RuntimeEngine:
             name: envelope.value for name, envelope in arguments.items()
         }
         argument_hash = value_hash(argument_values)
+        argument_classification = DataClassification.PUBLIC
+        for envelope in arguments.values():
+            argument_classification = highest_classification(
+                argument_classification, envelope.classification
+            )
+        argument_ref = None
+        if ctx.snapshot_store is not None:
+            argument_ref = ctx.snapshot_store.put(
+                ctx.request.principal.tenant_id,
+                argument_values,
+                argument_classification,
+                ctx.request.data_policy.snapshot_retention_days,
+            )
         ctx.audit.emit(
             "TOOL_STARTED",
             {
@@ -756,6 +850,10 @@ class RuntimeEngine:
                 "input": {
                     "argument_names": list(arguments),
                     "argument_hash": argument_hash,
+                    "snapshot_ref": None
+                    if argument_ref is None
+                    else argument_ref.snapshot_id,
+                    "classification": argument_classification.value,
                 },
                 "authorization_decision_ref": decision.decision_id,
             },
@@ -802,6 +900,11 @@ class RuntimeEngine:
                     "invocation_id": invocation_id,
                     "tool_id": required.tool_id,
                     "error_code": "RESOURCE_LIMIT_EXCEEDED",
+                    "authorization_decision_ref": decision.decision_id,
+                    "cause": {
+                        "error_code": "RESOURCE_LIMIT_EXCEEDED",
+                        "detail_code": None,
+                    },
                     "output": {
                         "status": "LIMIT_EXCEEDED",
                         "error_code": "RESOURCE_LIMIT_EXCEEDED",
@@ -818,6 +921,11 @@ class RuntimeEngine:
                         "invocation_id": invocation_id,
                         "tool_id": required.tool_id,
                         "error_code": "RESOURCE_LIMIT_EXCEEDED",
+                        "authorization_decision_ref": decision.decision_id,
+                        "cause": {
+                            "error_code": "RESOURCE_LIMIT_EXCEEDED",
+                            "detail_code": "TOOL_TIMEOUT",
+                        },
                         "output": {
                             "status": "LIMIT_EXCEEDED",
                             "error_code": "RESOURCE_LIMIT_EXCEEDED",
@@ -834,6 +942,11 @@ class RuntimeEngine:
                     "invocation_id": invocation_id,
                     "tool_id": required.tool_id,
                     "error_code": error.code,
+                    "authorization_decision_ref": decision.decision_id,
+                    "cause": {
+                        "error_code": error.code,
+                        "detail_code": error.code,
+                    },
                     "output": {
                         "status": "TOOL_ERROR",
                         "error_code": error.code,
@@ -849,6 +962,11 @@ class RuntimeEngine:
                     "invocation_id": invocation_id,
                     "tool_id": required.tool_id,
                     "error_code": "UNEXPECTED_TOOL_ERROR",
+                    "authorization_decision_ref": decision.decision_id,
+                    "cause": {
+                        "error_code": "UNEXPECTED_TOOL_ERROR",
+                        "detail_code": None,
+                    },
                     "output": {
                         "status": "FAILED",
                         "error_code": "UNEXPECTED_TOOL_ERROR",
@@ -856,19 +974,29 @@ class RuntimeEngine:
                 },
             )
             raise
+        result_snapshot_ref = result.snapshot_ref
+        if result_snapshot_ref is None and ctx.snapshot_store is not None:
+            stored_result = ctx.snapshot_store.put(
+                ctx.request.principal.tenant_id,
+                result.value,
+                result.classification,
+                ctx.request.data_policy.snapshot_retention_days,
+            )
+            result_snapshot_ref = stored_result.snapshot_id
         ctx.audit.emit(
             "TOOL_COMPLETED",
             {
                 "node_id": expression.node_id,
                 "invocation_id": invocation_id,
                 "tool_id": required.tool_id,
+                "authorization_decision_ref": decision.decision_id,
                 "result_hash": result.result_hash,
-                "snapshot_ref": result.snapshot_ref,
+                "snapshot_ref": result_snapshot_ref,
                 "presence": result.presence.value,
                 "completeness": result.completeness.value,
                 "output": {
                     "result_hash": result.result_hash,
-                    "snapshot_ref": result.snapshot_ref,
+                    "snapshot_ref": result_snapshot_ref,
                     "type": result.type_info.to_data(),
                     "presence": result.presence.value,
                     "completeness": result.completeness.value,
@@ -924,12 +1052,14 @@ class RuntimeEngine:
         status: ExecutionStatus = ExecutionStatus.FAILED,
         detail_code: str | None = None,
         node_id: str | None = None,
+        authorization_decision_ref: str | None = None,
     ) -> ExecutionResult:
         normalized_code = str(code)
         sensitive_values = self._sensitive_values(ctx)
         message = redact_text(message, sensitive_values)
         if detail_code is not None:
             detail_code = redact_text(detail_code, sensitive_values)
+        resolved_node_id = node_id if node_id is not None else ctx.current_node_id
         ctx.audit.emit(
             "EXECUTION_FAILED",
             {
@@ -940,6 +1070,16 @@ class RuntimeEngine:
                 "category": category,
                 "message": message,
                 "detail_code": detail_code,
+                "node_id": resolved_node_id,
+                "location": {
+                    "phase": category,
+                    "node_id": resolved_node_id,
+                },
+                "cause": {
+                    "error_code": normalized_code,
+                    "detail_code": detail_code,
+                },
+                "authorization_decision_ref": authorization_decision_ref,
             },
         )
         return self._result(

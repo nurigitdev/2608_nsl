@@ -267,6 +267,13 @@ def test_arc_006_runtime_has_no_direct_infrastructure_dependency() -> None:
     assert not violations, f"Runtime imports direct infrastructure: {violations}"
 
 
+def test_persistent_audit_adapter_stays_outside_runtime_kernel() -> None:
+    assert "audit_persistence" not in local_imports("runtime")
+    assert "audit_persistence" not in local_imports("audit")
+    assert "audit" in local_imports("audit_persistence")
+    assert "pathlib" in absolute_imports(NSL / "audit_persistence.py")
+
+
 def test_arc_007_nsl_is_an_independent_python_package() -> None:
     violations: dict[str, list[str]] = {}
     for path in NSL.glob("*.py"):
