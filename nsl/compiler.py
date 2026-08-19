@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from hashlib import sha256
 from typing import Any
 
 from .bounds import StaticBoundAnalyzer, UnboundedStructureError
@@ -46,6 +45,7 @@ from .includes import (
     SourceManifestEntry,
     manifest_entry,
 )
+from .integrity import source_manifest_sha256
 from .semantic_diagnostics import SourceDiagnosticContext
 from .source import SourceFile, coerce_source
 from .symbols import ScopeKind, SymbolBinding, SymbolNamespace, SymbolTable
@@ -99,9 +99,6 @@ class NslCompiler:
     def compile(self, source: str | SourceFile) -> CompilationResult:
         source_file = coerce_source(source)
         ast = Parser(Lexer().tokenize(source_file), source_file).parse()
-        source_bundle_hash = "sha256:" + sha256(
-            source_file.text.encode("utf-8")
-        ).hexdigest()
         source_manifest = (manifest_entry(source_file, is_root=True),)
         include_edges: tuple[IncludeEdge, ...] = ()
         source_files = (source_file,)
@@ -112,10 +109,10 @@ class NslCompiler:
                 self.include_resolver, self.include_options
             ).build(source_file)
             ast = SourceComposer().compose(bundle)
-            source_bundle_hash = bundle.bundle_hash
             source_manifest = bundle.manifest
             include_edges = bundle.edges
             source_files = bundle.sources
+        source_bundle_hash = source_manifest_sha256(source_manifest)
         build = BuildMetadata(
             source_bundle_sha256=source_bundle_hash,
             root_source=source_manifest[0].logical_path,

@@ -126,6 +126,12 @@ Slice 0013의 `.nso` Schema 오류는 `NsoSchemaError.path`로 누락되거나 �
 
 Unsupported language/risk와 일부 EMIT schema/classification Source 오류에는 여전히 해당 AST SourceSpan이 연결되지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0013 종료 시점에도 `PARTIAL`을 유지한다.
 
+### Slice 0014 재평가
+
+Slice 0014는 비신뢰 `.nso`의 UTF-8/JSON/Schema/Integrity 오류를 `NsoSchemaError`와 `NsoIntegrityError`로 구분해 fail-closed 처리한다. Artifact 오류는 JSON path 또는 안정적인 무결성 사유를 제공하지만 `.ns` Source Diagnostic은 아니다.
+
+Unsupported language/risk와 일부 EMIT schema/classification Source 오류에는 여전히 해당 AST SourceSpan이 연결되지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0014 종료 시점에도 `PARTIAL`을 유지한다.
+
 ## 7. Acceptance
 
 각 Requirement 변경 후 `tools/run_quality.py`로 Traceability, 전체 Regression, Statement/Branch Coverage를 반복 검증했다. Slice 완료 기준은 다음과 같다.

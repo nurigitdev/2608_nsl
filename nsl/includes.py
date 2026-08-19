@@ -12,6 +12,7 @@ from .diagnostics import (
     SourceLocation,
     compile_error,
 )
+from .integrity import source_manifest_sha256
 from .source import SourceFile, SourceId, SourceSpan
 from .syntax import (
     AstIncludeDeclaration,
@@ -165,15 +166,7 @@ class SourceBundle:
 
     @property
     def bundle_hash(self) -> str:
-        digest = sha256()
-        for source in self.sources:
-            path = source.logical_path.encode("utf-8")
-            content = source.text.encode("utf-8")
-            digest.update(len(path).to_bytes(8, "big"))
-            digest.update(path)
-            digest.update(len(content).to_bytes(8, "big"))
-            digest.update(content)
-        return "sha256:" + digest.hexdigest()
+        return source_manifest_sha256(self.manifest)
 
 
 class MemoryIncludeResolver:

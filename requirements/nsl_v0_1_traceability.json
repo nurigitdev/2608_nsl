@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0013",
+  "current_slice": "0014",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -44,7 +44,7 @@
     "0011": {"scope": "SRS", "title": "Requires and Compile-time Tool Contracts"},
     "0012": {"scope": "SRS", "title": "Static Safety and Resource Bounds"},
     "0013": {"scope": "SRS", "title": "Immutable IR Schema"},
-    "0014": {"scope": "SRS", "title": "Canonical NSO Codec and Hashes"},
+    "0014": {"scope": "SRS", "title": "NSO Trust Boundary and Semantic Identity"},
     "0015": {"scope": "SRS", "title": "Runtime Context and Determinism"},
     "0016": {"scope": "SRS", "title": "Expression and LET Runtime"},
     "0017": {"scope": "SRS", "title": "Tool Registry and Mock Executor"},
@@ -267,6 +267,10 @@
     "NSL-IR-012": {"status": "IMPLEMENTED", "target_slice": "0013", "verification": ["TEST-IR-012"], "evidence": ["tests/test_immutable_ir_schema.py::test_ir_012_nso_contains_no_include_keyword_feature_or_ast_node"]},
     "NSL-IR-013": {"status": "IMPLEMENTED", "target_slice": "0013", "verification": ["TEST-IR-013"], "evidence": ["tests/test_immutable_ir_schema.py::test_ir_013_bool_source_literal_is_normalized_to_typed_ir_literal"]},
     "NSL-IR-014": {"status": "IMPLEMENTED", "target_slice": "0013", "verification": ["TEST-IR-014"], "evidence": ["tests/test_immutable_ir_schema.py::test_ir_014_nso_build_metadata_contains_root_and_include_manifest"]},
+    "NSL-IR-015": {"status": "IMPLEMENTED", "target_slice": "0014", "verification": ["TEST-IR-015"], "evidence": ["tests/test_nso_trust_boundary.py::test_ir_015_source_bundle_and_semantic_hashes_are_separate_and_verified"]},
+    "NSL-IR-016": {"status": "IMPLEMENTED", "target_slice": "0014", "verification": ["TEST-IR-016"], "evidence": ["tests/test_nso_trust_boundary.py::test_ir_016_include_partition_does_not_change_semantic_identity"]},
+    "NSL-SEC-009": {"status": "IMPLEMENTED", "target_slice": "0014", "verification": ["TEST-SEC-009"], "evidence": ["tests/test_nso_trust_boundary.py::test_sec_009_untrusted_nso_rejects_unsafe_serialization", "tests/test_nso_trust_boundary.py::test_sec_009_untrusted_nso_requires_schema_and_semantic_integrity", "tests/test_ir_schema.py::test_schema_validator_rejects_malformed_documents_with_paths"]},
+    "NSL-TST-017": {"status": "IMPLEMENTED", "target_slice": "0014", "verification": ["TEST-TST-017"], "evidence": ["tests/test_nso_trust_boundary.py::test_tst_017_repeated_compile_preserves_ids_hashes_and_artifact"]},
     "NSL-PY-004": {"status": "IMPLEMENTED", "target_slice": "0013", "verification": ["TEST-PY-004"], "evidence": ["tests/test_immutable_ir_schema.py::test_py_004_ir_model_has_strict_schema_validation_before_immutable_load", "tests/test_ir_schema.py::test_schema_validator_rejects_malformed_documents_with_paths"]},
     "NSL-ARC-012": {"status": "IMPLEMENTED", "target_slice": "0011", "verification": ["TEST-ARC-012"], "evidence": ["tests/test_tool_contracts.py::test_arc_012_compiler_resolves_canonical_contract_not_customer_binding"]},
     "NSL-REQ-001": {"status": "IMPLEMENTED", "target_slice": "0011", "verification": ["TEST-REQ-001"], "evidence": ["tests/test_tool_contracts.py::test_req_001_every_read_requires_an_explicit_tool_declaration"]},

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
+import json
 from typing import Any
 
 
@@ -8,6 +10,44 @@ class NsoSchemaError(ValueError):
         self.path = path
         self.reason = reason
         super().__init__(f"invalid NSO schema at {path}: {reason}")
+
+
+CLASSIFICATIONS = frozenset(
+    {"PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"}
+)
+
+
+def load_nso_json(data: bytes) -> Any:
+    if type(data) is not bytes:
+        raise NsoSchemaError("$", "expected NSO bytes")
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise NsoSchemaError("$", "expected UTF-8 JSON") from error
+
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        value: dict[str, Any] = {}
+        for key, item in pairs:
+            if key in value:
+                raise NsoSchemaError("$", f"duplicate object field: {key}")
+            value[key] = item
+        return value
+
+    def reject_non_finite(value: str) -> None:
+        raise NsoSchemaError("$", f"non-finite JSON number: {value}")
+
+    try:
+        return json.loads(
+            text,
+            object_pairs_hook=unique_object,
+            parse_constant=reject_non_finite,
+        )
+    except NsoSchemaError:
+        raise
+    except json.JSONDecodeError as error:
+        raise NsoSchemaError(
+            "$", f"invalid JSON at line {error.lineno}, column {error.colno}"
+        ) from error
 
 
 def _object(value: Any, path: str, fields: frozenset[str]) -> dict[str, Any]:
@@ -62,6 +102,36 @@ def _sha256(value: Any, path: str) -> str:
     return digest
 
 
+def _choice(value: Any, path: str, choices: frozenset[str]) -> str:
+    item = _string(value, path)
+    if item not in choices:
+        raise NsoSchemaError(path, f"expected one of: {sorted(choices)}")
+    return item
+
+
+def _currency(value: Any, path: str) -> str:
+    currency = _string(value, path)
+    if not (
+        len(currency) == 3
+        and currency.isascii()
+        and currency.isalpha()
+        and currency.isupper()
+    ):
+        raise NsoSchemaError(path, "expected 3-letter uppercase currency code")
+    return currency
+
+
+def _finite_decimal(value: Any, path: str) -> str:
+    encoded = _string(value, path)
+    try:
+        decimal = Decimal(encoded)
+    except InvalidOperation as error:
+        raise NsoSchemaError(path, "expected decimal string") from error
+    if not decimal.is_finite():
+        raise NsoSchemaError(path, "expected finite decimal string")
+    return encoded
+
+
 def _constant(value: Any, expected: str, path: str) -> None:
     if value != expected:
         raise NsoSchemaError(path, f"expected {expected!r}")
@@ -87,7 +157,7 @@ def _validate_type(value: Any, path: str) -> None:
     if kind in {"primitive", "domain"}:
         _string(item["name"], f"{path}.name")
     elif kind == "money":
-        _string(item["currency"], f"{path}.currency")
+        _currency(item["currency"], f"{path}.currency")
     elif kind == "list":
         _validate_type(item["item"], f"{path}.item")
     elif kind == "record":
@@ -113,14 +183,14 @@ def _validate_literal_value(value: Any, path: str) -> None:
     tag = value.get("$type")
     if tag == "Decimal":
         item = _object(value, path, frozenset({"$type", "value"}))
-        _string(item["value"], f"{path}.value")
+        _finite_decimal(item["value"], f"{path}.value")
         return
     if tag == "Money":
         item = _object(
             value, path, frozenset({"$type", "amount", "currency"})
         )
-        _string(item["amount"], f"{path}.amount")
-        _string(item["currency"], f"{path}.currency")
+        _finite_decimal(item["amount"], f"{path}.amount")
+        _currency(item["currency"], f"{path}.currency")
         return
     raise NsoSchemaError(path, "unknown encoded literal value")
 
@@ -308,8 +378,11 @@ def validate_nso_document(value: Any) -> None:
             path,
             frozenset({"symbol_id", "name", "category", "type", "classification"}),
         )
-        for name in ("symbol_id", "name", "category", "classification"):
+        for name in ("symbol_id", "name", "category"):
             _string(symbol[name], f"{path}.{name}")
+        _choice(
+            symbol["classification"], f"{path}.classification", CLASSIFICATIONS
+        )
         _validate_type(symbol["type"], f"{path}.type")
 
     for index, required in enumerate(_array(root["requires"], "$.requires")):
@@ -335,9 +408,13 @@ def validate_nso_document(value: Any) -> None:
             "version",
             "capability",
             "required_scope",
-            "output_classification",
         ):
             _string(required[name], f"{path}.{name}")
+        _choice(
+            required["output_classification"],
+            f"{path}.output_classification",
+            CLASSIFICATIONS,
+        )
         _sha256(required["contract_hash"], f"{path}.contract_hash")
 
     limits = _object(
@@ -359,8 +436,11 @@ def validate_nso_document(value: Any) -> None:
                 {"symbol_id", "name", "type", "required", "classification"}
             ),
         )
-        for name in ("symbol_id", "name", "classification"):
+        for name in ("symbol_id", "name"):
             _string(input_spec[name], f"{path}.{name}")
+        _choice(
+            input_spec["classification"], f"{path}.classification", CLASSIFICATIONS
+        )
         _validate_type(input_spec["type"], f"{path}.type")
         _boolean(input_spec["required"], f"{path}.required")
 
@@ -371,8 +451,11 @@ def validate_nso_document(value: Any) -> None:
             path,
             frozenset({"symbol_id", "name", "type", "path", "classification"}),
         )
-        for name in ("symbol_id", "name", "classification"):
+        for name in ("symbol_id", "name"):
             _string(context[name], f"{path}.{name}")
+        _choice(
+            context["classification"], f"{path}.classification", CLASSIFICATIONS
+        )
         _validate_type(context["type"], f"{path}.type")
         for part_index, part in enumerate(_array(context["path"], f"{path}.path")):
             _string(part, f"{path}.path[{part_index}]")
@@ -386,7 +469,7 @@ def validate_nso_document(value: Any) -> None:
         )
         _string(output["name"], f"{path}.name")
         _validate_type(output["type"], f"{path}.type")
-        _string(output["classification"], f"{path}.classification")
+        _choice(output["classification"], f"{path}.classification", CLASSIFICATIONS)
 
     for index, statement in enumerate(_array(root["body"], "$.body")):
         _validate_statement(statement, f"$.body[{index}]")
@@ -408,8 +491,11 @@ def validate_nso_document(value: Any) -> None:
     _boolean(analysis["bounded"], "$.analysis.bounded")
 
     hashes = _object(
-        root["hashes"], "$.hashes", frozenset({"semantic_sha256"})
+        root["hashes"],
+        "$.hashes",
+        frozenset({"source_bundle_sha256", "semantic_sha256"}),
     )
+    _sha256(hashes["source_bundle_sha256"], "$.hashes.source_bundle_sha256")
     _sha256(hashes["semantic_sha256"], "$.hashes.semantic_sha256")
 
     build = _object(

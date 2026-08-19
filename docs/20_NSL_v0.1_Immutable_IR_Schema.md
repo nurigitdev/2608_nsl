@@ -22,14 +22,16 @@
 
 ```text
 .nso bytes
-    -> JSON parse
+    -> strict UTF-8 JSON load
+       (duplicate key/non-finite number reject)
     -> validate_nso_document()
     -> frozen dataclass + tuple/frozenset model
+    -> source manifest hash validation
     -> semantic hash validation
     -> Runtime preflight
 ```
 
-`NsoCodec.decode()`는 Python IR 객체를 만들기 전에 top-level, Type, Symbol, Required Tool, Limit, Input, Context, Output, Statement, Expression, Analysis, Hash, Build Manifest를 검증한다. 필드 누락, 추가 필드, scalar type 오류, unknown kind와 mutable literal은 `NsoSchemaError`로 거부한다.
+`NsoCodec.decode()`는 Python IR 객체를 만들기 전에 UTF-8/JSON encoding과 top-level, Type, Symbol, Required Tool, Limit, Input, Context, Output, Statement, Expression, Analysis, Hash, Build Manifest를 검증한다. 필드 누락, 추가 필드, scalar type 오류, duplicate key, non-finite number, unknown kind와 mutable literal은 `NsoSchemaError`로 거부한다. 이 strict load 경계는 Slice 0014에서 강화됐다.
 
 오류는 다음 형태로 JSON path를 보존한다.
 

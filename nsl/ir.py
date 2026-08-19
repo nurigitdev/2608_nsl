@@ -6,7 +6,8 @@ import json
 from typing import Any, TypeAlias
 
 from .core import DataClassification, TypeRef, decode_value, encode_value
-from .ir_schema import validate_nso_document
+from .integrity import source_manifest_sha256
+from .ir_schema import load_nso_json, validate_nso_document
 
 
 @dataclass(frozen=True, slots=True)
@@ -193,6 +194,10 @@ class BuildMetadata:
     source_bundle_sha256: str
     root_source: str
     sources: tuple[BuildSource, ...]
+
+
+class NsoIntegrityError(ValueError):
+    pass
 
 
 @dataclass(frozen=True, slots=True)
@@ -414,7 +419,10 @@ def skill_to_data(
             ],
         }
     if include_hash:
-        data["hashes"] = {"semantic_sha256": skill.semantic_hash}
+        data["hashes"] = {
+            "source_bundle_sha256": skill.build.source_bundle_sha256,
+            "semantic_sha256": skill.semantic_hash,
+        }
     return data
 
 
@@ -511,7 +519,7 @@ class NsoCodec:
 
     @staticmethod
     def decode(data: bytes) -> SkillObject:
-        raw = json.loads(data)
+        raw = load_nso_json(data)
         validate_nso_document(raw)
         symbols = tuple(
             SymbolSpec(
@@ -578,6 +586,12 @@ class NsoCodec:
                 for item in raw["build"]["sources"]
             ),
         )
+        source_bundle_hash = raw["hashes"]["source_bundle_sha256"]
+        if source_bundle_hash != build.source_bundle_sha256:
+            raise NsoIntegrityError("source bundle hash differs between hashes and build")
+        expected_source_bundle_hash = source_manifest_sha256(build.sources)
+        if source_bundle_hash != expected_source_bundle_hash:
+            raise NsoIntegrityError("source bundle manifest hash mismatch")
         skill = SkillObject(
             ir_version=raw["ir_version"],
             language_version=raw["language"]["version"],
@@ -599,5 +613,5 @@ class NsoCodec:
         )
         expected = skill.with_computed_hash().semantic_hash
         if skill.semantic_hash != expected:
-            raise ValueError("semantic hash mismatch")
+            raise NsoIntegrityError("semantic hash mismatch")
         return skill
