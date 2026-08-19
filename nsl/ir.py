@@ -6,6 +6,7 @@ import json
 from typing import Any, TypeAlias
 
 from .core import DataClassification, TypeRef, decode_value, encode_value
+from .ir_schema import validate_nso_document
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,6 +181,21 @@ class StaticAnalysis:
 
 
 @dataclass(frozen=True, slots=True)
+class BuildSource:
+    logical_path: str
+    content_hash: str
+    size_bytes: int
+    is_root: bool
+
+
+@dataclass(frozen=True, slots=True)
+class BuildMetadata:
+    source_bundle_sha256: str
+    root_source: str
+    sources: tuple[BuildSource, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class SkillObject:
     ir_version: str
     language_version: str
@@ -197,9 +213,10 @@ class SkillObject:
     outputs: tuple[OutputField, ...]
     body: tuple[Statement, ...]
     analysis: StaticAnalysis
+    build: BuildMetadata
 
     def with_computed_hash(self) -> SkillObject:
-        payload = skill_to_data(self, include_hash=False)
+        payload = skill_to_data(self, include_hash=False, include_build=False)
         digest = sha256(canonical_json(payload)).hexdigest()
         return replace(self, semantic_hash="sha256:" + digest)
 
@@ -302,7 +319,11 @@ def _statement_to_data(statement: Statement) -> dict[str, Any]:
     raise TypeError(f"unsupported statement: {type(statement)!r}")
 
 
-def skill_to_data(skill: SkillObject, include_hash: bool = True) -> dict[str, Any]:
+def skill_to_data(
+    skill: SkillObject,
+    include_hash: bool = True,
+    include_build: bool = True,
+) -> dict[str, Any]:
     data: dict[str, Any] = {
         "format": "NSO",
         "ir_version": skill.ir_version,
@@ -378,6 +399,20 @@ def skill_to_data(skill: SkillObject, include_hash: bool = True) -> dict[str, An
             "bounded": skill.analysis.bounded,
         },
     }
+    if include_build:
+        data["build"] = {
+            "source_bundle_sha256": skill.build.source_bundle_sha256,
+            "root_source": skill.build.root_source,
+            "sources": [
+                {
+                    "logical_path": item.logical_path,
+                    "sha256": item.content_hash,
+                    "size_bytes": item.size_bytes,
+                    "is_root": item.is_root,
+                }
+                for item in skill.build.sources
+            ],
+        }
     if include_hash:
         data["hashes"] = {"semantic_sha256": skill.semantic_hash}
     return data
@@ -477,8 +512,7 @@ class NsoCodec:
     @staticmethod
     def decode(data: bytes) -> SkillObject:
         raw = json.loads(data)
-        if raw.get("format") != "NSO":
-            raise ValueError("invalid NSO format")
+        validate_nso_document(raw)
         symbols = tuple(
             SymbolSpec(
                 item["symbol_id"],
@@ -531,6 +565,19 @@ class NsoCodec:
             for item in raw["output"]
         )
         analysis = StaticAnalysis(**raw["analysis"])
+        build = BuildMetadata(
+            source_bundle_sha256=raw["build"]["source_bundle_sha256"],
+            root_source=raw["build"]["root_source"],
+            sources=tuple(
+                BuildSource(
+                    logical_path=item["logical_path"],
+                    content_hash=item["sha256"],
+                    size_bytes=item["size_bytes"],
+                    is_root=item["is_root"],
+                )
+                for item in raw["build"]["sources"]
+            ),
+        )
         skill = SkillObject(
             ir_version=raw["ir_version"],
             language_version=raw["language"]["version"],
@@ -548,9 +595,9 @@ class NsoCodec:
             outputs=outputs,
             body=tuple(_statement_from_data(item) for item in raw["body"]),
             analysis=analysis,
+            build=build,
         )
         expected = skill.with_computed_hash().semantic_hash
         if skill.semantic_hash != expected:
             raise ValueError("semantic hash mismatch")
         return skill
-

@@ -110,7 +110,7 @@ def test_ir_defensive_unknown_kinds_and_format() -> None:
         _expr_from_data({"kind": "unknown", "node_id": "x", "type": type_data})
     with pytest.raises(ValueError, match="unknown statement kind"):
         _statement_from_data({"kind": "unknown", "node_id": "x"})
-    with pytest.raises(ValueError, match="invalid NSO format"):
+    with pytest.raises(ValueError, match=r"invalid NSO schema at \$: missing fields"):
         NsoCodec.decode(b'{"format":"BAD"}')
 
 

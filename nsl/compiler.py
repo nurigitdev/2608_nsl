@@ -14,6 +14,8 @@ from .core import (
 from .diagnostics import CompileError, DiagnosticCode, DiagnosticPhase, compile_error
 from .ir import (
     BinaryExpr,
+    BuildMetadata,
+    BuildSource,
     CallExpr,
     CheckStatement,
     ContextSpec,
@@ -114,8 +116,21 @@ class NslCompiler:
             source_manifest = bundle.manifest
             include_edges = bundle.edges
             source_files = bundle.sources
+        build = BuildMetadata(
+            source_bundle_sha256=source_bundle_hash,
+            root_source=source_manifest[0].logical_path,
+            sources=tuple(
+                BuildSource(
+                    logical_path=item.logical_path,
+                    content_hash=item.content_hash,
+                    size_bytes=item.size_bytes,
+                    is_root=item.is_root,
+                )
+                for item in source_manifest
+            ),
+        )
         lowerer = _Lowerer(self.tool_catalog, ast, source_files)
-        skill = lowerer.lower().with_computed_hash()
+        skill = lowerer.lower(build).with_computed_hash()
         nso_bytes = NsoCodec.encode(skill)
         return CompilationResult(
             skill=skill,
@@ -164,7 +179,7 @@ class _Lowerer:
             node.span,
         )
 
-    def lower(self) -> SkillObject:
+    def lower(self, build: BuildMetadata) -> SkillObject:
         if self.ast.includes:
             raise compile_error(
                 DiagnosticCode.SEM_INCLUDE_REQUIRES_COMPOSITION,
@@ -330,6 +345,7 @@ class _Lowerer:
             outputs=outputs,
             body=body,
             analysis=analysis,
+            build=build,
         )
 
     def _lower_block(

@@ -120,6 +120,12 @@ Slice 0012에서 Tool Call, Loop, Emit의 static resource bound 초과 오류가
 
 Resource Bound 영역의 Source Diagnostic 공백은 해소됐지만, unsupported language/risk와 일부 EMIT schema/classification 오류는 아직 해당 AST SourceSpan을 전달하지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0012 종료 시점에도 `PARTIAL`을 유지한다.
 
+### Slice 0013 재평가
+
+Slice 0013의 `.nso` Schema 오류는 `NsoSchemaError.path`로 누락되거나 잘못된 JSON 필드의 정확한 위치를 제공한다. 이는 Source Language Diagnostic이 아닌 artifact load validation 영역이다.
+
+Unsupported language/risk와 일부 EMIT schema/classification Source 오류에는 여전히 해당 AST SourceSpan이 연결되지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0013 종료 시점에도 `PARTIAL`을 유지한다.
+
 ## 7. Acceptance
 
 각 Requirement 변경 후 `tools/run_quality.py`로 Traceability, 전체 Regression, Statement/Branch Coverage를 반복 검증했다. Slice 완료 기준은 다음과 같다.
