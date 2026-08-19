@@ -19,6 +19,7 @@ LLM_MODULES = {
 }
 RUNTIME_KERNEL_MODULES = {
     "audit.py",
+    "builtins.py",
     "core.py",
     "ir.py",
     "replay.py",
@@ -27,6 +28,7 @@ RUNTIME_KERNEL_MODULES = {
     "security.py",
 }
 LANGUAGE_CORE_MODULES = {
+    "builtins.py",
     "compiler.py",
     "core.py",
     "diagnostics.py",

@@ -5,6 +5,7 @@ from traceback import format_exception
 from typing import Any, Callable
 
 from .audit import AuditRecorder, AuditSink, SnapshotStore, value_hash
+from .builtins import BuiltinError, V0_1_BUILTINS
 from .core import (
     BOOL,
     CHECK_RESULT,
@@ -18,7 +19,6 @@ from .core import (
     TypeRef,
     ValueEnvelope,
     highest_classification,
-    sum_money,
 )
 from .diagnostics import DiagnosticCode
 from .ir import (
@@ -403,17 +403,19 @@ class RuntimeEngine:
                 source.provenance_refs,
             )
         if isinstance(expression, CallExpr):
-            argument = await self._evaluate(ctx, expression.arguments[0], tools)
-            if expression.function != "sum":
-                raise RuntimeContractError(
-                    f"unsupported built-in: {expression.function}"
+            arguments = tuple(
+                [await self._evaluate(ctx, item, tools) for item in expression.arguments]
+            )
+            try:
+                value = V0_1_BUILTINS.evaluate(
+                    expression.function,
+                    tuple(item.value for item in arguments),
+                    tuple(item.type_info for item in arguments),
+                    expression.type_info,
                 )
-            if expression.type_info.kind == "money":
-                value = sum_money(
-                    argument.value, expression.type_info.currency
-                )
-            else:
-                value = sum(argument.value)
+            except BuiltinError as error:
+                raise RuntimeContractError(str(error)) from error
+            argument = arguments[0]
             return ValueEnvelope(
                 value,
                 expression.type_info,

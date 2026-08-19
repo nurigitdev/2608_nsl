@@ -436,19 +436,18 @@ class _Lowerer:
             return expression, classification
         if isinstance(ast, AstCall):
             arguments = [self._lower_expr(item) for item in ast.arguments]
-            if ast.name != "sum" or len(arguments) != 1:
-                raise compile_error(
-                    DiagnosticCode.SEM_UNSUPPORTED_BUILTIN,
-                    DiagnosticPhase.SEMANTIC,
-                    f"unsupported built-in call: {ast.name}",
-                )
-            argument, classification = arguments[0]
-            result_type = self.type_checker.sum_result(
-                argument.type_info, ast.span
+            signature = self.type_checker.builtin_result(
+                ast.name,
+                tuple(argument.type_info for argument, _ in arguments),
+                ast.span,
             )
+            argument, classification = arguments[0]
             return (
                 CallExpr(
-                    self._node_id("expr"), "sum", (argument,), result_type
+                    self._node_id("expr"),
+                    signature.name,
+                    tuple(item for item, _ in arguments),
+                    signature.result_type,
                 ),
                 classification,
             )

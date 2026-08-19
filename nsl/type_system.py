@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+from .builtins import (
+    BuiltinSignature,
+    BuiltinSignatureError,
+    UnknownBuiltinError,
+    V0_1_BUILTINS,
+)
 from .core import BOOL, DECIMAL, INT, TypeRef, list_type
 from .diagnostics import DiagnosticCode
 from .semantic_diagnostics import SourceDiagnosticContext
@@ -63,19 +69,29 @@ class StaticTypeChecker:
     def sum_result(
         self, argument_type: TypeRef, span: SourceSpan | None
     ) -> TypeRef:
-        item_type = self.require_list(
-            argument_type,
-            DiagnosticCode.SEM_SUM_ARGUMENT_TYPE,
-            "sum requires List<Int|Decimal|Money>",
-            span,
-        )
-        if item_type not in {INT, DECIMAL} and item_type.kind != "money":
+        return self.builtin_result("sum", (argument_type,), span).result_type
+
+    def builtin_result(
+        self,
+        name: str,
+        argument_types: tuple[TypeRef, ...],
+        span: SourceSpan | None,
+    ) -> BuiltinSignature:
+        try:
+            return V0_1_BUILTINS.resolve(name, argument_types)
+        except UnknownBuiltinError as error:
             raise self._diagnostics.error(
-                DiagnosticCode.SEM_SUM_ARGUMENT_TYPE,
-                "sum requires List<Int|Decimal|Money>",
+                DiagnosticCode.SEM_UNSUPPORTED_BUILTIN,
+                str(error),
                 span,
+            ) from error
+        except BuiltinSignatureError as error:
+            code = (
+                DiagnosticCode.SEM_SUM_ARGUMENT_TYPE
+                if name == "sum"
+                else DiagnosticCode.SEM_UNSUPPORTED_BUILTIN
             )
-        return item_type
+            raise self._diagnostics.error(code, str(error), span) from error
 
     def binary_result(
         self,

@@ -18,7 +18,7 @@
 5. AST Node는 `syntax.py`에 명시적인 frozen, slotted dataclass로 정의한다.
 6. `eval()`, `exec()`, 동적 import와 검토되지 않은 외부 module import는 architecture regression gate에서 차단한다.
 
-Runtime Kernel 범위는 `audit.py`, `core.py`, `ir.py`, `replay.py`, `runtime.py`, `runtime_models.py`, `security.py`이다. 개발용 `vertical_slice.py`의 fixture 및 파일 로딩은 Runtime Kernel에 포함하지 않는다.
+Runtime Kernel 범위는 `audit.py`, `builtins.py`, `core.py`, `ir.py`, `replay.py`, `runtime.py`, `runtime_models.py`, `security.py`이다. 개발용 `vertical_slice.py`의 fixture 및 파일 로딩은 Runtime Kernel에 포함하지 않는다.
 
 ## 3. Diagnostic 계약
 
@@ -101,6 +101,12 @@ Slice 0008에서 `SourceDiagnosticContext`를 공통 진단 구성 요소로 추
 Slice 0009에서 잘못된 `Money<CURRENCY>` 선언은 통화 Token의 Line/Column, Snippet, Logical Path를 보존하는 Parser 오류로 반환된다. Mixed Currency는 `MoneyError` 계층을 통해 사용자에게 안전한 Runtime 오류로 반환되지만 Source 기반 Compile Diagnostic은 아니다.
 
 Slice 0008에서 확인한 Tool 선언, Tool 인자 이름 집합, 일부 Tool Contract 및 resource bound 오류의 SourceSpan 공백은 그대로 남아 있다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0009 종료 시점에도 `PARTIAL`을 유지한다.
+
+### Slice 0010 재평가
+
+Slice 0010에서 Built-in 이름과 Signature 오류가 `StaticTypeChecker`의 `SourceDiagnosticContext`를 통과하도록 통합되었다. 비활성 `coalesce()`를 포함한 Built-in Compile 오류는 원래 Source의 Line/Column, Snippet, Logical Path를 보존한다.
+
+그러나 미선언 Tool, Tool 인자 이름 집합, 일부 Tool Contract 및 resource bound 오류에는 여전히 SourceSpan이 연결되지 않는다. 따라서 `NSL-ERR-002`와 `NSL-ERR-003`은 Slice 0010 종료 시점에도 `PARTIAL`을 유지한다.
 
 ## 7. Acceptance
 
