@@ -22,9 +22,8 @@ from .ir import NsoCodec
 from .replay import (
     RecordingToolExecutor,
     ReplayBundle,
-    ReplayToolExecutor,
     create_replay_bundle,
-    load_replay_inputs,
+    replay_and_compare,
 )
 from .runtime import ExecutionRequest, ExecutionResult, RuntimeEngine
 from .security import (
@@ -189,30 +188,26 @@ async def run_vertical_slice(
     live = await engine.execute(skill, request, recording, live_audit, snapshots)
 
     bundle = create_replay_bundle(
-        skill.semantic_hash,
-        inputs,
-        runtime_context,
-        principal,
-        policy,
+        skill,
+        request,
+        live,
         recording,
         snapshots,
     )
-    replay_inputs, replay_context = load_replay_inputs(bundle, snapshots, principal)
-    replay_request = ExecutionRequest(
-        execution_id="exec-replay-001",
-        inputs=replay_inputs,
-        runtime_context=replay_context,
-        principal=principal,
-        data_policy=policy,
-    )
-    replay_tools = ReplayToolExecutor(bundle.tool_calls, snapshots)
     replay_audit = InMemoryAuditSink()
-    replay = await engine.execute(
-        skill, replay_request, replay_tools, replay_audit, snapshots
+    replay_report = await replay_and_compare(
+        bundle,
+        skill,
+        replay_execution_id="exec-replay-001",
+        principal=principal,
+        policy=policy,
+        snapshots=snapshots,
+        runtime=engine,
+        audit_sink=replay_audit,
     )
-    replay_tools.assert_consumed()
+    replay = replay_report.execution.result
 
-    if live.semantic_view() != replay.semantic_view():
+    if not replay_report.matches:
         raise RuntimeError("live and replay semantic results differ")
     return VerticalSliceResult(
         compilation,
@@ -222,7 +217,7 @@ async def run_vertical_slice(
         live_audit,
         replay_audit,
         mock.call_count,
-        replay_tools.call_count,
+        replay_report.execution.tool_call_count,
     )
 
 

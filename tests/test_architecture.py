@@ -274,6 +274,18 @@ def test_persistent_audit_adapter_stays_outside_runtime_kernel() -> None:
     assert "pathlib" in absolute_imports(NSL / "audit_persistence.py")
 
 
+def test_protected_snapshot_adapter_stays_behind_snapshot_store_port() -> None:
+    assert "protected_snapshots" not in local_imports("runtime")
+    assert "protected_snapshots" not in local_imports("replay")
+    assert "audit" in local_imports("protected_snapshots")
+
+    replay_source = (NSL / "replay.py").read_text(encoding="utf-8")
+    runtime_source = (NSL / "runtime.py").read_text(encoding="utf-8")
+    assert "InMemorySnapshotStore" not in replay_source
+    assert "ProtectedSnapshotStore" not in replay_source
+    assert "ProtectedSnapshotStore" not in runtime_source
+
+
 def test_arc_007_nsl_is_an_independent_python_package() -> None:
     violations: dict[str, list[str]] = {}
     for path in NSL.glob("*.py"):

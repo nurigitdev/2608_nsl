@@ -90,10 +90,21 @@ class ExecutionPrincipal:
 class DataHandlingPolicy:
     max_trace_classification: DataClassification = DataClassification.INTERNAL
     snapshot_retention_days: int = 30
+    audit_retention_days: int = 90
 
     def __post_init__(self) -> None:
-        if self.snapshot_retention_days <= 0:
+        if (
+            not isinstance(self.snapshot_retention_days, int)
+            or isinstance(self.snapshot_retention_days, bool)
+            or self.snapshot_retention_days <= 0
+        ):
             raise ValueError("snapshot_retention_days must be positive")
+        if (
+            not isinstance(self.audit_retention_days, int)
+            or isinstance(self.audit_retention_days, bool)
+            or self.audit_retention_days <= 0
+        ):
+            raise ValueError("audit_retention_days must be positive")
 
 
 @dataclass(frozen=True, slots=True)

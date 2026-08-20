@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
+from datetime import UTC, datetime, timedelta
 from hashlib import sha256
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 
 from .core import (
     DataClassification,
@@ -15,7 +16,7 @@ from .ir import canonical_json
 from .security import DataHandlingPolicy, ExecutionPrincipal
 
 
-AUDIT_SCHEMA_VERSION = "1.0"
+AUDIT_SCHEMA_VERSION = "1.1"
 RUNTIME_VERSION = "0.1.0"
 
 
@@ -32,6 +33,7 @@ class AuditEvent:
     tenant_id: str | None
     subject_id: str | None
     auth_context_ref: str | None
+    retention_days: int
     classification: DataClassification
     payload: dict[str, Any]
     previous_event_hash: str | None
@@ -54,7 +56,14 @@ class AuditEvent:
         classification: DataClassification,
         payload: dict[str, Any],
         previous_event_hash: str | None,
+        retention_days: int = 90,
     ) -> AuditEvent:
+        if (
+            not isinstance(retention_days, int)
+            or isinstance(retention_days, bool)
+            or retention_days <= 0
+        ):
+            raise ValueError("audit event retention_days must be positive")
         hash_data = {
             "schema_version": AUDIT_SCHEMA_VERSION,
             "execution_id": execution_id,
@@ -67,6 +76,7 @@ class AuditEvent:
             "tenant_id": tenant_id,
             "subject_id": subject_id,
             "auth_context_ref": auth_context_ref,
+            "retention_days": retention_days,
             "classification": classification.value,
             "payload": payload,
             "previous_event_hash": previous_event_hash,
@@ -83,6 +93,7 @@ class AuditEvent:
             tenant_id=tenant_id,
             subject_id=subject_id,
             auth_context_ref=auth_context_ref,
+            retention_days=retention_days,
             classification=classification,
             payload=payload,
             previous_event_hash=previous_event_hash,
@@ -103,6 +114,7 @@ class AuditEvent:
             "tenant_id",
             "subject_id",
             "auth_context_ref",
+            "retention_days",
             "classification",
             "payload",
             "previous_event_hash",
@@ -157,6 +169,7 @@ class AuditEvent:
             tenant_id=data["tenant_id"],
             subject_id=data["subject_id"],
             auth_context_ref=data["auth_context_ref"],
+            retention_days=data["retention_days"],
             classification=classification,
             payload=deepcopy(data["payload"]),
             previous_event_hash=data["previous_event_hash"],
@@ -172,6 +185,14 @@ class AuditEvent:
         }
 
     def verify(self) -> None:
+        if self.schema_version != AUDIT_SCHEMA_VERSION:
+            raise ValueError("unsupported audit event schema version")
+        if (
+            not isinstance(self.retention_days, int)
+            or isinstance(self.retention_days, bool)
+            or self.retention_days <= 0
+        ):
+            raise ValueError("audit event retention_days must be positive")
         if self.event_hash != value_hash(self._hash_data()):
             raise ValueError("audit event hash mismatch")
 
@@ -188,6 +209,7 @@ class AuditEvent:
             "tenant_id": self.tenant_id,
             "subject_id": self.subject_id,
             "auth_context_ref": self.auth_context_ref,
+            "retention_days": self.retention_days,
             "classification": self.classification.value,
             "payload": deepcopy(self.payload),
             "previous_event_hash": self.previous_event_hash,
@@ -211,6 +233,12 @@ class SnapshotStore(Protocol):
         ...
 
     def get(self, reference: SnapshotRef, principal: ExecutionPrincipal) -> Any:
+        ...
+
+    def delete(self, reference: SnapshotRef, principal: ExecutionPrincipal) -> None:
+        ...
+
+    def purge_expired(self) -> int:
         ...
 
 
@@ -298,6 +326,7 @@ class AuditRecorder:
             classification=classification,
             payload=safe_payload,
             previous_event_hash=self.previous_event_hash,
+            retention_days=self.policy.audit_retention_days,
         )
         self.sink.append(event)
         self.sequence = next_sequence
@@ -305,7 +334,8 @@ class AuditRecorder:
 
 
 def value_hash(value: Any) -> str:
-    return "sha256:" + sha256(canonical_json(encode_value(value))).hexdigest()
+    hashable = asdict(value) if is_dataclass(value) else value
+    return "sha256:" + sha256(canonical_json(encode_value(hashable))).hexdigest()
 
 
 @dataclass(frozen=True, slots=True)
@@ -314,6 +344,7 @@ class SnapshotRef:
     tenant_id: str
     classification: DataClassification
     value_hash: str
+    expires_at: str | None = None
 
 
 @dataclass(slots=True)
@@ -321,15 +352,19 @@ class _StoredSnapshot:
     tenant_id: str
     classification: DataClassification
     value: Any
+    reference_hash: str
+    integrity_hash: str
     retention_days: int
+    expires_at: datetime
 
 
 class InMemorySnapshotStore:
     """Development-only snapshot store with tenant and scope checks."""
 
-    def __init__(self) -> None:
+    def __init__(self, now_provider: Callable[[], datetime] | None = None) -> None:
         self._items: dict[str, _StoredSnapshot] = {}
         self._counter = 0
+        self._now_provider = now_provider or (lambda: datetime.now(UTC))
 
     def put(
         self,
@@ -339,18 +374,39 @@ class InMemorySnapshotStore:
         retention_days: int,
         hash_material: Any | None = None,
     ) -> SnapshotRef:
+        if not isinstance(tenant_id, str) or not tenant_id.strip():
+            raise ValueError("snapshot tenant_id must be non-empty")
+        if not isinstance(classification, DataClassification):
+            raise ValueError("snapshot classification is invalid")
+        if (
+            not isinstance(retention_days, int)
+            or isinstance(retention_days, bool)
+            or retention_days <= 0
+        ):
+            raise ValueError("snapshot retention_days must be positive")
         self._counter += 1
         snapshot_id = f"snapshot-{self._counter:06d}"
         digest = value_hash(value if hash_material is None else hash_material)
+        expires_at = self._now() + timedelta(days=retention_days)
         self._items[snapshot_id] = _StoredSnapshot(
             tenant_id=tenant_id,
             classification=classification,
             value=deepcopy(value),
+            reference_hash=digest,
+            integrity_hash=value_hash(value),
             retention_days=retention_days,
+            expires_at=expires_at,
         )
-        return SnapshotRef(snapshot_id, tenant_id, classification, digest)
+        return SnapshotRef(
+            snapshot_id,
+            tenant_id,
+            classification,
+            digest,
+            expires_at.isoformat(),
+        )
 
     def get(self, reference: SnapshotRef, principal: ExecutionPrincipal) -> Any:
+        principal.validate(require_verified=True)
         if "nsl:replay:read" not in principal.scopes:
             raise PermissionError("nsl:replay:read scope is required")
         try:
@@ -359,4 +415,51 @@ class InMemorySnapshotStore:
             raise KeyError(f"snapshot not found: {reference.snapshot_id}") from error
         if item.tenant_id != principal.tenant_id or reference.tenant_id != principal.tenant_id:
             raise PermissionError("cross-tenant snapshot access is forbidden")
-        return deepcopy(item.value)
+        self._validate_reference(reference, item)
+        if self._now() >= item.expires_at:
+            del self._items[reference.snapshot_id]
+            raise KeyError(f"snapshot expired: {reference.snapshot_id}")
+        value = deepcopy(item.value)
+        if value_hash(value) != item.integrity_hash:
+            raise ValueError("snapshot plaintext integrity mismatch")
+        return value
+
+    def delete(self, reference: SnapshotRef, principal: ExecutionPrincipal) -> None:
+        principal.validate(require_verified=True)
+        if "nsl:snapshot:delete" not in principal.scopes:
+            raise PermissionError("nsl:snapshot:delete scope is required")
+        try:
+            item = self._items[reference.snapshot_id]
+        except KeyError as error:
+            raise KeyError(f"snapshot not found: {reference.snapshot_id}") from error
+        if item.tenant_id != principal.tenant_id or reference.tenant_id != principal.tenant_id:
+            raise PermissionError("cross-tenant snapshot access is forbidden")
+        self._validate_reference(reference, item)
+        del self._items[reference.snapshot_id]
+
+    def purge_expired(self) -> int:
+        now = self._now()
+        expired = [
+            snapshot_id
+            for snapshot_id, item in self._items.items()
+            if now >= item.expires_at
+        ]
+        for snapshot_id in expired:
+            del self._items[snapshot_id]
+        return len(expired)
+
+    def _validate_reference(
+        self, reference: SnapshotRef, item: _StoredSnapshot
+    ) -> None:
+        if (
+            reference.classification is not item.classification
+            or reference.value_hash != item.reference_hash
+            or reference.expires_at != item.expires_at.isoformat()
+        ):
+            raise ValueError("snapshot reference metadata mismatch")
+
+    def _now(self) -> datetime:
+        now = self._now_provider()
+        if not isinstance(now, datetime) or now.tzinfo is None:
+            raise ValueError("snapshot clock must return a timezone-aware datetime")
+        return now

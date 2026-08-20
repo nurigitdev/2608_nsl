@@ -160,10 +160,22 @@ def test_execution_principal_robustness(overrides, message) -> None:
         principal(**overrides).validate()
 
 
-@pytest.mark.parametrize("days", [0, -1])
-def test_data_policy_rejects_non_positive_retention(days) -> None:
-    with pytest.raises(ValueError, match="positive"):
-        DataHandlingPolicy(snapshot_retention_days=days)
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("snapshot_retention_days", 0),
+        ("snapshot_retention_days", -1),
+        ("snapshot_retention_days", True),
+        ("snapshot_retention_days", 1.5),
+        ("audit_retention_days", 0),
+        ("audit_retention_days", -1),
+        ("audit_retention_days", True),
+        ("audit_retention_days", "30"),
+    ],
+)
+def test_data_policy_rejects_invalid_retention(field_name, value) -> None:
+    with pytest.raises(ValueError, match=field_name):
+        DataHandlingPolicy(**{field_name: value})
 
 
 def test_authorizer_default_deny_and_allow() -> None:

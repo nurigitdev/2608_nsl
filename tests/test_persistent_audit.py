@@ -467,7 +467,7 @@ def test_jsonl_store_rejects_invalid_append_and_tampering(tmp_path) -> None:
     recorder = AuditRecorder(store, POLICY, execution_id="exec-integrity")
     recorder.emit("EXECUTION_STARTED", {"state": "started"})
     data = json.loads(path.read_text(encoding="utf-8"))
-    data["payload"]["state"] = "tampered"
+    data["event"]["payload"]["state"] = "tampered"
     path.write_text(json.dumps(data) + "\n", encoding="utf-8")
 
     with pytest.raises(AuditIntegrityError, match="invalid audit record"):
@@ -491,6 +491,29 @@ def test_audit_event_decoder_rejects_schema_and_value_boundaries() -> None:
     for data, message in mutations:
         with pytest.raises(ValueError, match=message):
             AuditEvent.from_data(data)
+
+    event = sink.events[0]
+    with pytest.raises(ValueError, match="schema version"):
+        replace(event, schema_version="2.0").verify()
+    with pytest.raises(ValueError, match="retention_days"):
+        replace(event, retention_days=0).verify()
+    with pytest.raises(ValueError, match="retention_days"):
+        AuditEvent.create(
+            execution_id=event.execution_id,
+            sequence=event.sequence,
+            event_type=event.event_type,
+            skill_id=event.skill_id,
+            skill_version=event.skill_version,
+            semantic_hash=event.semantic_hash,
+            runtime_version=event.runtime_version,
+            tenant_id=event.tenant_id,
+            subject_id=event.subject_id,
+            auth_context_ref=event.auth_context_ref,
+            classification=event.classification,
+            payload=event.payload,
+            previous_event_hash=event.previous_event_hash,
+            retention_days=False,
+        )
 
 
 def test_jsonl_store_reports_empty_truncated_and_unreadable_records(
@@ -587,7 +610,13 @@ def test_jsonl_store_rejects_persisted_chain_discontinuities(
         previous_event_hash=second_previous,
     )
     path = tmp_path / "events.jsonl"
-    path.write_text(json.dumps(event.to_data()) + "\n", encoding="utf-8")
+    record = {
+        "storage_schema_version": "1.0",
+        "stored_at": "2026-01-01T00:00:00+00:00",
+        "expires_at": "2026-04-01T00:00:00+00:00",
+        "event": event.to_data(),
+    }
+    path.write_text(json.dumps(record) + "\n", encoding="utf-8")
 
     with pytest.raises(AuditIntegrityError, match=message):
         JsonlAuditStore(path)
@@ -599,3 +628,34 @@ def test_jsonl_store_rejects_non_string_query_values(tmp_path) -> None:
         store.read_execution(tenant_id=None, execution_id="exec")
     with pytest.raises(ValueError, match="execution_id"):
         store.read_execution(tenant_id="tenant", execution_id=None)
+
+
+def test_jsonl_store_rejects_invalid_storage_envelopes(tmp_path) -> None:
+    source_path = tmp_path / "source.jsonl"
+    source = JsonlAuditStore(source_path)
+    AuditRecorder(source, POLICY, execution_id="exec-storage-schema").emit(
+        "TEST", {}
+    )
+    valid = json.loads(source_path.read_text(encoding="utf-8"))
+    mutations = (
+        ({**valid, "extra": True}, "invalid audit record"),
+        (
+            {**valid, "storage_schema_version": "2.0"},
+            "invalid audit record",
+        ),
+        (
+            {**valid, "expires_at": "2026-01-01T00:00:00+00:00"},
+            "invalid audit record",
+        ),
+        ({**valid, "stored_at": ""}, "invalid audit record"),
+        ({**valid, "stored_at": "not-a-time"}, "invalid audit record"),
+        (
+            {**valid, "stored_at": "2026-01-01T00:00:00"},
+            "invalid audit record",
+        ),
+    )
+    for index, (data, message) in enumerate(mutations):
+        path = tmp_path / f"invalid-{index}.jsonl"
+        path.write_text(json.dumps(data) + "\n", encoding="utf-8")
+        with pytest.raises(AuditIntegrityError, match=message):
+            JsonlAuditStore(path)

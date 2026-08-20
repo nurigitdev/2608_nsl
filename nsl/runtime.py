@@ -60,6 +60,9 @@ from .runtime_models import (
     RuntimeErrorInfo,
     SystemRuntimeClock,
     ExecutionContext,
+    highest_declared_classification,
+    project_declared_context,
+    project_declared_inputs,
 )
 from .security import (
     AuthorizationError,
@@ -170,16 +173,16 @@ class RuntimeEngine:
         try:
             ctx.resource_guard.check_deadline()
             self._preflight(skill)
-            input_classification = DataClassification.PUBLIC
-            for spec in skill.inputs:
-                input_classification = highest_classification(
-                    input_classification, spec.classification
-                )
-            context_classification = DataClassification.PUBLIC
-            for spec in skill.contexts:
-                context_classification = highest_classification(
-                    context_classification, spec.classification
-                )
+            declared_inputs = project_declared_inputs(skill, request.inputs)
+            input_classification = highest_declared_classification(skill.inputs)
+            if declared_inputs != dict(request.inputs):
+                input_classification = DataClassification.RESTRICTED
+            declared_context = project_declared_context(
+                skill, request.runtime_context
+            )
+            context_classification = highest_declared_classification(skill.contexts)
+            if declared_context != dict(request.runtime_context):
+                context_classification = DataClassification.RESTRICTED
             input_ref = None
             context_ref = None
             if snapshot_store is not None:

@@ -12,6 +12,7 @@ from .core import (
     DataClassification,
     ExecutionStatus,
     ValueEnvelope,
+    highest_classification,
 )
 from .data_protection import ensure_no_credential_material
 from .ir import ResourceLimits, SkillObject
@@ -64,6 +65,44 @@ class ExecutionRequest:
         ensure_no_credential_material(
             self.runtime_context, "ExecutionRequest.runtime_context"
         )
+
+
+def highest_declared_classification(specs: tuple[Any, ...]) -> DataClassification:
+    classification = DataClassification.PUBLIC
+    for spec in specs:
+        classification = highest_classification(classification, spec.classification)
+    return classification
+
+
+def project_declared_inputs(
+    skill: SkillObject,
+    inputs: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        spec.name: inputs[spec.name]
+        for spec in skill.inputs
+        if spec.name in inputs
+    }
+
+
+def project_declared_context(
+    skill: SkillObject,
+    runtime_context: Mapping[str, Any],
+) -> dict[str, Any]:
+    projected: dict[str, Any] = {}
+    for spec in skill.contexts:
+        value: Any = runtime_context
+        try:
+            for part in spec.path:
+                value = value[part]
+        except (KeyError, TypeError):
+            continue
+
+        target = projected
+        for part in spec.path[:-1]:
+            target = target.setdefault(part, {})
+        target[spec.path[-1]] = value
+    return projected
 
 
 @dataclass(frozen=True, slots=True)

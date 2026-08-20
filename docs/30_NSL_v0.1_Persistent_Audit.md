@@ -68,7 +68,7 @@ RuntimeEngine
 
 ## 5. Persistent Store Contract
 
-`JsonlAuditStore`는 한 줄에 하나의 canonical JSON event를 append하고 flush한다. Runtime에서 append가 실패하면 recorder sequence와 chain tail을 진행시키지 않아 미기록 실행을 계속하지 않는다.
+`JsonlAuditStore`는 한 줄에 하나의 canonical storage envelope를 append하고 flush한다. Envelope는 deterministic audit event와 별도로 저장 시각 및 만료 시각을 보유한다. Runtime에서 append가 실패하면 recorder sequence와 chain tail을 진행시키지 않아 미기록 실행을 계속하지 않는다.
 
 조회는 `tenant_id`와 `execution_id`를 모두 요구한다. 다른 Tenant에서 같은 Execution ID를 제시해도 이벤트를 반환하지 않는다. 현재 어댑터는 개발 및 단일 writer 배포를 위한 기준 구현이며 다중 writer transaction과 운영 DB 저장은 인프라 어댑터의 후속 범위다.
 
@@ -88,7 +88,7 @@ Input, Context, Tool Input은 원문 대신 hash와 classification을 기본 감
 
 `NSL-AUD-007`은 `SnapshotStore`가 제공되거나 Tool adapter가 snapshot reference를 반환하는 경로에서는 완료되었다. 그러나 두 포트가 모두 reference를 제공하지 않은 상태에서 보호 등급 Tool Result를 일반 audit에 원문으로 저장할 수는 없다. 이 경우에도 result hash는 남지만 SRS가 요구하는 snapshot 또는 reference는 보장되지 않는다.
 
-따라서 `NSL-AUD-007`은 `PARTIAL`로 유지하고 완료 목표를 Slice `0024: Protected Snapshot and Replay`로 이동한다. Slice 0024에서는 Production 실행의 protected snapshot store 필수성, retention, reference 생명주기와 복구 계약을 확정해야 한다.
+Slice 0024에서 protected snapshot의 암호화 저장, retention, reference 생명주기와 Replay 복구 계약은 구현되었다. 다만 일반 Production 실행에 `SnapshotStore`를 필수로 강제하는 배포 프로파일은 아직 확정하지 않았으므로 `NSL-AUD-007`은 `PARTIAL`로 유지하고 완료 목표를 Slice `0030: Performance, Reliability, and SRS Certification`으로 이동한다.
 
 ## 9. Boundary and Robustness
 

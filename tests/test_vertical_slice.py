@@ -208,15 +208,13 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         mock = build_mock_executor(self.catalog)
         recording = RecordingToolExecutor(mock, snapshots, self.policy)
         request = self.request(principal)
-        await self.engine.execute(
+        original = await self.engine.execute(
             self.skill, request, recording, InMemoryAuditSink()
         )
         bundle = create_replay_bundle(
-            self.skill.semantic_hash,
-            dict(request.inputs),
-            dict(request.runtime_context),
-            principal,
-            self.policy,
+            self.skill,
+            request,
+            original,
             recording,
             snapshots,
         )
@@ -231,15 +229,13 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         mock = build_mock_executor(self.catalog)
         recording = RecordingToolExecutor(mock, snapshots, self.policy)
         request = self.request(principal)
-        await self.engine.execute(
+        original = await self.engine.execute(
             self.skill, request, recording, InMemoryAuditSink()
         )
         bundle = create_replay_bundle(
-            self.skill.semantic_hash,
-            dict(request.inputs),
-            dict(request.runtime_context),
-            principal,
-            self.policy,
+            self.skill,
+            request,
+            original,
             recording,
             snapshots,
         )
