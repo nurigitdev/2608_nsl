@@ -175,6 +175,12 @@ def _validate_type(value: Any, path: str) -> None:
             _string(enum_value, f"{path}.values[{index}]")
 
 
+def validate_type_document(value: Any, path: str = "$") -> None:
+    """Validate the canonical JSON representation of a TypeRef."""
+
+    _validate_type(value, path)
+
+
 def _validate_literal_value(value: Any, path: str) -> None:
     if type(value) in {bool, int, str}:
         return

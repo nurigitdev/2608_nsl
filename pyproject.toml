@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "Deterministic execution kernel for NeX Skills"
 requires-python = ">=3.12"
 
+[project.scripts]
+nsl = "nsl.cli:main"
+
 [tool.setuptools.packages.find]
 include = ["nsl*"]
 

@@ -75,6 +75,7 @@ HOST_FRAMEWORK_MODULES = {
 }
 ALLOWED_EXTERNAL_MODULES = {
     "__future__",
+    "argparse",
     "asyncio",
     "copy",
     "dataclasses",
@@ -85,6 +86,7 @@ ALLOWED_EXTERNAL_MODULES = {
     "json",
     "pathlib",
     "re",
+    "sys",
     "time",
     "traceback",
     "types",
