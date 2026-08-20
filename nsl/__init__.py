@@ -15,6 +15,13 @@ from .includes import (
     MemoryIncludeResolver,
     SourceManifestEntry,
 )
+from .nsp import (
+    NspBuildError,
+    NspBuilder,
+    NspManifest,
+    NspPackage,
+    NspSkillManifest,
+)
 from .runtime import ExecutionRequest, ExecutionResult, RuntimeEngine
 from .source import SourceFile, SourceId, SourcePosition, SourceSpan
 from .syntax import ParseMode
@@ -32,6 +39,11 @@ __all__ = [
     "IncludeResolver",
     "MemoryIncludeResolver",
     "NslCompiler",
+    "NspBuildError",
+    "NspBuilder",
+    "NspManifest",
+    "NspPackage",
+    "NspSkillManifest",
     "ParseMode",
     "RuntimeEngine",
     "SourceFile",

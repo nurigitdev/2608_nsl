@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0026",
+  "current_slice": "0027",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -427,6 +427,11 @@
     "NSL-CLI-008": {"status": "IMPLEMENTED", "target_slice": "0026", "verification": ["TEST-CLI-008"], "evidence": ["tests/test_command_line_interface.py::test_cli_008_run_loads_nested_context_json_object", "tests/test_command_line_interface.py::test_cli_008_run_rejects_non_object_context"]},
     "NSL-CLI-009": {"status": "IMPLEMENTED", "target_slice": "0026", "verification": ["TEST-CLI-009"], "evidence": ["tests/test_command_line_interface.py::test_cli_009_run_executes_exact_mock_fixture_case", "tests/test_command_line_interface.py::test_cli_009_run_rejects_malformed_fixture"]},
     "NSL-CLI-010": {"status": "IMPLEMENTED", "target_slice": "0026", "verification": ["TEST-CLI-010"], "evidence": ["tests/test_command_line_interface.py::test_cli_010_replay_package_matches_recorded_execution", "tests/test_command_line_interface.py::test_cli_010_replay_reports_semantic_mismatch", "tests/test_command_line_interface.py::test_cli_010_portable_package_rejects_high_classification_data", "tests/test_command_line_interface.py::test_cli_010_replay_rejects_malformed_package_boundaries"]},
-    "NSL-CLI-011": {"status": "IMPLEMENTED", "target_slice": "0026", "verification": ["TEST-CLI-011"], "evidence": ["tests/test_command_line_interface.py::test_cli_011_return_codes_are_stable", "tests/test_command_line_interface.py::test_cli_011_expected_and_internal_failures_use_consistent_json"]}
+    "NSL-CLI-011": {"status": "IMPLEMENTED", "target_slice": "0026", "verification": ["TEST-CLI-011"], "evidence": ["tests/test_command_line_interface.py::test_cli_011_return_codes_are_stable", "tests/test_command_line_interface.py::test_cli_011_expected_and_internal_failures_use_consistent_json"]},
+    "NSL-PKG-001": {"status": "IMPLEMENTED", "target_slice": "0027", "verification": ["TEST-PKG-001"], "evidence": ["tests/test_nsp_format_and_builder.py::test_pkg_001_nsp_builder_creates_deterministic_archive", "tests/test_nsp_format_and_builder.py::test_pkg_001_builder_canonicalizes_valid_noncanonical_nso", "tests/test_nsp_format_and_builder.py::test_pkg_001_builder_rejects_malformed_or_non_byte_nso"]},
+    "NSL-PKG-002": {"status": "IMPLEMENTED", "target_slice": "0027", "verification": ["TEST-PKG-002"], "evidence": ["tests/test_nsp_format_and_builder.py::test_pkg_002_package_rejects_zero_nso_artifacts", "tests/test_nsp_format_and_builder.py::test_pkg_002_package_contains_every_nso_and_has_stable_order"]},
+    "NSL-PKG-003": {"status": "IMPLEMENTED", "target_slice": "0027", "verification": ["TEST-PKG-003"], "evidence": ["tests/test_nsp_format_and_builder.py::test_pkg_003_package_contains_canonical_manifest"]},
+    "NSL-PKG-004": {"status": "IMPLEMENTED", "target_slice": "0027", "verification": ["TEST-PKG-004"], "evidence": ["tests/test_nsp_format_and_builder.py::test_pkg_004_manifest_stores_each_skill_id_and_version", "tests/test_nsp_format_and_builder.py::test_pkg_004_duplicate_skill_identity_is_rejected"]},
+    "NSL-PKG-005": {"status": "IMPLEMENTED", "target_slice": "0027", "verification": ["TEST-PKG-005"], "evidence": ["tests/test_nsp_format_and_builder.py::test_pkg_005_package_hash_covers_manifest_and_canonical_nso_bytes", "tests/test_nsp_format_and_builder.py::test_pkg_005_package_hash_is_order_independent_and_content_sensitive"]}
   }
 }

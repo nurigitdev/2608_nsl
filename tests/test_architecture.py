@@ -83,6 +83,7 @@ ALLOWED_EXTERNAL_MODULES = {
     "decimal",
     "enum",
     "hashlib",
+    "io",
     "json",
     "pathlib",
     "re",
@@ -91,6 +92,7 @@ ALLOWED_EXTERNAL_MODULES = {
     "traceback",
     "types",
     "typing",
+    "zipfile",
 }
 AST_NODE_NAMES = {
     "AstBinary",
