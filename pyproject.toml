@@ -7,6 +7,9 @@ name = "nex-skill-language"
 version = "0.1.0"
 description = "Deterministic execution kernel for NeX Skills"
 requires-python = ">=3.12"
+dependencies = [
+    "cryptography>=49.0.0,<50.0.0",
+]
 
 [project.scripts]
 nsl = "nsl.cli:main"

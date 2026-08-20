@@ -77,7 +77,9 @@ ALLOWED_EXTERNAL_MODULES = {
     "__future__",
     "argparse",
     "asyncio",
+    "base64",
     "copy",
+    "cryptography",
     "dataclasses",
     "datetime",
     "decimal",
@@ -338,7 +340,9 @@ def test_arc_007_nsl_is_an_independent_python_package() -> None:
 
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert project["project"]["requires-python"] == ">=3.12"
-    assert project["project"].get("dependencies", []) == []
+    assert project["project"].get("dependencies", []) == [
+        "cryptography>=49.0.0,<50.0.0"
+    ]
     assert not violations, f"NSL depends on NeX-AE or web frameworks: {violations}"
 
 
@@ -571,6 +575,26 @@ def test_sec_003_arbitrary_module_import_is_forbidden() -> None:
         if forbidden:
             violations[str(path.relative_to(NSL))] = forbidden
     assert not violations, f"NSL imports modules outside the allowlist: {violations}"
+
+
+def test_sec_011_cryptography_is_isolated_to_ed25519_adapter() -> None:
+    adapter = NSL / "adapters" / "ed25519.py"
+    assert "cryptography" in {
+        module.split(".", 1)[0] for module in absolute_imports(adapter)
+    }
+    violations = {
+        str(path.relative_to(NSL))
+        for path in NSL.rglob("*.py")
+        if path != adapter
+        and "cryptography"
+        in {module.split(".", 1)[0] for module in absolute_imports(path)}
+    }
+    assert not violations
+
+    dependencies = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
+        "project"
+    ]["dependencies"]
+    assert dependencies == ["cryptography>=49.0.0,<50.0.0"]
 
 
 def test_sec_004_runtime_has_no_arbitrary_filesystem_access() -> None:

@@ -22,6 +22,21 @@ from .nsp import (
     NspPackage,
     NspSkillManifest,
 )
+from .nsp_signatures import (
+    NspSignatureError,
+    NspSignatureMetadata,
+    NspSignatureVerifier,
+    NspSigner,
+)
+from .nsp_verification import (
+    NspVerificationCode,
+    NspVerificationError,
+    NspVerificationLimits,
+    NspVerificationPolicy,
+    NspVerifier,
+    VerifiedNspPackage,
+    VerifiedNspSkill,
+)
 from .runtime import ExecutionRequest, ExecutionResult, RuntimeEngine
 from .source import SourceFile, SourceId, SourcePosition, SourceSpan
 from .syntax import ParseMode
@@ -44,6 +59,15 @@ __all__ = [
     "NspManifest",
     "NspPackage",
     "NspSkillManifest",
+    "NspSignatureError",
+    "NspSignatureMetadata",
+    "NspSignatureVerifier",
+    "NspSigner",
+    "NspVerificationCode",
+    "NspVerificationError",
+    "NspVerificationLimits",
+    "NspVerificationPolicy",
+    "NspVerifier",
     "ParseMode",
     "RuntimeEngine",
     "SourceFile",
@@ -52,4 +76,6 @@ __all__ = [
     "SourceManifestEntry",
     "SourcePosition",
     "SourceSpan",
+    "VerifiedNspPackage",
+    "VerifiedNspSkill",
 ]

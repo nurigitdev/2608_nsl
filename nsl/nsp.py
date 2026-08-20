@@ -7,6 +7,12 @@ from typing import Sequence
 from zipfile import ZIP_STORED, ZipFile, ZipInfo
 
 from .ir import NsoCodec, canonical_json
+from .nsp_signatures import (
+    NspSignatureError,
+    NspSignatureMetadata,
+    NspSigner,
+    encode_signature_metadata,
+)
 
 
 NSP_FORMAT = "NSP"
@@ -25,6 +31,7 @@ class NspPackage:
     data: bytes
     artifact_count: int
     manifest: NspManifest
+    signature: NspSignatureMetadata | None
 
     @property
     def package_hash(self) -> str:
@@ -100,7 +107,13 @@ class _PreparedArtifact:
 class NspBuilder:
     """Builds deterministic NSP archives from validated NSO artifacts."""
 
-    def build(self, artifacts: Sequence[bytes]) -> NspPackage:
+    def build(
+        self,
+        artifacts: Sequence[bytes],
+        signer: NspSigner | None = None,
+    ) -> NspPackage:
+        if signer is not None and not isinstance(signer, NspSigner):
+            raise NspBuildError("NSP signer does not implement the signer port")
         prepared = self._prepare_artifacts(artifacts)
         skill_members = tuple(
             (f"skills/{index:04d}.nso", artifact)
@@ -118,6 +131,14 @@ class NspBuilder:
             for path, artifact in skill_members
         )
         manifest = NspManifest.create(skills)
+        try:
+            signature = (
+                None
+                if signer is None
+                else NspSignatureMetadata.create(manifest.package_sha256, signer)
+            )
+        except NspSignatureError as error:
+            raise NspBuildError("invalid NSP signer or signature") from error
         stream = BytesIO()
         with ZipFile(stream, mode="w", compression=ZIP_STORED) as archive:
             self._write_member(
@@ -131,10 +152,17 @@ class NspBuilder:
                     path,
                     artifact.data,
                 )
+            if signature is not None:
+                self._write_member(
+                    archive,
+                    "signature.json",
+                    encode_signature_metadata(signature),
+                )
         return NspPackage(
             data=stream.getvalue(),
             artifact_count=len(prepared),
             manifest=manifest,
+            signature=signature,
         )
 
     @staticmethod

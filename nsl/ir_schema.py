@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
-import json
 from typing import Any
+
+from .json_boundary import load_strict_json
 
 
 class NsoSchemaError(ValueError):
@@ -18,36 +19,11 @@ CLASSIFICATIONS = frozenset(
 
 
 def load_nso_json(data: bytes) -> Any:
-    if type(data) is not bytes:
-        raise NsoSchemaError("$", "expected NSO bytes")
-    try:
-        text = data.decode("utf-8")
-    except UnicodeDecodeError as error:
-        raise NsoSchemaError("$", "expected UTF-8 JSON") from error
-
-    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-        value: dict[str, Any] = {}
-        for key, item in pairs:
-            if key in value:
-                raise NsoSchemaError("$", f"duplicate object field: {key}")
-            value[key] = item
-        return value
-
-    def reject_non_finite(value: str) -> None:
-        raise NsoSchemaError("$", f"non-finite JSON number: {value}")
-
-    try:
-        return json.loads(
-            text,
-            object_pairs_hook=unique_object,
-            parse_constant=reject_non_finite,
-        )
-    except NsoSchemaError:
-        raise
-    except json.JSONDecodeError as error:
-        raise NsoSchemaError(
-            "$", f"invalid JSON at line {error.lineno}, column {error.colno}"
-        ) from error
+    return load_strict_json(
+        data,
+        document_name="NSO",
+        error_factory=NsoSchemaError,
+    )
 
 
 def _object(value: Any, path: str, fields: frozenset[str]) -> dict[str, Any]:
