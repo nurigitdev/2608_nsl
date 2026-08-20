@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0024",
+  "current_slice": "0025",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -300,10 +300,13 @@
     "NSL-TOL-008": {"status": "IMPLEMENTED", "target_slice": "0017", "verification": ["TEST-TOL-008"], "evidence": ["tests/test_tool_registry_and_mock_executor.py::test_tol_008_registry_and_nso_hide_mcp_implementation_details"]},
     "NSL-EXE-001": {"status": "IMPLEMENTED", "target_slice": "0017", "verification": ["TEST-EXE-001"], "evidence": ["tests/test_tool_registry_and_mock_executor.py::test_exe_001_tool_executor_is_an_explicit_async_port"]},
     "NSL-EXE-002": {"status": "IMPLEMENTED", "target_slice": "0017", "verification": ["TEST-EXE-002"], "evidence": ["tests/test_tool_registry_and_mock_executor.py::test_exe_002_mock_executor_is_deterministic_and_fixture_isolated"]},
+    "NSL-EXE-003": {"status": "IMPLEMENTED", "target_slice": "0025", "verification": ["TEST-EXE-003"], "evidence": ["tests/test_mcp_adapter_conformance.py::test_exe_003_mcp_executor_maps_canonical_request_and_result", "tests/test_mcp_adapter_conformance.py::test_runtime_executes_project_skill_through_mcp_adapter", "tests/test_mcp_adapter_conformance.py::test_mcp_executor_rejects_malformed_call_results"]},
     "NSL-EXE-004": {"status": "IMPLEMENTED", "target_slice": "0017", "verification": ["TEST-EXE-004"], "evidence": ["tests/test_tool_registry_and_mock_executor.py::test_exe_004_runtime_depends_only_on_the_tool_executor_port"]},
     "NSL-EXE-005": {"status": "IMPLEMENTED", "target_slice": "0017", "verification": ["TEST-EXE-005"], "evidence": ["tests/test_tool_registry_and_mock_executor.py::test_exe_005_contract_validator_checks_runtime_value_schema", "tests/test_tool_registry_and_mock_executor.py::test_exe_005_mock_validates_contract_before_fixture_call", "tests/test_tool_registry_and_mock_executor.py::test_exe_005_mock_validates_output_contract_after_fixture_call", "tests/test_tool_registry_and_mock_executor.py::test_exe_005_runtime_validates_contract_before_executor_call"]},
+    "NSL-EXE-006": {"status": "IMPLEMENTED", "target_slice": "0025", "verification": ["TEST-EXE-006"], "evidence": ["tests/test_mcp_adapter_conformance.py::test_exe_006_measuring_executor_records_duration_boundaries", "tests/test_mcp_adapter_conformance.py::test_runtime_measures_all_tool_ports_without_changing_audit_payloads"]},
     "NSL-EXE-007": {"status": "IMPLEMENTED", "target_slice": "0017", "verification": ["TEST-EXE-007"], "evidence": ["tests/test_tool_registry_and_mock_executor.py::test_exe_007_runtime_generates_ordered_per_execution_invocation_ids"]},
     "NSL-PY-004": {"status": "IMPLEMENTED", "target_slice": "0013", "verification": ["TEST-PY-004"], "evidence": ["tests/test_immutable_ir_schema.py::test_py_004_ir_model_has_strict_schema_validation_before_immutable_load", "tests/test_ir_schema.py::test_schema_validator_rejects_malformed_documents_with_paths"]},
+    "NSL-PY-007": {"status": "IMPLEMENTED", "target_slice": "0025", "verification": ["TEST-PY-007"], "evidence": ["tests/test_architecture.py::test_py_007_mcp_adapter_stays_outside_runtime_core"]},
     "NSL-ARC-012": {"status": "IMPLEMENTED", "target_slice": "0011", "verification": ["TEST-ARC-012"], "evidence": ["tests/test_tool_contracts.py::test_arc_012_compiler_resolves_canonical_contract_not_customer_binding"]},
     "NSL-REQ-001": {"status": "IMPLEMENTED", "target_slice": "0011", "verification": ["TEST-REQ-001"], "evidence": ["tests/test_tool_contracts.py::test_req_001_every_read_requires_an_explicit_tool_declaration"]},
     "NSL-REQ-003": {"status": "IMPLEMENTED", "target_slice": "0011", "verification": ["TEST-REQ-003"], "evidence": ["tests/test_tool_contracts.py::test_req_003_compile_checks_canonical_tool_existence"]},

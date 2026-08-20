@@ -119,6 +119,15 @@ def local_imports(module_name: str) -> set[str]:
     return imports
 
 
+def relative_imports(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    return {
+        node.module.split(".", 1)[0]
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and node.level >= 1 and node.module
+    }
+
+
 def absolute_imports(path: Path) -> set[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
     imports: set[str] = set()
@@ -201,7 +210,7 @@ def test_arc_013_include_is_resolved_before_runtime_ir() -> None:
 
 def test_arc_004_runtime_has_no_llm_dependency() -> None:
     violations: dict[str, list[str]] = {}
-    for path in NSL.glob("*.py"):
+    for path in NSL.rglob("*.py"):
         imported = absolute_imports(path)
         forbidden = sorted(
             module
@@ -274,6 +283,31 @@ def test_persistent_audit_adapter_stays_outside_runtime_kernel() -> None:
     assert "pathlib" in absolute_imports(NSL / "audit_persistence.py")
 
 
+def test_py_007_mcp_adapter_stays_outside_runtime_core() -> None:
+    adapter = NSL / "adapters" / "mcp.py"
+    assert adapter.is_file()
+    assert relative_imports(adapter) == {"core", "data_protection", "tools"}
+
+    forbidden_adapter_dependencies = {
+        "audit",
+        "compiler",
+        "ir",
+        "replay",
+        "runtime",
+        "runtime_models",
+        "syntax",
+        "vertical_slice",
+    }
+    assert not relative_imports(adapter) & forbidden_adapter_dependencies
+    assert "adapters" not in local_imports("runtime")
+    assert "adapters" not in local_imports("tools")
+
+    runtime_source = (NSL / "runtime.py").read_text(encoding="utf-8")
+    tools_source = (NSL / "tools.py").read_text(encoding="utf-8")
+    assert "MCPToolExecutor" not in runtime_source
+    assert "MCPToolExecutor" not in tools_source
+
+
 def test_protected_snapshot_adapter_stays_behind_snapshot_store_port() -> None:
     assert "protected_snapshots" not in local_imports("runtime")
     assert "protected_snapshots" not in local_imports("replay")
@@ -288,7 +322,7 @@ def test_protected_snapshot_adapter_stays_behind_snapshot_store_port() -> None:
 
 def test_arc_007_nsl_is_an_independent_python_package() -> None:
     violations: dict[str, list[str]] = {}
-    for path in NSL.glob("*.py"):
+    for path in NSL.rglob("*.py"):
         imported = absolute_imports(path)
         forbidden = sorted(
             module
@@ -394,8 +428,8 @@ def test_py_006_runtime_core_minimizes_async_framework_dependencies() -> None:
 
 def test_sec_001_eval_is_forbidden() -> None:
     violations = sorted(
-        path.name
-        for path in NSL.glob("*.py")
+        str(path.relative_to(NSL))
+        for path in NSL.rglob("*.py")
         if "eval" in direct_function_calls(path)
     )
     assert not violations, f"eval() is forbidden in NSL modules: {violations}"
@@ -412,8 +446,8 @@ def test_rt_007_runtime_kernel_never_calls_python_eval() -> None:
 
 def test_sec_002_exec_is_forbidden() -> None:
     violations = sorted(
-        path.name
-        for path in NSL.glob("*.py")
+        str(path.relative_to(NSL))
+        for path in NSL.rglob("*.py")
         if "exec" in direct_function_calls(path)
     )
     assert not violations, f"exec() is forbidden in NSL modules: {violations}"
@@ -521,7 +555,7 @@ def test_rt_012_runtime_has_no_source_ast_interpreter_path() -> None:
 
 def test_sec_003_arbitrary_module_import_is_forbidden() -> None:
     violations: dict[str, list[str]] = {}
-    for path in NSL.glob("*.py"):
+    for path in NSL.rglob("*.py"):
         forbidden = sorted(
             module
             for module in absolute_imports(path)
@@ -531,7 +565,7 @@ def test_sec_003_arbitrary_module_import_is_forbidden() -> None:
         if "__import__" in calls:
             forbidden.append("__import__()")
         if forbidden:
-            violations[path.name] = forbidden
+            violations[str(path.relative_to(NSL))] = forbidden
     assert not violations, f"NSL imports modules outside the allowlist: {violations}"
 
 

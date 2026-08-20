@@ -75,7 +75,10 @@ from .tools import (
     ToolContractValidator,
     ToolExecutionError,
     ToolExecutionPort,
+    ToolMeasurementSink,
     ToolRegistry,
+    MeasuringToolExecutor,
+    NullToolMeasurementSink,
     UnknownToolContractError,
     IncompatibleToolVersionError,
     execute_with_timeout,
@@ -111,6 +114,7 @@ class RuntimeEngine:
         debug_trace_sink: Callable[[str], None] | None = None,
         runtime_clock: RuntimeClock | None = None,
         environment: RuntimeEnvironment = RuntimeEnvironment.PRODUCTION,
+        tool_measurement_sink: ToolMeasurementSink | None = None,
     ) -> None:
         self.tool_catalog = tool_catalog
         self.tool_validator = ToolContractValidator()
@@ -120,6 +124,11 @@ class RuntimeEngine:
         self.check_evaluator = StrictRuleEvaluator()
         self.runtime_clock = (
             runtime_clock if runtime_clock is not None else SystemRuntimeClock()
+        )
+        self.tool_measurement_sink = (
+            tool_measurement_sink
+            if tool_measurement_sink is not None
+            else NullToolMeasurementSink()
         )
         if not isinstance(environment, RuntimeEnvironment):
             raise ValueError("environment must be a RuntimeEnvironment")
@@ -235,7 +244,12 @@ class RuntimeEngine:
                 },
             )
             self._bind_inputs_and_contexts(ctx)
-            await self._execute_block(ctx, skill.body, tools)
+            measured_tools = MeasuringToolExecutor(
+                tools,
+                self.runtime_clock,
+                self.tool_measurement_sink,
+            )
+            await self._execute_block(ctx, skill.body, measured_tools)
             ctx.resource_guard.check_deadline()
             result = self._result(ctx, ExecutionStatus.COMPLETED)
             audit.emit(

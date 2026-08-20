@@ -59,7 +59,7 @@ Skill required_tools
 
 `ToolExecutor`는 async `execute(ToolCallRequest) -> ToolResultEnvelope` Protocol이다. 기존 `ToolExecutionPort`는 호환 alias로 유지한다. Runtime은 Port만 참조하며 Mock 또는 향후 MCP adapter 구현체를 import하지 않는다.
 
-MCP adapter 구조 자체는 `NSL-EXE-003`과 `NSL-PY-007`이 할당된 Slice 0025 범위이며 이번 Slice에 포함하지 않는다.
+MCP adapter 구조 자체는 후속 Slice `0025: MCP Adapter Conformance`에서 `nsl.adapters.mcp.MCPToolExecutor`와 SDK 중립 client port로 구현되었다.
 
 ## 7. Contract Validator
 

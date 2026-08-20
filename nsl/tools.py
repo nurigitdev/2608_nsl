@@ -4,6 +4,7 @@ import asyncio
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
+from enum import StrEnum
 from hashlib import sha256
 from typing import Any, Callable, Mapping, Protocol, runtime_checkable
 
@@ -342,6 +343,107 @@ class ToolExecutor(Protocol):
 
 
 ToolExecutionPort = ToolExecutor
+
+
+class ToolExecutionOutcome(StrEnum):
+    RETURNED = "RETURNED"
+    ERROR = "ERROR"
+    CANCELLED = "CANCELLED"
+
+
+@dataclass(frozen=True, slots=True)
+class ToolExecutionMeasurement:
+    execution_id: str
+    invocation_id: str
+    node_id: str
+    tool_id: str
+    tool_version: str
+    tenant_id: str
+    outcome: ToolExecutionOutcome
+    duration_ns: int
+
+    def __post_init__(self) -> None:
+        identifiers = (
+            self.execution_id,
+            self.invocation_id,
+            self.node_id,
+            self.tool_id,
+            self.tool_version,
+            self.tenant_id,
+        )
+        if not all(isinstance(value, str) and value.strip() for value in identifiers):
+            raise ValueError("tool measurement identifiers must be non-empty")
+        if not isinstance(self.outcome, ToolExecutionOutcome):
+            raise ValueError("tool measurement outcome is invalid")
+        if type(self.duration_ns) is not int or self.duration_ns < 0:
+            raise ValueError("tool measurement duration_ns must be non-negative")
+
+    @property
+    def duration_ms(self) -> int:
+        return self.duration_ns // 1_000_000
+
+
+class MonotonicClock(Protocol):
+    def monotonic_ns(self) -> int:
+        ...
+
+
+@runtime_checkable
+class ToolMeasurementSink(Protocol):
+    def record(self, measurement: ToolExecutionMeasurement) -> None:
+        ...
+
+
+class NullToolMeasurementSink:
+    __slots__ = ()
+
+    def record(self, measurement: ToolExecutionMeasurement) -> None:
+        return None
+
+
+class InMemoryToolMeasurementSink:
+    def __init__(self) -> None:
+        self.measurements: list[ToolExecutionMeasurement] = []
+
+    def record(self, measurement: ToolExecutionMeasurement) -> None:
+        self.measurements.append(measurement)
+
+
+class MeasuringToolExecutor:
+    def __init__(
+        self,
+        delegate: ToolExecutor,
+        clock: MonotonicClock,
+        sink: ToolMeasurementSink,
+    ) -> None:
+        self.delegate = delegate
+        self.clock = clock
+        self.sink = sink
+
+    async def execute(self, request: ToolCallRequest) -> ToolResultEnvelope:
+        started_ns = self.clock.monotonic_ns()
+        outcome = ToolExecutionOutcome.ERROR
+        try:
+            result = await self.delegate.execute(request)
+            outcome = ToolExecutionOutcome.RETURNED
+            return result
+        except asyncio.CancelledError:
+            outcome = ToolExecutionOutcome.CANCELLED
+            raise
+        finally:
+            elapsed_ns = self.clock.monotonic_ns() - started_ns
+            self.sink.record(
+                ToolExecutionMeasurement(
+                    execution_id=request.execution_id,
+                    invocation_id=request.invocation_id,
+                    node_id=request.node_id,
+                    tool_id=request.tool_id,
+                    tool_version=request.tool_version,
+                    tenant_id=request.principal.tenant_id,
+                    outcome=outcome,
+                    duration_ns=max(0, elapsed_ns),
+                )
+            )
 
 
 async def execute_with_timeout(
