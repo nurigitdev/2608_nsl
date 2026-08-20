@@ -75,6 +75,17 @@ CLI의 JSON stdout과 stderr는 key 순서를 고정한 2-space pretty JSON으�
 
 Before pytest, the command validates all 325 SRS Requirement IDs against `requirements/nsl_v0_1_traceability.json` and all 15 Slice 0031 extension requirements against `requirements/nsl_cli_local_execution_extension.json`. Requirement text or priority changes, missing Slice/Test mappings, and unsupported status claims fail the same quality gate.
 
+## Business Controls Showcase
+
+`examples/nsl_showcase_pack`은 직무별 업무 통제를 독립 Skill로 제공하는 고객
+시연용 Pack이다. 첫 구현인 Corporate Card Control은 CHECK 없는 팀별 월 합계
+Summary와 6개 정책을 검증하는 Policy Check를 함께 제공한다.
+
+```powershell
+python -m nsl test --suite examples\nsl_showcase_pack\corporate_card\summary.scenarios.json
+python -m nsl test --suite examples\nsl_showcase_pack\corporate_card\policy.scenarios.json
+```
+
 The suite covers:
 
 - deterministic compile and `.nso` round-trip

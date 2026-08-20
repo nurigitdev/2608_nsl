@@ -1,0 +1,73 @@
+{
+  "tools": [
+    {
+      "tool_id": "ORG.LIST_ACTIVE_TEAMS",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "year", "type": {"kind": "primitive", "name": "Year"}},
+        {"name": "month", "type": {"kind": "primitive", "name": "Int"}}
+      ],
+      "output": {
+        "kind": "list",
+        "item": {
+          "kind": "record",
+          "name": "ActiveTeam",
+          "fields": [
+            {"name": "team_id", "type": {"kind": "domain", "name": "TeamId"}},
+            {"name": "team_name", "type": {"kind": "primitive", "name": "String"}}
+          ]
+        }
+      },
+      "required_scope": "organization:team:read",
+      "output_classification": "INTERNAL"
+    },
+    {
+      "tool_id": "CARD.READ_TEAM_MONTHLY_FACTS",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "team_id", "type": {"kind": "domain", "name": "TeamId"}},
+        {"name": "year", "type": {"kind": "primitive", "name": "Year"}},
+        {"name": "month", "type": {"kind": "primitive", "name": "Int"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "TeamCardMonthlyFacts",
+        "fields": [
+          {
+            "name": "transactions",
+            "type": {
+              "kind": "list",
+              "item": {
+                "kind": "record",
+                "name": "CardTransaction",
+                "fields": [
+                  {"name": "transaction_id", "type": {"kind": "domain", "name": "CardTransactionId"}},
+                  {"name": "amount", "type": {"kind": "money", "currency": "KRW"}}
+                ]
+              }
+            }
+          },
+          {
+            "name": "missing_receipt_transactions",
+            "type": {
+              "kind": "list",
+              "item": {"kind": "domain", "name": "CardTransactionId"}
+            }
+          },
+          {
+            "name": "restricted_merchant_transactions",
+            "type": {
+              "kind": "list",
+              "item": {"kind": "domain", "name": "CardTransactionId"}
+            }
+          },
+          {"name": "maximum_transaction_amount", "type": {"kind": "money", "currency": "KRW"}}
+        ]
+      },
+      "required_scope": "card:usage:read",
+      "output_classification": "CONFIDENTIAL"
+    }
+  ]
+}

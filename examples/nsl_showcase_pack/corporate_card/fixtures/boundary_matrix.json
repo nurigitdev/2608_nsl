@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "tool_id": "ORG.LIST_ACTIVE_TEAMS",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"year": 2026, "month": 8},
+          "result": [
+            {"team_id": "TEAM-FINANCE", "team_name": "Finance"},
+            {"team_id": "TEAM-DEVELOPMENT", "team_name": "Development"},
+            {"team_id": "TEAM-HR", "team_name": "Human Resources"},
+            {"team_id": "TEAM-SALES", "team_name": "Sales"}
+          ]
+        }
+      ]
+    },
+    {
+      "tool_id": "CARD.READ_TEAM_MONTHLY_FACTS",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"team_id": "TEAM-FINANCE", "year": 2026, "month": 8},
+          "result": {
+            "transactions": [
+              {"transaction_id": "FIN-001", "amount": {"$type": "Money", "amount": "100000", "currency": "KRW"}},
+              {"transaction_id": "FIN-002", "amount": {"$type": "Money", "amount": "100000", "currency": "KRW"}},
+              {"transaction_id": "FIN-003", "amount": {"$type": "Money", "amount": "100000", "currency": "KRW"}},
+              {"transaction_id": "FIN-004", "amount": {"$type": "Money", "amount": "100000", "currency": "KRW"}},
+              {"transaction_id": "FIN-005", "amount": {"$type": "Money", "amount": "100000", "currency": "KRW"}},
+              {"transaction_id": "FIN-006", "amount": {"$type": "Money", "amount": "100000", "currency": "KRW"}},
+              {"transaction_id": "FIN-007", "amount": {"$type": "Money", "amount": "100000", "currency": "KRW"}},
+              {"transaction_id": "FIN-008", "amount": {"$type": "Money", "amount": "100000", "currency": "KRW"}},
+              {"transaction_id": "FIN-009", "amount": {"$type": "Money", "amount": "100000", "currency": "KRW"}}
+            ],
+            "missing_receipt_transactions": [],
+            "restricted_merchant_transactions": [],
+            "maximum_transaction_amount": {"$type": "Money", "amount": "100000", "currency": "KRW"}
+          }
+        },
+        {
+          "arguments": {"team_id": "TEAM-DEVELOPMENT", "year": 2026, "month": 8},
+          "result": {
+            "transactions": [
+              {"transaction_id": "DEV-001", "amount": {"$type": "Money", "amount": "500000", "currency": "KRW"}},
+              {"transaction_id": "DEV-002", "amount": {"$type": "Money", "amount": "50000", "currency": "KRW"}},
+              {"transaction_id": "DEV-003", "amount": {"$type": "Money", "amount": "50000", "currency": "KRW"}},
+              {"transaction_id": "DEV-004", "amount": {"$type": "Money", "amount": "50000", "currency": "KRW"}},
+              {"transaction_id": "DEV-005", "amount": {"$type": "Money", "amount": "50000", "currency": "KRW"}},
+              {"transaction_id": "DEV-006", "amount": {"$type": "Money", "amount": "50000", "currency": "KRW"}},
+              {"transaction_id": "DEV-007", "amount": {"$type": "Money", "amount": "50000", "currency": "KRW"}},
+              {"transaction_id": "DEV-008", "amount": {"$type": "Money", "amount": "50000", "currency": "KRW"}},
+              {"transaction_id": "DEV-009", "amount": {"$type": "Money", "amount": "50000", "currency": "KRW"}},
+              {"transaction_id": "DEV-010", "amount": {"$type": "Money", "amount": "100000", "currency": "KRW"}}
+            ],
+            "missing_receipt_transactions": [],
+            "restricted_merchant_transactions": [],
+            "maximum_transaction_amount": {"$type": "Money", "amount": "500000", "currency": "KRW"}
+          }
+        },
+        {
+          "arguments": {"team_id": "TEAM-HR", "year": 2026, "month": 8},
+          "result": {
+            "transactions": [],
+            "missing_receipt_transactions": [],
+            "restricted_merchant_transactions": [],
+            "maximum_transaction_amount": {"$type": "Money", "amount": "0", "currency": "KRW"}
+          }
+        },
+        {
+          "arguments": {"team_id": "TEAM-SALES", "year": 2026, "month": 8},
+          "result": {
+            "transactions": [
+              {"transaction_id": "SAL-001", "amount": {"$type": "Money", "amount": "600001", "currency": "KRW"}},
+              {"transaction_id": "SAL-002", "amount": {"$type": "Money", "amount": "400000", "currency": "KRW"}}
+            ],
+            "missing_receipt_transactions": ["SAL-001"],
+            "restricted_merchant_transactions": ["SAL-002"],
+            "maximum_transaction_amount": {"$type": "Money", "amount": "600001", "currency": "KRW"}
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "tool_id": "ORG.LIST_ACTIVE_TEAMS",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"year": 2026, "month": 8},
+          "result": [
+            {"team_id": "TEAM-001", "team_name": "Team 01"},
+            {"team_id": "TEAM-002", "team_name": "Team 02"},
+            {"team_id": "TEAM-003", "team_name": "Team 03"},
+            {"team_id": "TEAM-004", "team_name": "Team 04"},
+            {"team_id": "TEAM-005", "team_name": "Team 05"},
+            {"team_id": "TEAM-006", "team_name": "Team 06"},
+            {"team_id": "TEAM-007", "team_name": "Team 07"},
+            {"team_id": "TEAM-008", "team_name": "Team 08"},
+            {"team_id": "TEAM-009", "team_name": "Team 09"},
+            {"team_id": "TEAM-010", "team_name": "Team 10"},
+            {"team_id": "TEAM-011", "team_name": "Team 11"}
+          ]
+        }
+      ]
+    }
+  ]
+}

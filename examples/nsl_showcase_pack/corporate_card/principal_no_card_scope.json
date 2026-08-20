@@ -1,0 +1,9 @@
+{
+  "tenant_id": "tenant-showcase",
+  "subject_id": "user-finance-control-001",
+  "actor_type": "USER",
+  "roles": ["FINANCE_CONTROL_ANALYST"],
+  "scopes": ["nsl:skill:execute", "organization:team:read"],
+  "auth_context_ref": "auth-showcase-card-002",
+  "verification": "VERIFIED"
+}

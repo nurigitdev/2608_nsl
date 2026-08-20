@@ -1,0 +1,7 @@
+{
+  "policy": {
+    "monthly_team_amount_limit": {"$type": "Money", "amount": "1000000", "currency": "KRW"},
+    "monthly_team_count_limit": 10,
+    "single_transaction_limit": {"$type": "Money", "amount": "500000", "currency": "KRW"}
+  }
+}

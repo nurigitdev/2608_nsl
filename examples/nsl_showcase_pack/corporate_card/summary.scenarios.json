@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0",
+  "profile": "summary.profile.json",
+  "cases": [
+    {
+      "id": "boundary-matrix",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "outputs": [
+          {
+            "team_id": "TEAM-FINANCE",
+            "team_name": "Finance",
+            "total_amount": {"$type": "Money", "amount": "900000", "currency": "KRW"},
+            "transaction_count": 9
+          },
+          {
+            "team_id": "TEAM-DEVELOPMENT",
+            "team_name": "Development",
+            "total_amount": {"$type": "Money", "amount": "1000000", "currency": "KRW"},
+            "transaction_count": 10
+          },
+          {
+            "team_id": "TEAM-HR",
+            "team_name": "Human Resources",
+            "total_amount": {"$type": "Money", "amount": "0", "currency": "KRW"},
+            "transaction_count": 0
+          },
+          {
+            "team_id": "TEAM-SALES",
+            "team_name": "Sales",
+            "total_amount": {"$type": "Money", "amount": "1000001", "currency": "KRW"},
+            "transaction_count": 2
+          }
+        ],
+        "resources": {"tool_calls": 5, "loop_iterations": 4, "emitted_rows": 4, "max_collection_size_seen": 4}
+      }
+    },
+    {
+      "id": "tool-fixture-missing",
+      "fixture": "fixtures/missing_tools.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "TOOL_ERROR",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E4101",
+        "resources": {"tool_calls": 1}
+      }
+    },
+    {
+      "id": "authorization-denied",
+      "principal": "principal_no_card_scope.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "FAILED",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E5201",
+        "resources": {"tool_calls": 1}
+      }
+    },
+    {
+      "id": "resource-limit",
+      "fixture": "fixtures/resource_limit.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "LIMIT_EXCEEDED",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E6001",
+        "resources": {"tool_calls": 1, "max_collection_size_seen": 11}
+      }
+    },
+    {
+      "id": "deterministic-repeat",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "resources": {"tool_calls": 5, "loop_iterations": 4, "emitted_rows": 4}
+      }
+    }
+  ]
+}

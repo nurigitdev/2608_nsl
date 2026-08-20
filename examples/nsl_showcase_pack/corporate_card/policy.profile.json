@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "program": "corporate_card_monthly_policy_check.ns",
+  "principal": "principal.json",
+  "tool_contracts": "tools.json",
+  "input": "input.json",
+  "context": "context.json",
+  "fixture": "fixtures/boundary_matrix.json",
+  "execution": {
+    "isolate": true,
+    "timeout_ms": 30000
+  }
+}

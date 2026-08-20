@@ -1,0 +1,52 @@
+language NSL "0.1";
+
+skill FINANCE.CORPORATE_CARD_MONTHLY_SUMMARY {
+    version "1.0.0";
+    risk READ_ONLY;
+
+    requires {
+        tool ORG.LIST_ACTIVE_TEAMS version "1.0.0";
+        tool CARD.READ_TEAM_MONTHLY_FACTS version "1.0.0";
+    }
+
+    limits {
+        tool_calls 11;
+        loop_iterations 10;
+        emitted_rows 10;
+        collection_size 10;
+    }
+
+    input {
+        year: Year classification INTERNAL;
+        month: Int classification INTERNAL;
+    }
+
+    output {
+        team_id: TeamId classification INTERNAL;
+        team_name: String classification INTERNAL;
+        total_amount: Money<KRW> classification CONFIDENTIAL;
+        transaction_count: Int classification CONFIDENTIAL;
+    }
+
+    let teams = read ORG.LIST_ACTIVE_TEAMS(
+        year: year,
+        month: month
+    );
+
+    foreach team in teams max 10 {
+        let facts = read CARD.READ_TEAM_MONTHLY_FACTS(
+            team_id: team.team_id,
+            year: year,
+            month: month
+        );
+        let total_amount = sum(facts.transactions.amount);
+        let transaction_count = count(facts.transactions);
+
+        emit {
+            team_id: team.team_id;
+            team_name: team.team_name;
+            total_amount: total_amount;
+            transaction_count: transaction_count;
+        }
+    }
+}

@@ -1,0 +1,120 @@
+language NSL "0.1";
+
+skill FINANCE.CORPORATE_CARD_MONTHLY_POLICY_CHECK {
+    version "1.0.0";
+    risk READ_VALIDATE;
+
+    requires {
+        tool ORG.LIST_ACTIVE_TEAMS version "1.0.0";
+        tool CARD.READ_TEAM_MONTHLY_FACTS version "1.0.0";
+    }
+
+    limits {
+        tool_calls 11;
+        loop_iterations 10;
+        emitted_rows 10;
+        collection_size 10;
+    }
+
+    input {
+        year: Year classification INTERNAL;
+        month: Int classification INTERNAL;
+    }
+
+    context {
+        monthly_team_amount_limit: Money<KRW> from "policy.monthly_team_amount_limit" classification INTERNAL;
+        monthly_team_count_limit: Int from "policy.monthly_team_count_limit" classification INTERNAL;
+        single_transaction_limit: Money<KRW> from "policy.single_transaction_limit" classification INTERNAL;
+    }
+
+    output {
+        team_id: TeamId classification INTERNAL;
+        team_name: String classification INTERNAL;
+        total_amount: Money<KRW> classification CONFIDENTIAL;
+        transaction_count: Int classification CONFIDENTIAL;
+        missing_receipt_count: Int classification CONFIDENTIAL;
+        restricted_merchant_count: Int classification CONFIDENTIAL;
+        maximum_transaction_amount: Money<KRW> classification CONFIDENTIAL;
+        amount_limit_status: CheckStatus classification INTERNAL;
+        usage_presence_status: CheckStatus classification INTERNAL;
+        count_limit_status: CheckStatus classification INTERNAL;
+        receipt_status: CheckStatus classification INTERNAL;
+        single_transaction_status: CheckStatus classification INTERNAL;
+        merchant_status: CheckStatus classification INTERNAL;
+    }
+
+    let teams = read ORG.LIST_ACTIVE_TEAMS(
+        year: year,
+        month: month
+    );
+
+    foreach team in teams max 10 {
+        let facts = read CARD.READ_TEAM_MONTHLY_FACTS(
+            team_id: team.team_id,
+            year: year,
+            month: month
+        );
+        let total_amount = sum(facts.transactions.amount);
+        let transaction_count = count(facts.transactions);
+        let missing_receipt_count = count(facts.missing_receipt_transactions);
+        let restricted_merchant_count = count(facts.restricted_merchant_transactions);
+
+        check MONTHLY_AMOUNT_LIMIT {
+            assert total_amount <= monthly_team_amount_limit;
+            severity ERROR;
+            on_fail REPORT;
+            message "Monthly team card usage exceeded the configured amount limit.";
+        }
+
+        check CARD_USAGE_PRESENT {
+            assert transaction_count > 0;
+            severity WARNING;
+            on_fail REPORT;
+            message "The active team has no corporate card usage for the period.";
+        }
+
+        check MONTHLY_COUNT_LIMIT {
+            assert transaction_count < monthly_team_count_limit;
+            severity WARNING;
+            on_fail REPORT;
+            message "Monthly team card transaction count reached the configured limit.";
+        }
+
+        check MISSING_RECEIPT {
+            assert missing_receipt_count == 0;
+            severity ERROR;
+            on_fail REPORT;
+            message "One or more corporate card transactions have no receipt.";
+        }
+
+        check SINGLE_TRANSACTION_LIMIT {
+            assert facts.maximum_transaction_amount <= single_transaction_limit;
+            severity WARNING;
+            on_fail REPORT;
+            message "A corporate card transaction exceeded the configured single transaction limit.";
+        }
+
+        check RESTRICTED_MERCHANT {
+            assert restricted_merchant_count == 0;
+            severity ERROR;
+            on_fail REPORT;
+            message "One or more corporate card transactions used a restricted merchant.";
+        }
+
+        emit {
+            team_id: team.team_id;
+            team_name: team.team_name;
+            total_amount: total_amount;
+            transaction_count: transaction_count;
+            missing_receipt_count: missing_receipt_count;
+            restricted_merchant_count: restricted_merchant_count;
+            maximum_transaction_amount: facts.maximum_transaction_amount;
+            amount_limit_status: MONTHLY_AMOUNT_LIMIT.status;
+            usage_presence_status: CARD_USAGE_PRESENT.status;
+            count_limit_status: MONTHLY_COUNT_LIMIT.status;
+            receipt_status: MISSING_RECEIPT.status;
+            single_transaction_status: SINGLE_TRANSACTION_LIMIT.status;
+            merchant_status: RESTRICTED_MERCHANT.status;
+        }
+    }
+}

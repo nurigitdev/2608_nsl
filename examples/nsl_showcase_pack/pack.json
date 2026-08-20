@@ -1,0 +1,36 @@
+{
+  "format": "NSL-BUSINESS-CONTROLS-SHOWCASE",
+  "schema_version": "1.0",
+  "pack_id": "NEX.NSL.BUSINESS_CONTROLS",
+  "version": "0.1.0",
+  "modules": [
+    {
+      "module_id": "CORPORATE_CARD_CONTROL",
+      "status": "IMPLEMENTED",
+      "skills": [
+        "FINANCE.CORPORATE_CARD_MONTHLY_SUMMARY",
+        "FINANCE.CORPORATE_CARD_MONTHLY_POLICY_CHECK"
+      ]
+    },
+    {
+      "module_id": "EMPLOYEE_CONTRACT_EXPIRY",
+      "status": "PLANNED",
+      "skills": ["HR.EMPLOYEE_CONTRACT_EXPIRY_CHECK"]
+    },
+    {
+      "module_id": "ACCESS_SEGREGATION",
+      "status": "PLANNED",
+      "skills": ["SECURITY.ACCESS_SEGREGATION_CHECK"]
+    },
+    {
+      "module_id": "VENDOR_CONCENTRATION",
+      "status": "PLANNED",
+      "skills": ["PROCUREMENT.VENDOR_CONCENTRATION_CHECK"]
+    },
+    {
+      "module_id": "DUPLICATE_INVOICE",
+      "status": "PLANNED",
+      "skills": ["ACCOUNTING.DUPLICATE_INVOICE_CHECK"]
+    }
+  ]
+}
