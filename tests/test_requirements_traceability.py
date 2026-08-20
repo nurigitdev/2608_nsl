@@ -11,6 +11,7 @@ from tools.requirements_traceability import (
     DEFAULT_SOURCE,
     TraceabilityError,
     expand_selector,
+    effective_traceability_records,
     extract_requirements,
     main,
     requirement_fingerprint,
@@ -72,9 +73,9 @@ def test_repository_traceability_baseline_is_complete() -> None:
     )
     assert report.priority_counts == {"MAY": 1, "MUST": 294, "SHOULD": 30}
     assert report.status_counts == {
-        "IMPLEMENTED": 315,
-        "PARTIAL": 3,
-        "PLANNED": 7,
+        "IMPLEMENTED": 322,
+        "PARTIAL": 2,
+        "PLANNED": 1,
     }
     assert sum(report.target_slice_counts.values()) == 325
 
@@ -83,6 +84,16 @@ def test_traceability_cli_json_output(capsys) -> None:
     assert main(["--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["requirement_count"] == 325
+
+
+def test_effective_traceability_records_cover_every_requirement_in_srs_order() -> None:
+    requirements = extract_requirements(DEFAULT_SOURCE)
+    records = effective_traceability_records()
+
+    assert tuple(records) == tuple(requirements)
+    assert len(records) == 325
+    assert records["NSL-PERF-001"]["target_slice"] == "0030"
+    assert records["NSL-AUD-007"]["status"] == "IMPLEMENTED"
 
 
 @pytest.mark.parametrize(

@@ -42,7 +42,7 @@ NSL Runtime은 계속 NeX-AE, Web Framework, Queue SDK와 독립적이다. NeX-A
 | `NSL-AE-004` | API request thread 외부 async dispatch contract | `PARTIAL` |
 | `NSL-AE-008` | Runtime Result와 LLM Explanation 분리 contract | `PARTIAL` |
 
-`NSL-AE-004`와 `NSL-AE-008`은 NSL 측 port, record, contract fake와 architecture boundary까지 구현했다. 실제 NeX-AE API/Queue/Storage가 없으므로 종단 동작을 검증할 수 없어 `PARTIAL`로 유지한다. 기존 `NSL-AUD-007`의 `PARTIAL`도 변경하지 않는다.
+`NSL-AE-004`와 `NSL-AE-008`은 NSL 측 port, record, contract fake와 architecture boundary까지 구현했다. 실제 NeX-AE API/Queue/Storage가 없으므로 종단 동작을 검증할 수 없어 `PARTIAL`로 유지한다. 당시 유지한 `NSL-AUD-007`의 `PARTIAL`은 후속 Slice 0030의 certified Worker snapshot profile에서 `IMPLEMENTED`로 닫혔다.
 
 ## 3. Architecture Boundary
 

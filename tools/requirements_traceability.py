@@ -340,6 +340,25 @@ def validate_traceability(
     )
 
 
+def effective_traceability_records(
+    source_path: Path = DEFAULT_SOURCE,
+    baseline_path: Path = DEFAULT_BASELINE,
+    repo_root: Path = ROOT,
+) -> dict[str, dict[str, Any]]:
+    """Return effective assignments only after the full baseline gate succeeds."""
+    validate_traceability(source_path, baseline_path, repo_root)
+    requirements = extract_requirements(source_path)
+    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+    records: dict[str, dict[str, Any]] = {}
+    for assignment in baseline["assignments"]:
+        for selector in assignment["selectors"]:
+            for requirement_id in expand_selector(selector):
+                records[requirement_id] = dict(assignment)
+    for requirement_id, override in baseline.get("overrides", {}).items():
+        records[requirement_id].update(override)
+    return {requirement_id: records[requirement_id] for requirement_id in requirements}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate NSL SRS traceability")
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)

@@ -87,6 +87,7 @@ ALLOWED_EXTERNAL_MODULES = {
     "hashlib",
     "io",
     "json",
+    "multiprocessing",
     "pathlib",
     "re",
     "sys",
@@ -397,6 +398,16 @@ def test_ae_008_llm_records_do_not_change_runtime_kernel_dependency() -> None:
     assert outcome_imports == {"data_protection", "integration"}
     assert "outcome_records" not in runtime_imports
     assert "dispatch" not in runtime_imports
+
+
+def test_rel_002_process_isolation_stays_outside_runtime_kernel() -> None:
+    isolation_path = NSL / "process_isolation.py"
+
+    assert isolation_path.is_file()
+    assert "multiprocessing" in absolute_imports(isolation_path)
+    assert "process_isolation" not in local_imports("runtime")
+    assert "multiprocessing" not in absolute_imports(NSL / "runtime.py")
+    assert "multiprocessing" not in absolute_imports(NSL / "runtime_models.py")
 
 
 def test_py_001_runtime_is_implemented_in_python() -> None:

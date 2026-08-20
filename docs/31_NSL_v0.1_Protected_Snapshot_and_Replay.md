@@ -65,11 +65,11 @@ Replay 완료 후 Original/Current semantic result view를 자동 비교한다. 
 
 Snapshot reference에는 만료 시각이 포함된다. Audit event 자체는 결정성을 유지하기 위해 wall-clock 시간을 포함하지 않고, `JsonlAuditStore`의 storage envelope가 저장 시각과 만료 시각을 보유한다. Audit 삭제는 실행 단위로 처리해 남은 event hash chain이 끊어지지 않도록 하며, 한 실행의 모든 이벤트가 만료된 경우에만 purge한다.
 
-## 7. Partial 재검토
+## 7. Slice 0030 재검토
 
 Slice 0024에 할당된 6개 Requirement는 모두 완료되어 Slice 내부 `PARTIAL`은 없다.
 
-Slice 0023의 `NSL-AUD-007`은 protected snapshot 경로에서는 만족한다. 그러나 일반 Production 실행에서 `SnapshotStore`가 여전히 선택 사항이므로 모든 Tool Result에 snapshot 또는 reference가 존재한다고 보장할 수 없다. 이 요구사항은 `PARTIAL`을 유지하고 Production profile과 SRS certification을 다루는 Slice 0030으로 이관한다.
+Slice 0023에서 이관된 `NSL-AUD-007`은 Slice 0030의 `WorkerEvidencePolicy.SNAPSHOT_REQUIRED`로 닫혔다. Certified Worker는 `SnapshotStore` 없는 구성을 거부하고 모든 Tool Result의 보호 reference가 Audit에 기록되는지 검증하므로 상태는 `IMPLEMENTED`다.
 
 ## 8. Boundary and Robustness
 

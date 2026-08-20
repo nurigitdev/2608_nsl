@@ -74,6 +74,7 @@ from nsl.worker import (
     SkillExecutionWorker,
     WorkerBoundaryCode,
     WorkerBoundaryError,
+    WorkerEvidencePolicy,
 )
 from nsl.vertical_slice import build_tool_catalog
 
@@ -794,6 +795,46 @@ def test_ae_005_worker_dependency_and_job_ports_fail_closed() -> None:
     with pytest.raises(WorkerBoundaryError) as captured:
         asyncio.run(worker.execute(object()))
     assert captured.value.code is WorkerBoundaryCode.INVALID_JOB
+
+
+def test_aud_007_certified_worker_requires_and_records_snapshot_references() -> None:
+    package = build_verified_package()
+    catalog = build_tool_catalog()
+    audit = InMemoryAuditSink()
+    snapshots = InMemorySnapshotStore()
+    worker = SkillExecutionWorker(
+        runtime=RuntimeEngine(catalog),
+        resolver=VerifiedPackageSkillResolver([package]),
+        tools=build_mock_executor(catalog),
+        audit_sink=audit,
+        snapshot_store=snapshots,
+        evidence_policy=WorkerEvidencePolicy.SNAPSHOT_REQUIRED,
+    )
+
+    result = asyncio.run(worker.execute(build_job(package))).runtime_result
+
+    assert result.status is ExecutionStatus.COMPLETED
+    tool_results = [
+        event for event in audit.events if event.event_type == "TOOL_COMPLETED"
+    ]
+    assert len(tool_results) == 2
+    assert all(event.payload["snapshot_ref"] for event in tool_results)
+    assert worker.evidence_policy is WorkerEvidencePolicy.SNAPSHOT_REQUIRED
+
+
+@pytest.mark.parametrize("policy", [WorkerEvidencePolicy.SNAPSHOT_REQUIRED, object()])
+def test_aud_007_certified_worker_rejects_missing_store_or_invalid_policy(policy) -> None:
+    package = build_verified_package()
+    catalog = build_tool_catalog()
+    with pytest.raises(WorkerBoundaryError) as captured:
+        SkillExecutionWorker(
+            runtime=RuntimeEngine(catalog),
+            resolver=VerifiedPackageSkillResolver([package]),
+            tools=build_mock_executor(catalog),
+            audit_sink=InMemoryAuditSink(),
+            evidence_policy=policy,
+        )
+    assert captured.value.code is WorkerBoundaryCode.INVALID_DEPENDENCY
 
 
 def test_ae_006_worker_publishes_ordered_safe_progress_events() -> None:

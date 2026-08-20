@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0029",
+  "current_slice": "0030",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -348,7 +348,13 @@
     "NSL-AUD-004": {"status": "IMPLEMENTED", "target_slice": "0023", "verification": ["TEST-AUD-004"], "evidence": ["tests/test_persistent_audit.py::test_aud_004_runtime_version_and_schema_are_recorded"]},
     "NSL-AUD-005": {"status": "IMPLEMENTED", "target_slice": "0023", "verification": ["TEST-AUD-005"], "evidence": ["tests/test_persistent_audit.py::test_aud_005_input_and_context_evidence_is_persisted"]},
     "NSL-AUD-006": {"status": "IMPLEMENTED", "target_slice": "0023", "verification": ["TEST-AUD-006"], "evidence": ["tests/test_persistent_audit.py::test_aud_006_tool_invocation_input_evidence_is_persisted"]},
-    "NSL-AUD-007": {"status": "PARTIAL", "target_slice": "0030", "verification": ["TEST-AUD-007"], "evidence": ["tests/test_persistent_audit.py::test_aud_007_tool_result_snapshot_reference_is_persisted", "tests/test_protected_snapshot_and_replay.py::test_protected_snapshot_replay_is_encrypted_isolated_and_deterministic"]},
+    "NSL-AUD-007": {"status": "IMPLEMENTED", "target_slice": "0030", "verification": ["TEST-AUD-007"], "evidence": ["tests/test_persistent_audit.py::test_aud_007_tool_result_snapshot_reference_is_persisted", "tests/test_protected_snapshot_and_replay.py::test_protected_snapshot_replay_is_encrypted_isolated_and_deterministic", "tests/test_nex_ae_integration.py::test_aud_007_certified_worker_requires_and_records_snapshot_references"]},
+    "NSL-PERF-001": {"status": "IMPLEMENTED", "target_slice": "0030", "verification": ["TEST-PERF-001"], "evidence": ["tests/test_performance_reliability_certification.py::test_perf_001_small_source_parsing_is_immediate", "tools/performance_acceptance.py"]},
+    "NSL-PERF-002": {"status": "IMPLEMENTED", "target_slice": "0030", "verification": ["TEST-PERF-002"], "evidence": ["tests/test_performance_reliability_certification.py::test_perf_002_nso_loading_is_faster_than_source_compilation", "tools/performance_acceptance.py"]},
+    "NSL-PERF-003": {"status": "IMPLEMENTED", "target_slice": "0030", "verification": ["TEST-PERF-003"], "evidence": ["tests/test_performance_reliability_certification.py::test_perf_003_runtime_overhead_is_measured_separately"]},
+    "NSL-PERF-004": {"status": "IMPLEMENTED", "target_slice": "0030", "verification": ["TEST-PERF-004"], "evidence": ["tests/test_performance_reliability_certification.py::test_perf_004_tool_and_runtime_timings_are_separate", "tests/test_mcp_adapter_conformance.py::test_runtime_measures_all_tool_ports_without_changing_audit_payloads"]},
+    "NSL-PERF-005": {"status": "IMPLEMENTED", "target_slice": "0030", "verification": ["TEST-PERF-005"], "evidence": ["tests/test_performance_reliability_certification.py::test_perf_005_bounded_1000_loop_boundary"]},
+    "NSL-REL-002": {"status": "IMPLEMENTED", "target_slice": "0030", "verification": ["TEST-REL-002"], "evidence": ["tests/test_performance_reliability_certification.py::test_rel_002_runtime_crash_does_not_terminate_parent_process", "tests/test_performance_reliability_certification.py::test_rel_002_runtime_timeout_terminates_only_the_child"]},
     "NSL-AUD-008": {"status": "IMPLEMENTED", "target_slice": "0023", "verification": ["TEST-AUD-008"], "evidence": ["tests/test_persistent_audit.py::test_aud_008_tool_result_hash_is_persisted"]},
     "NSL-AUD-009": {"status": "IMPLEMENTED", "target_slice": "0023", "verification": ["TEST-AUD-009"], "evidence": ["tests/test_persistent_audit.py::test_aud_009_check_result_is_persisted"]},
     "NSL-AUD-010": {"status": "IMPLEMENTED", "target_slice": "0023", "verification": ["TEST-AUD-010"], "evidence": ["tests/test_persistent_audit.py::test_aud_010_emit_result_uses_protected_snapshot_evidence"]},

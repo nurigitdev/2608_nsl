@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "srs_section": "40",
+  "expected_case_count": 10,
+  "cases": [
+    {
+      "id": "AC-N01",
+      "title": "Syntax Error",
+      "evidence": ["tests/test_srs_certification.py::test_ac_n01_syntax_error_is_rejected_before_execution"]
+    },
+    {
+      "id": "AC-N02",
+      "title": "Undeclared Tool",
+      "evidence": ["tests/test_srs_certification.py::test_ac_n02_undeclared_tool_is_a_compile_error"]
+    },
+    {
+      "id": "AC-N03",
+      "title": "WRITE Tool",
+      "evidence": ["tests/test_srs_certification.py::test_ac_n03_write_tool_is_a_compile_error"]
+    },
+    {
+      "id": "AC-N04",
+      "title": "Unbounded foreach",
+      "evidence": ["tests/test_srs_certification.py::test_ac_n04_unbounded_foreach_is_a_compile_error"]
+    },
+    {
+      "id": "AC-N05",
+      "title": "Currency Mismatch",
+      "evidence": ["tests/test_srs_certification.py::test_ac_n05_currency_mismatch_fails_closed"]
+    },
+    {
+      "id": "AC-N06",
+      "title": "Tool Failure",
+      "evidence": ["tests/test_srs_certification.py::test_ac_n06_tool_failure_is_not_converted_to_empty_result"]
+    },
+    {
+      "id": "AC-N07",
+      "title": "Partial Result",
+      "evidence": ["tests/test_srs_certification.py::test_ac_n07_partial_result_cannot_produce_pass"]
+    },
+    {
+      "id": "AC-N08",
+      "title": "Budget Exceeded",
+      "evidence": ["tests/test_srs_certification.py::test_ac_n08_budget_exceeded_produces_check_fail"]
+    },
+    {
+      "id": "AC-N09",
+      "title": "Limit Exceeded",
+      "evidence": ["tests/test_srs_certification.py::test_ac_n09_limit_exceeded_returns_explicit_status"]
+    },
+    {
+      "id": "AC-N10",
+      "title": "Replay",
+      "evidence": ["tests/test_srs_certification.py::test_ac_n10_replay_matches_original_semantic_result"]
+    }
+  ]
+}

@@ -138,6 +138,8 @@ Mandatory single command:
 - Terminal missing-line report
 - JSON/XML Coverage artifact
 - Coverage threshold enforcement
+- Coverage instrumentation 종료 후 clean subprocess Performance Acceptance
+- 325개 Requirement와 10개 Negative Acceptance SRS Certification
 
 ## 7. Temporary Test Directory
 
@@ -192,3 +194,5 @@ Commit 또는 Push 직전 다음이 모두 참이어야 한다.
 - 유효한 Scope Decision이 없는 `OUT_OF_SCOPE` 또는 `SUPERSEDED`
 
 `tools/run_quality.py`는 pytest보다 먼저 Requirement Traceability Gate를 실행한다.
+
+Slice 0030부터 pytest와 Coverage Gate가 성공한 뒤 `tools.performance_acceptance`와 `tools.srs_certification`을 순서대로 실행한다. Performance Gate는 coverage instrumentation에 의한 wall-clock 왜곡을 피하기 위해 별도 Python process에서 실행한다. Certification report는 `test/srs_certification.json`에 생성되며 미완료 Requirement가 있으면 `CONDITIONAL`과 정확한 gap ID를 기록한다.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
 import sys
 
 import pytest
@@ -12,6 +13,7 @@ from requirements_traceability import TraceabilityError, validate_traceability
 STATEMENT_THRESHOLD = 95.0
 BRANCH_THRESHOLD = 90.0
 COVERAGE_JSON = Path("test/coverage.json")
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def percentage(covered: int, total: int) -> float:
@@ -54,6 +56,30 @@ def main() -> int:
     if branch < BRANCH_THRESHOLD:
         print("branch coverage gate failed", file=sys.stderr)
         failed = True
+    if not failed:
+        performance = subprocess.run(
+            [sys.executable, "-m", "tools.performance_acceptance"],
+            cwd=ROOT,
+            check=False,
+        )
+        if performance.returncode != 0:
+            print("performance acceptance gate failed", file=sys.stderr)
+            failed = True
+    if not failed:
+        certification = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tools.srs_certification",
+                "--output",
+                "test/srs_certification.json",
+            ],
+            cwd=ROOT,
+            check=False,
+        )
+        if certification.returncode != 0:
+            print("SRS certification gate failed", file=sys.stderr)
+            failed = True
     return 1 if failed else 0
 
 

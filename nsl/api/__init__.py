@@ -43,6 +43,7 @@ from ..worker import (
     SkillExecutionWorker,
     WorkerBoundaryCode,
     WorkerBoundaryError,
+    WorkerEvidencePolicy,
 )
 
 __all__ = [
@@ -84,4 +85,5 @@ __all__ = [
     "VerifiedPrincipalContext",
     "WorkerBoundaryCode",
     "WorkerBoundaryError",
+    "WorkerEvidencePolicy",
 ]

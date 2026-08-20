@@ -25,6 +25,11 @@ class WorkerBoundaryCode(StrEnum):
     PROGRESS_DELIVERY_FAILED = "PROGRESS_DELIVERY_FAILED"
 
 
+class WorkerEvidencePolicy(StrEnum):
+    OPTIONAL = "OPTIONAL"
+    SNAPSHOT_REQUIRED = "SNAPSHOT_REQUIRED"
+
+
 class WorkerBoundaryError(RuntimeError):
     def __init__(self, code: WorkerBoundaryCode, message: str) -> None:
         self.code = code
@@ -43,6 +48,7 @@ class SkillExecutionWorker:
         audit_sink: AuditSink,
         snapshot_store: SnapshotStore | None = None,
         progress_sink: ProgressSink | None = None,
+        evidence_policy: WorkerEvidencePolicy = WorkerEvidencePolicy.OPTIONAL,
     ) -> None:
         if not isinstance(runtime, RuntimeEngine):
             raise WorkerBoundaryError(
@@ -72,6 +78,19 @@ class SkillExecutionWorker:
                 WorkerBoundaryCode.INVALID_DEPENDENCY,
                 "Worker snapshot store does not implement the port",
             )
+        if not isinstance(evidence_policy, WorkerEvidencePolicy):
+            raise WorkerBoundaryError(
+                WorkerBoundaryCode.INVALID_DEPENDENCY,
+                "Worker evidence policy is invalid",
+            )
+        if (
+            evidence_policy is WorkerEvidencePolicy.SNAPSHOT_REQUIRED
+            and snapshot_store is None
+        ):
+            raise WorkerBoundaryError(
+                WorkerBoundaryCode.INVALID_DEPENDENCY,
+                "Certified Worker requires a snapshot store",
+            )
         if progress_sink is not None and not isinstance(progress_sink, ProgressSink):
             raise WorkerBoundaryError(
                 WorkerBoundaryCode.INVALID_DEPENDENCY,
@@ -83,6 +102,7 @@ class SkillExecutionWorker:
         self.audit_sink = audit_sink
         self.snapshot_store = snapshot_store
         self.progress_sink = progress_sink or NullProgressSink()
+        self.evidence_policy = evidence_policy
 
     async def execute(self, job: SkillExecutionJob) -> RuntimeResultEnvelope:
         if not isinstance(job, SkillExecutionJob):

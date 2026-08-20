@@ -1,10 +1,10 @@
 # NSL v0.1 Persistent Audit
 
 - **Slice:** `0023`
-- **상태:** Accepted with one Partial
+- **상태:** Accepted; Slice 0030 Follow-up Closed
 - **작성일:** 2026-08-20
 - **Requirement Baseline:** `requirements/nsl_v0_1_traceability.json`
-- **완료 범위:** 11 Implemented, 1 Partial
+- **완료 범위:** 12 Implemented
 
 ## 1. 목적
 
@@ -27,7 +27,7 @@
 |---|---|---|
 | `NSL-AUD-005` | Input/Context hash, classification, snapshot reference | `IMPLEMENTED` |
 | `NSL-AUD-006` | Tool invocation input names, hash, classification, snapshot reference | `IMPLEMENTED` |
-| `NSL-AUD-007` | Tool result snapshot 또는 reference | `PARTIAL` |
+| `NSL-AUD-007` | Tool result snapshot 또는 reference | `IMPLEMENTED` (Slice 0030 follow-up) |
 | `NSL-AUD-008` | Tool result hash | `IMPLEMENTED` |
 | `NSL-AUD-009` | CHECK result | `IMPLEMENTED` |
 | `NSL-AUD-010` | EMIT result 및 보호 snapshot evidence | `IMPLEMENTED` |
@@ -84,11 +84,11 @@ Input, Context, Tool Input은 원문 대신 hash와 classification을 기본 감
 
 모든 이벤트 envelope는 Principal reference를 가지며 Skill과 Tool의 인가 이벤트는 decision reference를 기록한다. Default Deny가 발생하면 authorizer가 생성한 DENY decision reference를 예외 경계를 통해 보존한다. Principal 검증 자체가 실패해 인가 결정이 생성되지 않은 경우는 `NOT_EVALUATED`로 기록한다.
 
-## 8. Partial 판정
+## 8. Slice 0030 완료 재검토
 
-`NSL-AUD-007`은 `SnapshotStore`가 제공되거나 Tool adapter가 snapshot reference를 반환하는 경로에서는 완료되었다. 그러나 두 포트가 모두 reference를 제공하지 않은 상태에서 보호 등급 Tool Result를 일반 audit에 원문으로 저장할 수는 없다. 이 경우에도 result hash는 남지만 SRS가 요구하는 snapshot 또는 reference는 보장되지 않는다.
+`NSL-AUD-007`은 `SnapshotStore`가 제공되거나 Tool adapter가 snapshot reference를 반환하는 경로에서 구현되었다. 보호 등급 Tool Result를 일반 audit에 원문으로 저장하지 않으며 result hash와 보호 reference를 사용한다.
 
-Slice 0024에서 protected snapshot의 암호화 저장, retention, reference 생명주기와 Replay 복구 계약은 구현되었다. 다만 일반 Production 실행에 `SnapshotStore`를 필수로 강제하는 배포 프로파일은 아직 확정하지 않았으므로 `NSL-AUD-007`은 `PARTIAL`로 유지하고 완료 목표를 Slice `0030: Performance, Reliability, and SRS Certification`으로 이동한다.
+Slice 0030은 `WorkerEvidencePolicy.SNAPSHOT_REQUIRED` production certification profile을 추가했다. 이 profile은 `SnapshotStore`가 없으면 Worker 구성을 fail closed하며, Runtime이 모든 Tool Result의 snapshot reference를 생성하고 Audit에 기록하는 통합 테스트를 통과한다. 이에 따라 `NSL-AUD-007`은 `IMPLEMENTED`로 승격되었다.
 
 ## 9. Boundary and Robustness
 
@@ -104,7 +104,7 @@ Slice 0024에서 protected snapshot의 암호화 저장, retention, reference �
 
 ## 10. Traceability and Quality
 
-Slice 반영 후 전체 Baseline은 `IMPLEMENTED 273`, `PARTIAL 7`, `PLANNED 45`다.
+Slice 0023 최초 반영 시 전체 Baseline은 `IMPLEMENTED 273`, `PARTIAL 7`, `PLANNED 45`였다. Slice 0030 follow-up 이후 `NSL-AUD-007`은 `IMPLEMENTED`다.
 
 - Regression: `687 passed`
 - Statement Coverage: `99.24%`
@@ -115,7 +115,7 @@ Slice 반영 후 전체 Baseline은 `IMPLEMENTED 273`, `PARTIAL 7`, `PLANNED 45`
 ## 11. Acceptance
 
 - 12개 할당 Requirement에 개별 Verification과 Evidence가 연결됨
-- 11개 `IMPLEMENTED`, 1개 `PARTIAL` 판정과 후속 Slice가 명시됨
+- 12개 Requirement가 최종 `IMPLEMENTED`; `NSL-AUD-007`은 Slice 0030 follow-up evidence 포함
 - Runtime Kernel과 파일 저장 어댑터의 의존 방향 유지
 - 재시작 후 event hash, sequence, hash chain 검증
 - 일반 audit의 보호 원문 및 credential 비저장
