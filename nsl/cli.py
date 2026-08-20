@@ -630,7 +630,7 @@ def _write_json(stream: TextIO, payload: Mapping[str, Any]) -> None:
             payload,
             ensure_ascii=False,
             sort_keys=True,
-            separators=(",", ":"),
+            indent=2,
             allow_nan=False,
         )
         + "\n"

@@ -1321,3 +1321,39 @@ def test_clx_015_project_budget_scenarios_and_runner_boundaries(tmp_path) -> Non
         _write_json(suite_path, document)
         with pytest.raises(NsoSchemaError):
             load_scenario_suite(suite_path)
+
+
+def test_cli_local_execution_commands_pretty_print_json(tmp_path) -> None:
+    from io import StringIO
+
+    profile = ROOT / "examples/project_budget_check.profile.json"
+    suite = ROOT / "examples/project_budget_check.scenarios.json"
+    commands = (
+        ("check", "--profile", str(profile)),
+        (
+            "compile",
+            "--profile",
+            str(profile),
+            "-o",
+            str(tmp_path / "project_budget_check.nso"),
+        ),
+        ("run", "--profile", str(profile), "--dry-run"),
+        ("test", "--suite", str(suite)),
+    )
+
+    for arguments in commands:
+        stdout = StringIO()
+        stderr = StringIO()
+        assert main(arguments, stdout=stdout, stderr=stderr) == CLIExitCode.SUCCESS
+        assert stderr.getvalue() == ""
+        payload = json.loads(stdout.getvalue())
+        assert stdout.getvalue() == (
+            json.dumps(
+                payload,
+                ensure_ascii=False,
+                sort_keys=True,
+                indent=2,
+                allow_nan=False,
+            )
+            + "\n"
+        )

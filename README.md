@@ -60,6 +60,10 @@ Profile의 모든 경로는 profile 디렉터리 안의 canonical file로 제한
 isolation을 사용하며 scenario suite는 성공, 예산 초과, Tool 실패, 권한 거부,
 입력 오류, resource limit, 반복 결정성을 검증한다.
 
+CLI의 JSON stdout과 stderr는 key 순서를 고정한 2-space pretty JSON으로
+표시한다. `--result-out`, `--audit-out`과 process isolation wire는 기계 처리와
+무결성 검증을 위해 기존 canonical JSON 형식을 유지한다.
+
 ## Test
 
 ```powershell

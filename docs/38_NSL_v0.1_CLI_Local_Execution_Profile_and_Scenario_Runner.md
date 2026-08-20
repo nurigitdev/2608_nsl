@@ -81,6 +81,10 @@ scope, Tool Contract, Mock Fixture와 resource limit을 검증하지만
 exclusive temporary file과 atomic replace로 기록한다. `--timing`은 관측 정보만
 추가하며 result, Audit, Replay semantic identity를 변경하지 않는다.
 
+터미널 stdout/stderr의 JSON은 사람이 검토하기 쉽도록 key 정렬과 2-space
+indent를 적용한다. 이 표시 형식 변경은 canonical evidence file, NSO, replay,
+isolation wire의 byte-level contract에는 적용하지 않는다.
+
 Isolation 기본값은 profile에서 정하며 CLI의 `--isolate` 또는 `--no-isolate`가
 override한다. Timeout, crash, malformed/oversized frame은 parent process를
 종료시키지 않고 검증된 CLI execution error로 변환한다. 보호되지 않은
@@ -138,7 +142,7 @@ Requirement ID, Priority, Part, Title을 순서대로 canonicalize해 계산한�
 Slice 완료 시점 검증 결과:
 
 ```text
-Regression: 1219 passed
+Regression: 1220 passed
 Statement Coverage: 99.56%
 Branch Coverage: 98.76%
 CLI Extension Traceability: 15/15 IMPLEMENTED
