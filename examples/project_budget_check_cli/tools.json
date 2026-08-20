@@ -1,0 +1,49 @@
+{
+  "tools": [
+    {
+      "tool_id": "PROJECT.LIST_PARENT_PROJECTS",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "year", "type": {"kind": "primitive", "name": "Year"}},
+        {"name": "team_id", "type": {"kind": "domain", "name": "TeamId"}}
+      ],
+      "output": {
+        "kind": "list",
+        "item": {
+          "kind": "record",
+          "name": "ParentProject",
+          "fields": [
+            {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+            {"name": "budget", "type": {"kind": "money", "currency": "KRW"}}
+          ]
+        }
+      },
+      "required_scope": "project:budget:read",
+      "output_classification": "CONFIDENTIAL"
+    },
+    {
+      "tool_id": "PROJECT.LIST_CHILD_PROJECTS",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "parent_project", "type": {"kind": "domain", "name": "ProjectCode"}},
+        {"name": "year", "type": {"kind": "primitive", "name": "Year"}}
+      ],
+      "output": {
+        "kind": "list",
+        "item": {
+          "kind": "record",
+          "name": "ChildProject",
+          "fields": [
+            {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+            {"name": "parent_project", "type": {"kind": "domain", "name": "ProjectCode"}},
+            {"name": "expense_amount", "type": {"kind": "money", "currency": "KRW"}}
+          ]
+        }
+      },
+      "required_scope": "project:budget:read",
+      "output_classification": "CONFIDENTIAL"
+    }
+  ]
+}

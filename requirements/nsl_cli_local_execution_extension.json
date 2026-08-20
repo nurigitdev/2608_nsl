@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "baseline_id": "NSL-CLI-LOCAL-EXECUTION-EXT-1",
+  "slice": "0031",
+  "title": "CLI Local Execution Profile and Scenario Runner",
+  "expected_requirement_count": 15,
+  "requirements_sha256": "616522c34faccad5e742ec969977f2362a0b1c0ab25d2215d4be9d632cd992d5",
+  "requirements": [
+    {
+      "id": "NSL-CLX-001",
+      "title": "A versioned and bounded local execution profile shall define CLI inputs.",
+      "priority": "MUST",
+      "part": "A",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-001"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_001_profile_schema_is_strict_versioned_and_bounded"]
+    },
+    {
+      "id": "NSL-CLX-002",
+      "title": "Profile paths shall resolve to canonical files contained by the profile root.",
+      "priority": "MUST",
+      "part": "A",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-002"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_002_profile_paths_are_canonical_contained_files"]
+    },
+    {
+      "id": "NSL-CLX-003",
+      "title": "Explicit CLI options shall deterministically override profile values.",
+      "priority": "MUST",
+      "part": "A",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-003"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_003_cli_options_deterministically_override_profile"]
+    },
+    {
+      "id": "NSL-CLX-004",
+      "title": "The check, compile, and run commands shall accept a local execution profile.",
+      "priority": "MUST",
+      "part": "A",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-004"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_004_profile_drives_check_compile_and_source_or_nso_run"]
+    },
+    {
+      "id": "NSL-CLX-005",
+      "title": "PROJECT_BUDGET_CHECK shall provide a complete executable local profile example.",
+      "priority": "MUST",
+      "part": "A",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-005"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_005_project_budget_example_is_complete_and_executable"]
+    },
+    {
+      "id": "NSL-CLX-006",
+      "title": "Dry-run shall validate execution inputs and contracts without invoking a tool.",
+      "priority": "MUST",
+      "part": "B",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-006"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_006_dry_run_validates_without_tool_execution"]
+    },
+    {
+      "id": "NSL-CLX-007",
+      "title": "Dry-run shall emit a deterministic and credential-safe execution plan.",
+      "priority": "MUST",
+      "part": "B",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-007"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_007_dry_run_report_is_deterministic_safe_and_complete"]
+    },
+    {
+      "id": "NSL-CLX-008",
+      "title": "Result and redacted audit evidence shall be written canonically and atomically.",
+      "priority": "MUST",
+      "part": "B",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-008"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_008_result_and_redacted_audit_evidence_are_atomic"]
+    },
+    {
+      "id": "NSL-CLX-009",
+      "title": "CLI timing shall separate load, runtime, tool, and overhead measurements from semantic results.",
+      "priority": "MUST",
+      "part": "B",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-009"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_009_timing_is_separate_consistent_observability"]
+    },
+    {
+      "id": "NSL-CLX-010",
+      "title": "Local execution shall support bounded child-process isolation with deterministic failure mapping.",
+      "priority": "MUST",
+      "part": "B",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-010"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_010_process_isolation_success_timeout_and_override", "tests/test_cli_local_execution.py::test_clx_010_isolated_wire_rejects_malformed_requests_and_responses"]
+    },
+    {
+      "id": "NSL-CLX-011",
+      "title": "Scenario suites shall use a strict, versioned, and bounded schema.",
+      "priority": "MUST",
+      "part": "C",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-011"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_011_scenario_suite_schema_and_command_are_strict"]
+    },
+    {
+      "id": "NSL-CLX-012",
+      "title": "Every scenario case shall execute with fresh runtime state and a stable execution identity.",
+      "priority": "MUST",
+      "part": "C",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-012"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_012_scenario_cases_execute_with_fresh_runtime_state"]
+    },
+    {
+      "id": "NSL-CLX-013",
+      "title": "Scenario expectations shall assert semantic status, checks, outputs, errors, and resources.",
+      "priority": "MUST",
+      "part": "C",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-013"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_013_scenario_assertions_cover_semantic_result_dimensions"]
+    },
+    {
+      "id": "NSL-CLX-014",
+      "title": "Scenario summaries and mismatch exit status shall be deterministic.",
+      "priority": "MUST",
+      "part": "C",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-014"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_014_scenario_summary_order_and_exit_code_are_deterministic"]
+    },
+    {
+      "id": "NSL-CLX-015",
+      "title": "The scenario runner shall enforce safety bounds and cover the PROJECT_BUDGET_CHECK acceptance matrix.",
+      "priority": "MUST",
+      "part": "C",
+      "status": "IMPLEMENTED",
+      "verification": ["TEST-CLX-015"],
+      "evidence": ["tests/test_cli_local_execution.py::test_clx_015_project_budget_scenarios_and_runner_boundaries", "examples/project_budget_check.scenarios.json"]
+    }
+  ]
+}

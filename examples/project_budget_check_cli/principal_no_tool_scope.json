@@ -1,0 +1,9 @@
+{
+  "tenant_id": "tenant-nex",
+  "subject_id": "user-finance-001",
+  "actor_type": "USER",
+  "roles": ["FINANCE_ANALYST"],
+  "scopes": ["nsl:skill:execute"],
+  "auth_context_ref": "auth-context-demo-002",
+  "verification": "VERIFIED"
+}

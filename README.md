@@ -42,6 +42,24 @@ execution     COMPLETED
 replay_equal  true
 ```
 
+## Local CLI Profile
+
+`PROJECT_BUDGET_CHECK`는 실행에 필요한 Source, Principal, Tool Contract,
+Input, Context, Mock Fixture를 하나의 versioned local profile로 제공한다.
+
+```powershell
+python -m nsl check --profile examples\project_budget_check.profile.json
+python -m nsl compile --profile examples\project_budget_check.profile.json -o test\project_budget_check.nso
+python -m nsl run --profile examples\project_budget_check.profile.json --dry-run
+python -m nsl run --profile examples\project_budget_check.profile.json --timing
+python -m nsl test --suite examples\project_budget_check.scenarios.json
+```
+
+Profile의 모든 경로는 profile 디렉터리 안의 canonical file로 제한된다.
+명시적인 CLI option은 profile 값을 override한다. 기본 예제는 child process
+isolation을 사용하며 scenario suite는 성공, 예산 초과, Tool 실패, 권한 거부,
+입력 오류, resource limit, 반복 결정성을 검증한다.
+
 ## Test
 
 ```powershell
@@ -51,7 +69,7 @@ replay_equal  true
 
 `tools/run_quality.py` executes one pytest regression run with statement and branch coverage. Pytest uses the repository-local `test/` directory for temporary files and coverage reports. The quality gate requires statement coverage >= 95% and branch coverage >= 90%.
 
-Before pytest, the command validates all 325 SRS Requirement IDs against `requirements/nsl_v0_1_traceability.json`. Requirement text or priority changes, missing Slice/Test mappings, and unsupported status claims fail the same quality gate.
+Before pytest, the command validates all 325 SRS Requirement IDs against `requirements/nsl_v0_1_traceability.json` and all 15 Slice 0031 extension requirements against `requirements/nsl_cli_local_execution_extension.json`. Requirement text or priority changes, missing Slice/Test mappings, and unsupported status claims fail the same quality gate.
 
 The suite covers:
 

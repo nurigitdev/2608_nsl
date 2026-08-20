@@ -134,6 +134,29 @@ class RuntimeEngine:
             raise ValueError("environment must be a RuntimeEnvironment")
         self.environment = environment
 
+    def validate_execution_request(
+        self, skill: SkillObject, request: ExecutionRequest
+    ) -> None:
+        """Validate a request without constructing or invoking a Tool executor."""
+        self._validate_execution_principal(request.principal)
+        self.authorizer.authorize(
+            request.principal,
+            f"skill:{skill.skill_id}:execute",
+            frozenset({"nsl:skill:execute"}),
+        )
+        self._preflight(skill)
+        self._validated_input_context_bindings(
+            skill,
+            request,
+            lambda size: self._validate_collection_size(skill, size),
+        )
+        for required in skill.required_tools:
+            self.authorizer.authorize(
+                request.principal,
+                f"tool:{required.tool_id}:execute",
+                frozenset({required.required_scope}),
+            )
+
     async def execute(
         self,
         skill: SkillObject,
@@ -429,19 +452,40 @@ class RuntimeEngine:
                 raise RuntimeContractError("WRITE capability is forbidden")
 
     def _bind_inputs_and_contexts(self, ctx: ExecutionContext) -> None:
-        for spec in ctx.skill.inputs:
-            if spec.required and spec.name not in ctx.request.inputs:
-                raise RuntimeContractError(f"missing required input: {spec.name}")
-            value = ctx.request.inputs[spec.name]
-            self._validate_runtime_type(value, spec.type_info, spec.name)
-            if isinstance(value, list):
-                ctx.resource_guard.observe_collection(len(value))
+        inputs, contexts = self._validated_input_context_bindings(
+            ctx.skill,
+            ctx.request,
+            ctx.resource_guard.observe_collection,
+        )
+        for spec, value in inputs:
             ctx.bind_input(
                 spec.symbol_id,
                 ValueEnvelope.complete(value, spec.type_info, spec.classification),
             )
-        for spec in ctx.skill.contexts:
-            value: Any = ctx.request.runtime_context
+        for spec, value in contexts:
+            ctx.bind_context(
+                spec.symbol_id,
+                ValueEnvelope.complete(value, spec.type_info, spec.classification),
+            )
+
+    def _validated_input_context_bindings(
+        self,
+        skill: SkillObject,
+        request: ExecutionRequest,
+        observe_collection: Callable[[int], None],
+    ) -> tuple[tuple[tuple[Any, Any], ...], tuple[tuple[Any, Any], ...]]:
+        inputs: list[tuple[Any, Any]] = []
+        for spec in skill.inputs:
+            if spec.required and spec.name not in request.inputs:
+                raise RuntimeContractError(f"missing required input: {spec.name}")
+            value = request.inputs[spec.name]
+            self._validate_runtime_type(value, spec.type_info, spec.name)
+            if isinstance(value, list):
+                observe_collection(len(value))
+            inputs.append((spec, value))
+        contexts: list[tuple[Any, Any]] = []
+        for spec in skill.contexts:
+            value: Any = request.runtime_context
             for part in spec.path:
                 try:
                     value = value[part]
@@ -451,11 +495,14 @@ class RuntimeEngine:
                     ) from error
             self._validate_runtime_type(value, spec.type_info, spec.name)
             if isinstance(value, list):
-                ctx.resource_guard.observe_collection(len(value))
-            ctx.bind_context(
-                spec.symbol_id,
-                ValueEnvelope.complete(value, spec.type_info, spec.classification),
-            )
+                observe_collection(len(value))
+            contexts.append((spec, value))
+        return tuple(inputs), tuple(contexts)
+
+    @staticmethod
+    def _validate_collection_size(skill: SkillObject, size: int) -> None:
+        if size > skill.limits.collection_size:
+            raise LimitExceeded("collection size limit exceeded")
 
     def _validate_runtime_type(self, value: Any, type_info: TypeRef, name: str) -> None:
         valid = True

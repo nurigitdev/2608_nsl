@@ -401,6 +401,7 @@ def test_cli_011_return_codes_are_stable() -> None:
         "VALIDATION_ERROR": 4,
         "EXECUTION_ERROR": 5,
         "REPLAY_MISMATCH": 6,
+        "SCENARIO_MISMATCH": 7,
         "INTERNAL_ERROR": 70,
     }
 

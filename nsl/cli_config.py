@@ -35,7 +35,11 @@ def load_value_object(path: Path, label: str) -> dict[str, Any]:
 def load_tool_catalog(path: Path | None) -> ToolContractCatalog:
     if path is None:
         return ToolContractCatalog(())
-    root = _object(load_json_document(path), "$", {"tools"})
+    return load_tool_catalog_document(load_json_document(path))
+
+
+def load_tool_catalog_document(document: Any) -> ToolContractCatalog:
+    root = _object(document, "$", {"tools"})
     contracts = tuple(
         _tool_contract(item, f"$.tools[{index}]")
         for index, item in enumerate(_array(root["tools"], "$.tools"))
@@ -44,8 +48,12 @@ def load_tool_catalog(path: Path | None) -> ToolContractCatalog:
 
 
 def load_principal(path: Path) -> ExecutionPrincipal:
+    return load_principal_document(load_json_document(path))
+
+
+def load_principal_document(document: Any) -> ExecutionPrincipal:
     item = _object(
-        load_json_document(path),
+        document,
         "$",
         {
             "tenant_id",
@@ -83,12 +91,9 @@ def load_principal(path: Path) -> ExecutionPrincipal:
     return principal
 
 
-def load_mock_handlers(
-    path: Path | None, catalog: ToolContractCatalog
+def load_mock_handlers_document(
+    document: Any, catalog: ToolContractCatalog
 ) -> dict[str, FixtureHandler]:
-    if path is None:
-        return {}
-    document = load_json_document(path)
     ensure_no_credential_material(document, "CLI mock fixture")
     root = _object(document, "$", {"schema_version", "tools"})
     if root["schema_version"] != "1.0":

@@ -4,7 +4,7 @@
   "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
-  "current_slice": "0030",
+  "current_slice": "0031",
   "scope_decisions": [
     {
       "decision_id": "RB-001",
@@ -61,9 +61,10 @@
     "0028": {"scope": "SRS", "title": "Package Verification and Signature"},
     "0029": {"scope": "SRS", "title": "NeX-AE Integration Contract and Worker Boundary"},
     "0030": {"scope": "SRS", "title": "Performance, Reliability, and SRS Certification"},
-    "0031": {"scope": "EXTENSION", "title": "Schedule Contract and Store"},
-    "0032": {"scope": "EXTENSION", "title": "Schedule Runner"},
-    "0033": {"scope": "EXTENSION", "title": "Internal Pilot"}
+    "0031": {"scope": "EXTENSION", "title": "CLI Local Execution Profile and Scenario Runner"},
+    "0032": {"scope": "EXTENSION", "title": "Schedule Contract and Store"},
+    "0033": {"scope": "EXTENSION", "title": "Schedule Runner"},
+    "0034": {"scope": "EXTENSION", "title": "Internal Pilot"}
   },
   "assignments": [
     {"selectors": ["NSL-AE-001..011"], "status": "PLANNED", "target_slice": "0029", "verification": ["TEST-AE-CONTRACT"], "evidence": []},
@@ -108,7 +109,7 @@
     {"selectors": ["NSL-SEC-009"], "status": "PARTIAL", "target_slice": "0014", "verification": ["TEST-SEC-MALFORMED-NSO"], "evidence": ["tests/test_vertical_slice.py::test_nso_tamper_is_rejected"]},
     {"selectors": ["NSL-SEC-010..011"], "status": "PLANNED", "target_slice": "0028", "verification": ["TEST-SEC-PACKAGE"], "evidence": []},
     {"selectors": ["NSL-SEC-012", "NSL-SEC-014..017", "NSL-SEC-021"], "status": "PARTIAL", "target_slice": "0022", "verification": ["TEST-SEC-AUTHORIZATION-DATA"], "evidence": ["tests/test_core_and_security.py::test_authorizer_default_deny_and_allow"]},
-    {"selectors": ["NSL-SEC-013"], "status": "PLANNED", "target_slice": "0032", "verification": ["TEST-SCHEDULE-SERVICE-PRINCIPAL"], "evidence": []},
+    {"selectors": ["NSL-SEC-013"], "status": "PLANNED", "target_slice": "0033", "verification": ["TEST-SCHEDULE-SERVICE-PRINCIPAL"], "evidence": []},
     {"selectors": ["NSL-SEC-018..020", "NSL-SEC-022"], "status": "PARTIAL", "target_slice": "0024", "verification": ["TEST-SEC-SNAPSHOT-REPLAY"], "evidence": ["tests/test_vertical_slice.py::test_replay_snapshot_is_tenant_isolated"]},
     {"selectors": ["NSL-SEM-001..008"], "status": "PARTIAL", "target_slice": "0007", "verification": ["TEST-SEM-SCOPE"], "evidence": ["tests/test_syntax_and_compiler_boundaries.py::test_compiler_semantic_robustness"]},
     {"selectors": ["NSL-SRC-001..007", "NSL-SRC-009"], "status": "PARTIAL", "target_slice": "0004", "verification": ["TEST-SRC-MODEL"], "evidence": ["tests/test_syntax_and_compiler_boundaries.py::test_lexer_comment_escape_positions_and_two_character_operator"]},

@@ -60,7 +60,7 @@ Fingerprint 입력은 SRS에 나타나는 순서대로 정규화한 `Requirement
 3. Workflow Language, Multi-Skill Orchestration, WRITE, APPROVAL은 NSL v0.1 범위 밖이다.
 4. Schedule은 NSL Syntax와 `.nso`에 포함하지 않는다.
 5. Schedule은 하나의 등록된 Skill을 반복 호출하는 NeX Platform Extension이다.
-6. SRS의 `NSL-SEC-013`만 Schedule Extension의 Service Principal Requirement로 Slice 0032에 배정한다.
+6. SRS의 `NSL-SEC-013`만 Schedule Extension의 Service Principal Requirement로 Slice 0033에 배정한다.
 
 ## 5. Slice Ownership
 
@@ -73,8 +73,9 @@ Fingerprint 입력은 SRS에 나타나는 순서대로 정규화한 `Requirement
 | `0022~0025` | Principal, Authorization, Audit, Replay, MCP Adapter | Production Security Boundary |
 | `0026~0029` | CLI, Package, Signature, NeX-AE Integration | Product Integration |
 | `0030` | Performance, Reliability, Negative Acceptance, Traceability | NSL v0.1 SRS Certification |
-| `0031~0032` | Schedule Contract/Store와 Runner | Platform Schedule Extension |
-| `0033` | Chat, Immediate Run, Scheduled Run | Internal Pilot |
+| `0031` | CLI Local Execution Profile, Evidence, Isolation, Scenario Runner | Platform CLI Extension |
+| `0032~0033` | Schedule Contract/Store와 Runner | Platform Schedule Extension |
+| `0034` | Chat, Immediate Run, Scheduled Run | Internal Pilot |
 
 개별 Requirement의 정확한 담당 Slice는 Machine-readable Baseline을 단일 기준으로 사용한다.
 

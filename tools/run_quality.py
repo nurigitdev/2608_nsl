@@ -7,6 +7,10 @@ import sys
 
 import pytest
 
+from extension_traceability import (
+    ExtensionTraceabilityError,
+    validate_extension_traceability,
+)
 from requirements_traceability import TraceabilityError, validate_traceability
 
 
@@ -30,6 +34,16 @@ def main() -> int:
         "Traceability gate: "
         f"{traceability.requirement_count} requirements, "
         f"statuses={traceability.status_counts}"
+    )
+    try:
+        extension = validate_extension_traceability()
+    except ExtensionTraceabilityError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(
+        "Extension traceability gate: "
+        f"{extension.requirement_count} requirements, "
+        f"statuses={extension.status_counts}"
     )
 
     pytest_result = int(pytest.main([]))

@@ -1,0 +1,106 @@
+{
+  "schema_version": "1.0",
+  "profile": "project_budget_check.profile.json",
+  "cases": [
+    {
+      "id": "success",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"BUDGET_LIMIT": "PASS"},
+        "outputs": [
+          {
+            "parent_project": "PARENT-001",
+            "budget": {"$type": "Money", "amount": "100000000", "currency": "KRW"},
+            "spent": {"$type": "Money", "amount": "87500000", "currency": "KRW"},
+            "remaining": {"$type": "Money", "amount": "12500000", "currency": "KRW"},
+            "status": "PASS"
+          }
+        ],
+        "resources": {"tool_calls": 2, "loop_iterations": 1, "emitted_rows": 1}
+      }
+    },
+    {
+      "id": "budget-overrun",
+      "fixture": "project_budget_check_cli/fixtures/over_budget.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"BUDGET_LIMIT": "FAIL"},
+        "outputs": [
+          {
+            "parent_project": "PARENT-001",
+            "budget": {"$type": "Money", "amount": "100000000", "currency": "KRW"},
+            "spent": {"$type": "Money", "amount": "100000001", "currency": "KRW"},
+            "remaining": {"$type": "Money", "amount": "-1", "currency": "KRW"},
+            "status": "FAIL"
+          }
+        ],
+        "resources": {"tool_calls": 2, "loop_iterations": 1, "emitted_rows": 1}
+      }
+    },
+    {
+      "id": "tool-fixture-missing",
+      "fixture": "project_budget_check_cli/fixtures/missing_tools.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "TOOL_ERROR",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E4101",
+        "resources": {"tool_calls": 1}
+      }
+    },
+    {
+      "id": "authorization-denied",
+      "principal": "project_budget_check_cli/principal_no_tool_scope.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "FAILED",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E5201",
+        "resources": {"tool_calls": 0}
+      }
+    },
+    {
+      "id": "invalid-input",
+      "input": "project_budget_check_cli/invalid_input.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "FAILED",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E8001",
+        "resources": {"tool_calls": 0}
+      }
+    },
+    {
+      "id": "resource-limit",
+      "fixture": "project_budget_check_cli/fixtures/resource_limit.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "LIMIT_EXCEEDED",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E6001",
+        "resources": {"tool_calls": 1, "max_collection_size_seen": 11}
+      }
+    },
+    {
+      "id": "deterministic-repeat",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"BUDGET_LIMIT": "PASS"},
+        "resources": {"tool_calls": 2, "loop_iterations": 1, "emitted_rows": 1}
+      }
+    }
+  ]
+}

@@ -49,6 +49,12 @@ nsl run PROGRAM.ns|PROGRAM.nso --principal PRINCIPAL.json
 nsl replay PROGRAM.ns|PROGRAM.nso --bundle EXECUTION.nsr
     --principal PRINCIPAL.json [--tool-contracts TOOLS.json]
     [--execution-id ID]
+nsl check [SOURCE.ns] --profile PROFILE.json
+nsl compile [SOURCE.ns] --profile PROFILE.json -o OUTPUT.nso
+nsl run [PROGRAM.ns|PROGRAM.nso] --profile PROFILE.json
+    [--dry-run] [--result-out RESULT.json] [--audit-out AUDIT.jsonl]
+    [--timing] [--isolate|--no-isolate] [--timeout-ms MILLISECONDS]
+nsl test --suite SCENARIOS.json
 ```
 
 `pyproject.toml`의 console script와 `python -m nsl` 진입점을 모두 제공한다. `run`과 `replay`는 Production Runtime의 권한 경계를 유지하기 위해 검증된 Principal 파일을 필수로 요구한다.
@@ -104,9 +110,15 @@ Standalone CLI에는 KMS/Vault key provider가 없으므로 `.nsr` 평문 파일
 | `4` | Source, NSO, JSON, Contract 검증 오류 |
 | `5` | 권한 또는 Runtime 실행 실패 |
 | `6` | Replay semantic/sequence 불일치 |
+| `7` | Scenario expectation 불일치 |
 | `70` | 예상하지 못한 내부 오류 |
 
 오류는 stderr에 `{"error":{"code","message","details?"}}` 형태로 출력한다. Runtime 실패의 검증된 `ExecutionResult`와 Replay difference는 `details`에 포함하지만 내부 exception text와 credential은 노출하지 않는다.
+
+Slice 0031에서 추가된 local profile, dry-run, evidence, isolation과 scenario
+runner의 상세 계약은 `38_NSL_v0.1_CLI_Local_Execution_Profile_and_Scenario_Runner.md`를
+따른다. 이 기능은 CLI orchestration extension이며 NSL Syntax, AST, IR을 변경하지
+않는다.
 
 ## 8. Boundary and Robustness
 

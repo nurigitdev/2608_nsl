@@ -140,6 +140,7 @@ Mandatory single command:
 - Coverage threshold enforcement
 - Coverage instrumentation 종료 후 clean subprocess Performance Acceptance
 - 325개 Requirement와 10개 Negative Acceptance SRS Certification
+- Slice 0031의 15개 CLI Extension Requirement Traceability
 
 ## 7. Temporary Test Directory
 
@@ -194,5 +195,11 @@ Commit 또는 Push 직전 다음이 모두 참이어야 한다.
 - 유효한 Scope Decision이 없는 `OUT_OF_SCOPE` 또는 `SUPERSEDED`
 
 `tools/run_quality.py`는 pytest보다 먼저 Requirement Traceability Gate를 실행한다.
+
+Slice 0031부터 `requirements/nsl_cli_local_execution_extension.json`도 같은
+Gate에서 검증한다. 이 별도 Baseline은 325개 Language/Runtime SRS를 변경하지
+않으면서 `NSL-CLX-001..015`의 Part, 상태, Verification과 Repository Evidence를
+강제한다. 미완료 항목에 허용되는 상태는 `PARTIAL`이며, 근거 없는
+`IMPLEMENTED`는 허용하지 않는다.
 
 Slice 0030부터 pytest와 Coverage Gate가 성공한 뒤 `tools.performance_acceptance`와 `tools.srs_certification`을 순서대로 실행한다. Performance Gate는 coverage instrumentation에 의한 wall-clock 왜곡을 피하기 위해 별도 Python process에서 실행한다. Certification report는 `test/srs_certification.json`에 생성되며 미완료 Requirement가 있으면 `CONDITIONAL`과 정확한 gap ID를 기록한다.

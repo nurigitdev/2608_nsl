@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "tool_id": "PROJECT.LIST_PARENT_PROJECTS",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"year": 2026, "team_id": "TEAM-FINANCE"},
+          "result": [
+            {"project_code": "PARENT-001", "budget": {"$type": "Money", "amount": "100", "currency": "KRW"}},
+            {"project_code": "PARENT-002", "budget": {"$type": "Money", "amount": "100", "currency": "KRW"}},
+            {"project_code": "PARENT-003", "budget": {"$type": "Money", "amount": "100", "currency": "KRW"}},
+            {"project_code": "PARENT-004", "budget": {"$type": "Money", "amount": "100", "currency": "KRW"}},
+            {"project_code": "PARENT-005", "budget": {"$type": "Money", "amount": "100", "currency": "KRW"}},
+            {"project_code": "PARENT-006", "budget": {"$type": "Money", "amount": "100", "currency": "KRW"}},
+            {"project_code": "PARENT-007", "budget": {"$type": "Money", "amount": "100", "currency": "KRW"}},
+            {"project_code": "PARENT-008", "budget": {"$type": "Money", "amount": "100", "currency": "KRW"}},
+            {"project_code": "PARENT-009", "budget": {"$type": "Money", "amount": "100", "currency": "KRW"}},
+            {"project_code": "PARENT-010", "budget": {"$type": "Money", "amount": "100", "currency": "KRW"}},
+            {"project_code": "PARENT-011", "budget": {"$type": "Money", "amount": "100", "currency": "KRW"}}
+          ]
+        }
+      ]
+    }
+  ]
+}

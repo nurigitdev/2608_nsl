@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "tool_id": "PROJECT.LIST_PARENT_PROJECTS",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"year": 2026, "team_id": "TEAM-FINANCE"},
+          "result": [
+            {
+              "project_code": "PARENT-001",
+              "budget": {"$type": "Money", "amount": "100000000", "currency": "KRW"}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tool_id": "PROJECT.LIST_CHILD_PROJECTS",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"parent_project": "PARENT-001", "year": 2026},
+          "result": [
+            {
+              "project_code": "CHILD-001",
+              "parent_project": "PARENT-001",
+              "expense_amount": {"$type": "Money", "amount": "30000000", "currency": "KRW"}
+            },
+            {
+              "project_code": "CHILD-002",
+              "parent_project": "PARENT-001",
+              "expense_amount": {"$type": "Money", "amount": "25000000", "currency": "KRW"}
+            },
+            {
+              "project_code": "CHILD-003",
+              "parent_project": "PARENT-001",
+              "expense_amount": {"$type": "Money", "amount": "32500000", "currency": "KRW"}
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

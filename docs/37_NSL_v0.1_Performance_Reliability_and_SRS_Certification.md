@@ -135,7 +135,7 @@ Certification status는 `CONDITIONAL`이며 gap은 정확히 세 개다.
 |---|---|---|
 | `NSL-AE-004` | `PARTIAL` | 실제 NeX-AE API request thread, Queue submit/consume 종단 검증 필요 |
 | `NSL-AE-008` | `PARTIAL` | 실제 NeX-AE Runtime Result와 LLM Explanation 저장소 분리 검증 필요 |
-| `NSL-SEC-013` | `PLANNED` | Slice 0032 Schedule Runner의 Service Principal 검증 대상 |
+| `NSL-SEC-013` | `PLANNED` | Slice 0033 Schedule Runner의 Service Principal 검증 대상 |
 
 NSL Core, Compiler, Runtime, Tool, Audit, Replay, Package, CLI와 현재 저장소에서 검증 가능한 Integration contract에는 계획 상태가 남아 있지 않다.
 

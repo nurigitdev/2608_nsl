@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "program": "project_budget_check.ns",
+  "principal": "project_budget_check_cli/principal.json",
+  "tool_contracts": "project_budget_check_cli/tools.json",
+  "input": "project_budget_check_cli/input.json",
+  "context": "project_budget_check_cli/context.json",
+  "fixture": "project_budget_check_cli/fixtures/success.json",
+  "execution": {
+    "isolate": true,
+    "timeout_ms": 30000
+  }
+}
