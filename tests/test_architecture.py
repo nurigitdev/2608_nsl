@@ -346,6 +346,59 @@ def test_arc_007_nsl_is_an_independent_python_package() -> None:
     assert not violations, f"NSL depends on NeX-AE or web frameworks: {violations}"
 
 
+def test_arc_008_public_worker_api_is_in_process_and_framework_neutral() -> None:
+    api = NSL / "api" / "__init__.py"
+    integration = NSL / "integration.py"
+    worker = NSL / "worker.py"
+    forbidden: dict[str, list[str]] = {}
+    for path in (api, integration, worker):
+        imported = absolute_imports(path)
+        violations = sorted(
+            module
+            for module in imported
+            if module.split(".", 1)[0]
+            in HOST_FRAMEWORK_MODULES | DIRECT_INFRASTRUCTURE_MODULES
+        )
+        if violations:
+            forbidden[str(path.relative_to(NSL))] = violations
+
+    api_source = api.read_text(encoding="utf-8")
+    assert "SkillExecutionWorker" in api_source
+    assert "RuntimeEngine" in api_source
+    assert "SkillExecutionJob" in api_source
+    assert not forbidden
+
+
+def test_arc_009_integration_contracts_are_transport_neutral() -> None:
+    integration = (NSL / "integration.py").read_text(encoding="utf-8")
+    worker = (NSL / "worker.py").read_text(encoding="utf-8")
+
+    assert "def to_bytes" in integration
+    assert "def from_json" in integration
+    assert "canonical_json" in integration
+    assert "fastapi" not in integration + worker
+    assert "requests" not in integration + worker
+    assert "socket" not in integration + worker
+
+
+def test_ae_004_dispatch_contract_does_not_import_runtime_or_worker() -> None:
+    imported = relative_imports(NSL / "dispatch.py")
+
+    assert "integration" in imported
+    assert "runtime" not in imported
+    assert "worker" not in imported
+    assert "tools" not in imported
+
+
+def test_ae_008_llm_records_do_not_change_runtime_kernel_dependency() -> None:
+    outcome_imports = relative_imports(NSL / "outcome_records.py")
+    runtime_imports = relative_imports(NSL / "runtime.py")
+
+    assert outcome_imports == {"data_protection", "integration"}
+    assert "outcome_records" not in runtime_imports
+    assert "dispatch" not in runtime_imports
+
+
 def test_py_001_runtime_is_implemented_in_python() -> None:
     runtime_path = NSL / "runtime.py"
     tree = ast.parse(runtime_path.read_text(encoding="utf-8"))
