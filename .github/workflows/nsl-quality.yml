@@ -18,8 +18,8 @@ concurrency:
 
 jobs:
   quality-gate:
-    name: Quality Gate (Python 3.12 / Ubuntu)
-    runs-on: ubuntu-latest
+    name: Quality Gate (Python 3.12 / Windows)
+    runs-on: windows-latest
     timeout-minutes: 30
 
     env:
@@ -41,47 +41,49 @@ jobs:
         run: python -m venv .venv
 
       - name: Install development dependencies
+        shell: pwsh
         run: |
-          .venv/bin/python -m pip install --upgrade pip
-          .venv/bin/python -m pip install -r requirements-dev.txt
+          .\.venv\Scripts\python.exe -m pip install --upgrade pip
+          .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 
       - name: Run authoritative NSL quality gate
         id: quality
-        run: .venv/bin/python tools/run_quality.py
+        shell: pwsh
+        run: .\.venv\Scripts\python.exe tools\run_quality.py
 
       - name: Record CI verification evidence
         if: always()
-        shell: bash
+        shell: pwsh
         run: |
-          mkdir -p test
-          {
-            echo "repository=${{ github.repository }}"
-            echo "commit_sha=${{ github.sha }}"
-            echo "ref=${{ github.ref }}"
-            echo "workflow=${{ github.workflow }}"
-            echo "run_id=${{ github.run_id }}"
-            echo "run_attempt=${{ github.run_attempt }}"
-            echo "runner_os=${{ runner.os }}"
-            echo "quality_outcome=${{ steps.quality.outcome }}"
-            echo "python=$(.venv/bin/python --version 2>&1)"
-            echo "verified_at_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          } > test/ci-freeze-evidence.txt
+          New-Item -ItemType Directory -Force -Path test | Out-Null
+          @(
+            "repository=${{ github.repository }}"
+            "commit_sha=${{ github.sha }}"
+            "ref=${{ github.ref }}"
+            "workflow=${{ github.workflow }}"
+            "run_id=${{ github.run_id }}"
+            "run_attempt=${{ github.run_attempt }}"
+            "runner_os=${{ runner.os }}"
+            "quality_outcome=${{ steps.quality.outcome }}"
+            "python=$(& .\.venv\Scripts\python.exe --version 2>&1)"
+            "verified_at_utc=$((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))"
+          ) | Set-Content -Path test\ci-freeze-evidence.txt -Encoding utf8
 
       - name: Publish verification summary
         if: always()
-        shell: bash
+        shell: pwsh
         run: |
-          {
-            echo "## NSL v0.1 Quality Gate"
-            echo ""
-            echo "- Commit: \`${{ github.sha }}\`"
-            echo "- Ref: \`${{ github.ref }}\`"
-            echo "- Runner: \`${{ runner.os }}\`"
-            echo "- Python: \`$([ -x .venv/bin/python ] && .venv/bin/python --version 2>&1 || echo unavailable)\`"
-            echo "- Quality gate outcome: \`${{ steps.quality.outcome }}\`"
-            echo ""
-            echo "Authoritative command: \`.venv/bin/python tools/run_quality.py\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          @"
+          ## NSL v0.1 Quality Gate
+
+          - Commit: ${{ github.sha }}
+          - Ref: ${{ github.ref }}
+          - Runner: ${{ runner.os }}
+          - Python: $(& .\.venv\Scripts\python.exe --version 2>&1)
+          - Quality gate outcome: ${{ steps.quality.outcome }}
+
+          Authoritative command: .\.venv\Scripts\python.exe tools\run_quality.py
+          "@ | Add-Content -Path $env:GITHUB_STEP_SUMMARY
 
       - name: Upload quality-gate evidence
         if: always()
