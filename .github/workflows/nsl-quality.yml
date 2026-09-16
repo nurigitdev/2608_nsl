@@ -1,0 +1,99 @@
+name: NSL v0.1 Quality Gate
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nsl-v0.1-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: Quality Gate (Python 3.12 / Windows)
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    env:
+      PYTHONUTF8: "1"
+      PYTHONHASHSEED: "0"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Create project virtual environment
+        run: python -m venv .venv
+
+      - name: Install development dependencies
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\python.exe -m pip install --upgrade pip
+          .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+
+      - name: Run authoritative NSL quality gate
+        id: quality
+        shell: pwsh
+        run: .\.venv\Scripts\python.exe tools\run_quality.py
+
+      - name: Record CI verification evidence
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path test | Out-Null
+          @(
+            "repository=${{ github.repository }}"
+            "commit_sha=${{ github.sha }}"
+            "ref=${{ github.ref }}"
+            "workflow=${{ github.workflow }}"
+            "run_id=${{ github.run_id }}"
+            "run_attempt=${{ github.run_attempt }}"
+            "runner_os=${{ runner.os }}"
+            "quality_outcome=${{ steps.quality.outcome }}"
+            "python=$(& .\.venv\Scripts\python.exe --version 2>&1)"
+            "verified_at_utc=$((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))"
+          ) | Set-Content -Path test\ci-freeze-evidence.txt -Encoding utf8
+
+      - name: Publish verification summary
+        if: always()
+        shell: pwsh
+        run: |
+          @"
+          ## NSL v0.1 Quality Gate
+
+          - Commit: ${{ github.sha }}
+          - Ref: ${{ github.ref }}
+          - Runner: ${{ runner.os }}
+          - Python: $(& .\.venv\Scripts\python.exe --version 2>&1)
+          - Quality gate outcome: ${{ steps.quality.outcome }}
+
+          Authoritative command: .\.venv\Scripts\python.exe tools\run_quality.py
+          "@ | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload quality-gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nsl-v0.1-quality-evidence-${{ github.sha }}
+          path: |
+            test/coverage.json
+            test/coverage.xml
+            test/srs_certification.json
+            test/ci-freeze-evidence.txt
+          if-no-files-found: warn
+          retention-days: 90
