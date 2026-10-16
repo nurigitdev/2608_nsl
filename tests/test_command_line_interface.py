@@ -350,7 +350,7 @@ def test_cli_003_compile_reports_output_io_failure(tmp_path) -> None:
     assert code == CLIExitCode.IO_ERROR
     assert output is None
     assert error == {
-        "error": {"code": "CLI_IO_ERROR", "message": "permission denied"}
+        "error": {"code": "CLI_IO_ERROR", "message": "file operation failed"}
     }
 
 
