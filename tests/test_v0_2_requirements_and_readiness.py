@@ -43,11 +43,7 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
     assert report.baseline_id == "NSL-V0.2-SRS-RB1"
     assert report.requirement_count == 123
     assert report.priority_counts == {"MUST": 121, "SHOULD": 2}
-    assert report.status_counts == {
-        "IMPLEMENTED": 120,
-        "PARTIAL": 1,
-        "PLANNED": 2,
-    }
+    assert report.status_counts == {"IMPLEMENTED": 123}
     assert report.target_slice_counts == {
         "0033": 1,
         "0034": 7,
@@ -80,7 +76,7 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
         "0068": 2,
     }
     baseline = json.loads(V0_2_BASELINE.read_text(encoding="utf-8"))
-    assert baseline["current_slice"] == "0067"
+    assert baseline["current_slice"] == "0068"
     assert {
         slice_id: baseline["slices"][slice_id]["title"]
         for slice_id in (
@@ -108,9 +104,11 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
     assert baseline["scope_decisions"][-1]["decision_id"] == "RB2-011"
     assert tuple(records)[0] == "NSL-ARC-201"
     assert tuple(records)[-1] == "NSL-RPL-203"
-    assert records["NSL-ARC-201"]["status"] == "PARTIAL"
+    assert records["NSL-ARC-201"]["status"] == "IMPLEMENTED"
     assert records["NSL-ARC-201"]["target_slice"] == "0033"
+    assert records["NSL-ARC-202"]["status"] == "IMPLEMENTED"
     assert records["NSL-ARC-202"]["target_slice"] == "0068"
+    assert records["NSL-ARC-203"]["status"] == "IMPLEMENTED"
     assert records["NSL-ARC-203"]["target_slice"] == "0068"
     assert records["NSL-TOL-201"]["status"] == "IMPLEMENTED"
     assert records["NSL-TOL-207"]["status"] == "IMPLEMENTED"
@@ -191,6 +189,8 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
         if requirement_id
         not in {
             "NSL-ARC-201",
+            "NSL-ARC-202",
+            "NSL-ARC-203",
             "NSL-TOL-201",
             "NSL-TOL-202",
             "NSL-TOL-203",

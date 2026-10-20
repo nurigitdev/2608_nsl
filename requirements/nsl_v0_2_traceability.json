@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0067",
+  "current_slice": "0068",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -129,6 +129,9 @@
     {"selectors": ["NSL-RPL-201", "NSL-RPL-203"], "status": "PLANNED", "target_slice": "0060", "verification": ["TEST-V02-REPLAY-NO-LIVE-WRITE"], "evidence": []}
   ],
   "overrides": {
+    "NSL-ARC-201": {"status": "IMPLEMENTED", "target_slice": "0033", "verification": ["TEST-V02-CORE-SEMANTIC-KERNEL", "TEST-V02-ARCHITECTURE-CERTIFICATION"], "evidence": ["tests/test_v0_2_core_semantics.py::test_arc_201_shared_semantic_types_have_single_core_owner", "tests/test_v0_2_architecture_compatibility_certification.py::test_slice_0068_repository_architecture_is_certified_and_reported", "tests/test_v0_2_architecture_compatibility_certification.py::test_slice_0068_shared_model_and_tool_port_adoption_are_mandatory"]},
+    "NSL-ARC-202": {"status": "IMPLEMENTED", "target_slice": "0068", "verification": ["TEST-V02-ARCHITECTURE-CERTIFICATION"], "evidence": ["tools/architecture_certification.py::certify_architecture", "tests/test_v0_2_architecture_compatibility_certification.py::test_slice_0068_forbidden_dependency_paths_fail_closed", "tests/test_architecture.py::test_rt_012_runtime_has_no_source_ast_interpreter_path"]},
+    "NSL-ARC-203": {"status": "IMPLEMENTED", "target_slice": "0068", "verification": ["TEST-V02-ARCHITECTURE-CERTIFICATION"], "evidence": ["tools/architecture_certification.py::certify_architecture", "tests/test_v0_2_architecture_compatibility_certification.py::test_slice_0068_forbidden_dependency_paths_fail_closed", "tests/test_architecture.py::test_arc_004_runtime_has_no_llm_dependency"]},
     "NSL-TOL-201": {"status": "IMPLEMENTED", "target_slice": "0034", "verification": ["TEST-TOL-201"], "evidence": ["tests/test_v0_2_tool_contract_model.py::test_tol_201_write_tool_requires_complete_write_capability_contract", "tests/test_v0_2_tool_contract_model.py::test_tol_201_v0_1_compiler_rejects_complete_write_contract"]},
     "NSL-TOL-202": {"status": "IMPLEMENTED", "target_slice": "0034", "verification": ["TEST-TOL-202"], "evidence": ["tests/test_v0_2_tool_contract_model.py::test_tol_202_write_operation_kind_is_required_and_bounded"]},
     "NSL-TOL-203": {"status": "IMPLEMENTED", "target_slice": "0034", "verification": ["TEST-TOL-203"], "evidence": ["tests/test_v0_2_tool_contract_model.py::test_tol_203_write_idempotency_must_be_explicitly_required", "tests/test_v0_2_tool_contract_model.py::test_tol_203_write_idempotency_metadata_rejects_missing_values"]},

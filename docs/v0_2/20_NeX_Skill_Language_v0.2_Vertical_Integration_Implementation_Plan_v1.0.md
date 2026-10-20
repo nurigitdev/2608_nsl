@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Vertical Integration slices:** 0061-0069<br>
-**Status:** IN PROGRESS (Slice 0067 COMPLETE)<br>
+**Status:** IN PROGRESS (Slice 0068 COMPLETE)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`<br>
 **Implementation readiness:** `requirements/nsl_v0_2_readiness.json`
@@ -95,7 +95,7 @@ traceability, commit, and synchronization unit.
 | 0065 | COMPLETE | Project Draft Generalization E2E | `AC-W02` | The same public Runtime pipeline performs approval, idempotent Project WRITE, verification, Audit/Replay evidence, and structured `project_code` output without a Project-specific Runtime branch. |
 | 0066 | COMPLETE | CLI v0.2 Run and Resume Workflow | SRS section 24 | CLI compile/run exposes suspension evidence and an explicit resume workflow while preserving existing v0.1 command behavior and prohibiting implicit Production approval. |
 | 0067 | COMPLETE | CLI Trust Inspection Mock and Diagnostics | SRS section 24 | CLI diagnoses Signed NSP trust, runs explicit Mock/Fake adapters, emits stable safe errors and exit codes, and preserves pretty deterministic JSON output. |
-| 0068 | PLANNED | Architecture and Backward Compatibility Certification | `NSL-ARC-202..203`, SRS section 27 | Runtime dependency tests close `NSL-ARC-201` adoption evidence, implement `NSL-ARC-202..203`, and certify all v0.1 Source, IR, Context, Status, Result, and Replay compatibility paths. |
+| 0068 | COMPLETE | Architecture and Backward Compatibility Certification | `NSL-ARC-202..203`, SRS section 27 | Runtime dependency tests close `NSL-ARC-201` adoption evidence, implement `NSL-ARC-202..203`, and certify all v0.1 Source, IR, Context, Status, Result, and Replay compatibility paths. |
 | 0069 | PLANNED | Performance Negative Acceptance and SRS Certification | SRS section 25, `RD-011` | Performance and resource boundaries, the complete negative-acceptance matrix, 123-requirement evidence, and the 99/98 quality gate pass with no `PARTIAL` or `PLANNED` SRS requirement remaining. |
 
 ## 6. Slice Boundaries
@@ -412,8 +412,18 @@ and
 
 **Primary requirements:** `NSL-ARC-202..203`.<br>
 **Closure evidence:** `NSL-ARC-201`.<br>
-**Planned verification:** `TEST-V02-ARCHITECTURE-CERTIFICATION`,
-`TEST-V02-BACKWARD-COMPATIBILITY`.
+**Verification:** `TEST-V02-ARCHITECTURE-CERTIFICATION`,
+`TEST-V02-BACKWARD-COMPATIBILITY`.<br>
+**Completion evidence:**
+`tools/architecture_certification.py::certify_architecture`,
+`tools/run_quality.py::main`,
+`tests/test_v0_2_architecture_compatibility_certification.py::test_slice_0068_repository_architecture_is_certified_and_reported`,
+`tests/test_v0_2_architecture_compatibility_certification.py::test_slice_0068_forbidden_dependency_paths_fail_closed`,
+`tests/test_v0_2_architecture_compatibility_certification.py::test_slice_0068_shared_model_and_tool_port_adoption_are_mandatory`,
+`tests/test_v0_2_architecture_compatibility_certification.py::test_slice_0068_gate_rejects_empty_missing_and_malformed_packages`,
+`tests/test_v0_2_architecture_compatibility_certification.py::test_slice_0068_v01_source_ir_context_result_and_replay_remain_compatible`,
+and
+`tests/test_v0_2_architecture_compatibility_certification.py::test_slice_0068_v02_write_less_source_maps_deterministically_to_ir_1_1`.
 
 ### 6.9 Slice 0069: Performance Negative Acceptance and SRS Certification
 

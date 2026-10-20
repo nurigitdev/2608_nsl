@@ -97,6 +97,21 @@ def main() -> int:
         print(f"{dimension} coverage gate failed", file=sys.stderr)
     failed = bool(coverage_failures)
     if not failed:
+        architecture = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tools.architecture_certification",
+                "--output",
+                "test/architecture_certification.json",
+            ],
+            cwd=ROOT,
+            check=False,
+        )
+        if architecture.returncode != 0:
+            print("architecture certification gate failed", file=sys.stderr)
+            failed = True
+    if not failed:
         performance = subprocess.run(
             [sys.executable, "-m", "tools.performance_acceptance"],
             cwd=ROOT,
