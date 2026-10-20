@@ -571,8 +571,11 @@ class _LifecyclePort:
 
 
 class _ApprovalVerifier:
+    def __init__(self, signature: str = "approval-signature:0063") -> None:
+        self.signature = signature
+
     def verify(self, evidence: ApprovalEvidence) -> bool:
-        return evidence.evidence_integrity == "approval-signature:0063"
+        return evidence.evidence_integrity == self.signature
 
 
 class _IdempotencyPort:
@@ -601,8 +604,9 @@ class _IdempotencyPort:
 
 
 class _WriteEvidencePort:
-    def __init__(self, events: list[str]) -> None:
+    def __init__(self, events: list[str], marker: str = "0063") -> None:
         self.events = events
+        self.marker = marker
         self.records: list[WriteAttemptRecord] = []
 
     async def record_requested(
@@ -613,7 +617,7 @@ class _WriteEvidencePort:
         self.records.append(record)
         return WriteRequestedReceipt(
             record_hash=record.record_hash,
-            durable_ref="write-request:0063",
+            durable_ref=f"write-request:{self.marker}",
             persisted_at=record.requested_at,
             durable=True,
         )
@@ -644,7 +648,8 @@ class _VoucherWritePort:
 
 
 class _OutcomePort:
-    def __init__(self) -> None:
+    def __init__(self, marker: str = "0063") -> None:
+        self.marker = marker
         self.records: list[WriteOutcomeRecord] = []
 
     async def record_outcome(
@@ -654,13 +659,14 @@ class _OutcomePort:
         self.records.append(record)
         return WriteOutcomeReceipt(
             record_hash=record.record_hash,
-            durable_ref="write-outcome:0063",
+            durable_ref=f"write-outcome:{self.marker}",
             persisted_at=record.recorded_at,
         )
 
 
 class _VerificationPort:
-    def __init__(self) -> None:
+    def __init__(self, marker: str = "0063") -> None:
+        self.marker = marker
         self.calls = 0
 
     async def read(
@@ -672,19 +678,20 @@ class _VerificationPort:
             request_hash=request.request_hash,
             business_reference=request.business_reference,
             matched=True,
-            evidence_ref="verification:0063",
+            evidence_ref=f"verification:{self.marker}",
             observed_at=NOW + timedelta(seconds=3),
         )
 
 
 class _VaultProtector:
-    def __init__(self) -> None:
+    def __init__(self, marker: str = "0063") -> None:
+        self.marker = marker
         self.values: dict[bytes, object] = {}
 
     def seal(self, value, *, tenant_id, classification):
         token = f"ciphertext-{len(self.values) + 1}".encode("ascii")
         self.values[token] = deepcopy(value)
-        return ProtectedSnapshotBlob(token, "TEST-AEAD", "test-key-0063")
+        return ProtectedSnapshotBlob(token, "TEST-AEAD", f"test-key-{self.marker}")
 
     def unseal(self, blob, *, tenant_id, classification):
         return deepcopy(self.values[blob.ciphertext])

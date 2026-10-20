@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Vertical Integration slices:** 0061-0069<br>
-**Status:** IN PROGRESS (Slice 0064 COMPLETE)<br>
+**Status:** IN PROGRESS (Slice 0065 COMPLETE)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`<br>
 **Implementation readiness:** `requirements/nsl_v0_2_readiness.json`
@@ -92,7 +92,7 @@ traceability, commit, and synchronization unit.
 | 0062 | COMPLETE | Voucher Approval Suspend and Resume | `AC-W01` Approval path | A passing Voucher validation requests approval, durably suspends, and resumes only from valid evidence; rejection, expiry, tampering, and duplicate resume produce zero WRITE calls. |
 | 0063 | COMPLETE | Voucher Write Commit and Verification E2E | `AC-W01` | Trusted approval proceeds through idempotent WRITE, durable request evidence, commit outcome, `FINANCE.GET_VOUCHER` verification, Audit/Replay evidence, and structured `voucher_no` output. |
 | 0064 | COMPLETE | Project Scenario Contract and Validation | `AC-W02` prefix, SRS section 26 | Canonical Project source, Tool contracts, profiles, and fixtures exercise duplicate, parent, period/date-range, team-authority, and partial-data validation without domain logic in Runtime. |
-| 0065 | PLANNED | Project Draft Generalization E2E | `AC-W02` | The same public Runtime pipeline performs approval, idempotent Project WRITE, verification, Audit/Replay evidence, and structured `project_code` output without a Project-specific Runtime branch. |
+| 0065 | COMPLETE | Project Draft Generalization E2E | `AC-W02` | The same public Runtime pipeline performs approval, idempotent Project WRITE, verification, Audit/Replay evidence, and structured `project_code` output without a Project-specific Runtime branch. |
 | 0066 | PLANNED | CLI v0.2 Run and Resume Workflow | SRS section 24 | CLI compile/run exposes suspension evidence and an explicit resume workflow while preserving existing v0.1 command behavior and prohibiting implicit Production approval. |
 | 0067 | PLANNED | CLI Trust Inspection Mock and Diagnostics | SRS section 24 | CLI diagnoses Signed NSP trust, runs explicit Mock/Fake adapters, emits stable safe errors and exit codes, and preserves pretty deterministic JSON output. |
 | 0068 | PLANNED | Architecture and Backward Compatibility Certification | `NSL-ARC-202..203`, SRS section 27 | Runtime dependency tests close `NSL-ARC-201` adoption evidence, implement `NSL-ARC-202..203`, and certify all v0.1 Source, IR, Context, Status, Result, and Replay compatibility paths. |
@@ -295,8 +295,17 @@ and
 - Prove that domain variation is supplied by Source, contracts, and Port data,
   not by Runtime ownership changes.
 
-**Planned verification:** `TEST-AC-W02-E2E`,
-`TEST-V02-CROSS-DOMAIN-GENERALIZATION`.
+**Verification:** `TEST-AC-W02-E2E`,
+`TEST-V02-CROSS-DOMAIN-GENERALIZATION`.<br>
+**Completion evidence:**
+`examples/project_draft_validation/project_draft_write.ns`,
+`examples/project_draft_validation/principal_write.json`,
+`tests/test_v0_2_project_e2e.py::test_ac_w02_e2e_project_is_committed_verified_audited_and_replayable`,
+`tests/test_v0_2_project_e2e.py::test_ac_w02_unconfirmed_project_outcomes_never_emit_project_code`,
+`tests/test_v0_2_project_e2e.py::test_cross_domain_generalization_uses_one_controlled_runtime_pipeline`,
+`tests/test_v0_2_controlled_runtime.py::test_ac_w01_e2e_approved_voucher_is_committed_verified_and_replayable`,
+and
+`tests/test_v0_2_project_validation.py::test_ac_w02_project_rules_do_not_enter_common_runtime`.
 
 ### 6.6 Slice 0066: CLI v0.2 Run and Resume Workflow
 

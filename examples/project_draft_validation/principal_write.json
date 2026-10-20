@@ -5,6 +5,7 @@
   "roles": ["PROJECT_OWNER"],
   "scopes": [
     "nsl:skill:execute",
+    "nsl:replay:read",
     "project:draft:validate",
     "project:draft:write"
   ],
