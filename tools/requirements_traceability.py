@@ -11,7 +11,10 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SOURCE = ROOT / "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md"
+DEFAULT_SOURCE = (
+    ROOT
+    / "docs/v0_1/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md"
+)
 DEFAULT_BASELINE = ROOT / "requirements/nsl_v0_1_traceability.json"
 
 REQUIREMENT_ROW = re.compile(

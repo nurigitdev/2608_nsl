@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline_id": "NSL-V0.1-SRS-RB1",
-  "source_document": "docs/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
+  "source_document": "docs/v0_1/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md",
   "expected_requirement_count": 325,
   "requirements_sha256": "1aa65b838f6f3a54b3e76f0b73e3e0efa1fac0558ea1d2c05c03542433bbac77",
   "current_slice": "0031",
