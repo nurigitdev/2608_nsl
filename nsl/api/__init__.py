@@ -65,6 +65,13 @@ from ..outcome_records import (
     RuntimeResultRecord,
     RuntimeResultStore,
 )
+from ..preflight import (
+    ExecutionTrustProfile,
+    RuntimePreflightValidator,
+    TrustPreflightError,
+    TrustPreflightEvidence,
+    TrustPreflightStatus,
+)
 from ..runtime import RuntimeEngine
 from ..runtime_models import ExecutionRequest, ExecutionResult
 from ..tools import ToolExecutionPort
@@ -98,6 +105,7 @@ from ..worker import (
 from ..write_execution import (
     CommitAwareWriteExecutor,
     ProviderInvocationUncertainError,
+    TrustedWriteExecutionCoordinator,
     WriteAttemptRecord,
     WriteCallRequest,
     WriteCallRequestBuilder,
@@ -154,6 +162,7 @@ __all__ = [
     "DispatchStatus",
     "ExecutionRequest",
     "ExecutionResult",
+    "ExecutionTrustProfile",
     "ExplicitDataHandlingPolicy",
     "IdempotencyConflictError",
     "IdempotencyCoordinator",
@@ -190,6 +199,7 @@ __all__ = [
     "ResolvedSkill",
     "RuntimeEngine",
     "RuntimePolicyPort",
+    "RuntimePreflightValidator",
     "RuntimeResultEnvelope",
     "RuntimeResultRecord",
     "RuntimeResultStore",
@@ -206,6 +216,10 @@ __all__ = [
     "StructuredRuntimeContext",
     "ToolExecutionPort",
     "TrustStatus",
+    "TrustPreflightError",
+    "TrustPreflightEvidence",
+    "TrustPreflightStatus",
+    "TrustedWriteExecutionCoordinator",
     "VerifiedSkillArtifact",
     "VerifiedPackageSkillResolver",
     "VerifiedPrincipalContext",

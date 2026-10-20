@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Trust and Evidence slices:** 0055-0060<br>
-**Status:** IN PROGRESS (Slice 0055 complete)<br>
+**Status:** IN PROGRESS (Slices 0055-0056 complete)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`
 
@@ -92,7 +92,7 @@ traceability, commit, and synchronization unit.
 | Slice | Status | Title | Primary requirements | Governing decision | Completion boundary |
 |---|---|---|---|---|---|
 | 0055 | COMPLETE | Signed NSP Trust Evidence and Compatibility | `NSL-IR-209`, `NSL-SIG-002..004`, `NSL-SIG-006` | `RD-010`, `CHG-010`, `CHG-031` | Canonical NSP integrity and trusted publisher signature verification produce immutable package/skill trust evidence compatible with the v0.1 trust boundary. |
-| 0056 | PLANNED | Production WRITE Trust Preflight | `NSL-SIG-001`, `NSL-SIG-005`, `NSL-ARC-210` | `RD-010`, `CHG-010` | Production WRITE fails closed before provider invocation unless current verified package and skill trust evidence matches the exact executable artifact and trust policy. |
+| 0056 | COMPLETE | Production WRITE Trust Preflight | `NSL-SIG-001`, `NSL-SIG-005`, `NSL-ARC-210` | `RD-010`, `CHG-010` | Production WRITE fails closed before provider invocation unless current verified package and skill trust evidence matches the exact executable artifact and trust policy. |
 | 0057 | PLANNED | Post-write Verification Core | `NSL-VFY-001..003`, `NSL-VFY-005` | `CHG-029` | A committed WRITE can invoke a declared read-only verification method and return an independent typed verification outcome without changing CommitState. |
 | 0058 | PLANNED | Verification Result and Persistent Audit Evidence | `NSL-VFY-004`, SRS section 23 | `CHG-029`, `CHG-030` | Verification appears in structured Result and persistent hash-chained Audit together with the complete v0.2 event taxonomy and protected identity references. |
 | 0059 | PLANNED | Protected Replay Evidence Composition | `NSL-RPL-202` | `CHG-025` | Approval, Write, Commit, and Verification evidence can be assembled into a deterministic tenant-bound protected Replay bundle. |
@@ -162,6 +162,15 @@ and explicitly permitted unsigned v0.1 development packages.
   requirements; trust evidence is additional and cannot bypass them.
 - Prove zero provider calls for missing, malformed, expired, revoked, stale,
   cross-tenant, or artifact-mismatched trust evidence.
+
+**Completion evidence:** `ExecutionTrustProfile` makes Production and
+Development policy explicit, while `RuntimePreflightValidator` verifies the
+current tenant, package, artifact, semantic hash, publisher, signing key,
+trust policy, status, and evidence lifetime. The canonical
+`TrustedWriteExecutionCoordinator` performs this check before delegating to
+the durable `WRITE_REQUESTED` boundary. Automated negative acceptance proves
+zero evidence and provider calls for missing, unverified, revoked, stale,
+future, cross-tenant, and identity-mismatched trust evidence.
 
 ### 6.3 Slice 0057: Post-write Verification Core
 

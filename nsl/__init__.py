@@ -37,6 +37,13 @@ from .nsp_verification import (
     VerifiedNspPackage,
     VerifiedNspSkill,
 )
+from .preflight import (
+    ExecutionTrustProfile,
+    RuntimePreflightValidator,
+    TrustPreflightError,
+    TrustPreflightEvidence,
+    TrustPreflightStatus,
+)
 from .runtime import ExecutionRequest, ExecutionResult, RuntimeEngine
 from .source import SourceFile, SourceId, SourcePosition, SourceSpan
 from .syntax import ParseMode
@@ -56,6 +63,7 @@ __all__ = [
     "DiagnosticPhase",
     "ExecutionRequest",
     "ExecutionResult",
+    "ExecutionTrustProfile",
     "IncludeEdge",
     "IncludeOptions",
     "IncludeResolver",
@@ -79,6 +87,7 @@ __all__ = [
     "PackageTrustError",
     "PackageTrustEvidence",
     "RuntimeEngine",
+    "RuntimePreflightValidator",
     "SourceFile",
     "SourceId",
     "SourceLocation",
@@ -86,6 +95,9 @@ __all__ = [
     "SourcePosition",
     "SourceSpan",
     "TrustStatus",
+    "TrustPreflightError",
+    "TrustPreflightEvidence",
+    "TrustPreflightStatus",
     "VerifiedNspPackage",
     "VerifiedNspSkill",
     "VerifiedSkillArtifact",

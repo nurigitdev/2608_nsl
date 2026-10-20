@@ -21,7 +21,13 @@ from .core import (
 from .data_protection import ensure_no_credential_material
 from .idempotency import IdempotencyReservation
 from .ir import canonical_json
+from .preflight import (
+    ExecutionTrustProfile,
+    RuntimePreflightValidator,
+    TrustPreflightError,
+)
 from .runtime_models import ExecutionContext, WriteSummary
+from .trust import VerifiedSkillArtifact
 from .validation import (
     BusinessPreconditionEvidence,
     WriteContractEvidence,
@@ -474,6 +480,62 @@ class WriteExecutionCoordinator(Generic[_OutcomeT]):
             raise ProviderInvocationUncertainError(error) from None
         except Exception as error:
             raise ProviderInvocationUncertainError(error) from error
+
+
+class TrustedWriteExecutionCoordinator(Generic[_OutcomeT]):
+    """Canonical Production WRITE boundary: trust first, durability second."""
+
+    __slots__ = ("_delegate", "_preflight")
+
+    def __init__(
+        self,
+        delegate: WriteExecutionCoordinator[_OutcomeT],
+        preflight: RuntimePreflightValidator | None = None,
+    ) -> None:
+        if not isinstance(delegate, WriteExecutionCoordinator):
+            raise TypeError("delegate must be a WriteExecutionCoordinator")
+        if preflight is not None and not isinstance(
+            preflight,
+            RuntimePreflightValidator,
+        ):
+            raise TypeError("preflight must be a RuntimePreflightValidator")
+        self._delegate = delegate
+        self._preflight = preflight or RuntimePreflightValidator()
+
+    async def execute(
+        self,
+        *,
+        artifact: VerifiedSkillArtifact,
+        profile: ExecutionTrustProfile,
+        trust_checked_at: datetime,
+        request: WriteCallRequest,
+        decision: WriteGuardDecision,
+        context: ExecutionContext,
+        requested_at: datetime,
+    ) -> _OutcomeT:
+        if not isinstance(context, ExecutionContext):
+            raise TypeError("context must be an ExecutionContext")
+        evidence = self._preflight.validate(
+            artifact,
+            profile,
+            now=trust_checked_at,
+        )
+        if evidence.tenant_id != context.tenant_id:
+            raise TrustPreflightError(
+                "TRUST_TENANT_BINDING_MISMATCH",
+                "trust profile tenant does not match the execution context",
+            )
+        if evidence.skill_semantic_hash != context.skill.semantic_hash:
+            raise TrustPreflightError(
+                "TRUST_SKILL_BINDING_MISMATCH",
+                "trusted Skill does not match the execution context",
+            )
+        return await self._delegate.execute(
+            request=request,
+            decision=decision,
+            context=context,
+            requested_at=requested_at,
+        )
 
 
 @dataclass(frozen=True, slots=True)

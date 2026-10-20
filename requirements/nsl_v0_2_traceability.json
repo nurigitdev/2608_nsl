@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0055",
+  "current_slice": "0056",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -227,6 +227,9 @@
     "NSL-SIG-002": {"status": "IMPLEMENTED", "target_slice": "0055", "verification": ["TEST-SIG-002"], "evidence": ["tests/test_v0_2_package_trust.py::test_sig_002_003_verified_signed_package_issues_bound_trust_evidence", "tests/test_package_verification_and_signature.py::test_pkg_006_signature_metadata_is_canonical_and_binds_package_hash"]},
     "NSL-SIG-003": {"status": "IMPLEMENTED", "target_slice": "0055", "verification": ["TEST-SIG-003"], "evidence": ["tests/test_v0_2_package_trust.py::test_sig_002_003_verified_signed_package_issues_bound_trust_evidence", "tests/test_package_verification_and_signature.py::test_sec_011_unknown_wrong_and_tampered_ed25519_signatures_are_rejected"]},
     "NSL-SIG-004": {"status": "IMPLEMENTED", "target_slice": "0055", "verification": ["TEST-SIG-004"], "evidence": ["tests/test_v0_2_package_trust.py::test_sig_004_trusted_artifact_binds_package_artifact_and_semantic_hashes", "tests/test_v0_2_package_trust.py::test_sig_004_integrity_change_invalidates_prior_evidence_binding"]},
-    "NSL-SIG-006": {"status": "IMPLEMENTED", "target_slice": "0055", "verification": ["TEST-SIG-006"], "evidence": ["tests/test_v0_2_package_trust.py::test_sig_006_unsigned_v0_1_development_package_remains_compatible", "tests/test_package_verification_and_signature.py::test_pkg_007_development_unsigned_package_requires_explicit_opt_in"]}
+    "NSL-SIG-006": {"status": "IMPLEMENTED", "target_slice": "0055", "verification": ["TEST-SIG-006"], "evidence": ["tests/test_v0_2_package_trust.py::test_sig_006_unsigned_v0_1_development_package_remains_compatible", "tests/test_package_verification_and_signature.py::test_pkg_007_development_unsigned_package_requires_explicit_opt_in"]},
+    "NSL-SIG-001": {"status": "IMPLEMENTED", "target_slice": "0056", "verification": ["TEST-SIG-001"], "evidence": ["tests/test_v0_2_production_write_trust.py::test_sig_001_arc_210_verified_production_write_precedes_durable_request", "tests/test_v0_2_production_write_trust.py::test_sig_001_invalid_production_trust_fails_before_all_side_effects", "tests/test_v0_2_production_write_trust.py::test_development_unsigned_write_requires_explicit_profile_permission"]},
+    "NSL-SIG-005": {"status": "IMPLEMENTED", "target_slice": "0056", "verification": ["TEST-SIG-005"], "evidence": ["tests/test_v0_2_production_write_trust.py::test_runtime_preflight_rejects_raw_skill_and_invalid_clock", "tests/test_v0_2_production_write_trust.py::test_tampered_in_memory_identities_are_rechecked_defensively", "tests/test_architecture.py::test_module_dependency_boundaries"]},
+    "NSL-ARC-210": {"status": "IMPLEMENTED", "target_slice": "0056", "verification": ["TEST-ARC-210"], "evidence": ["tests/test_v0_2_production_write_trust.py::test_sig_001_arc_210_verified_production_write_precedes_durable_request", "tests/test_v0_2_production_write_trust.py::test_trusted_write_rejects_cross_tenant_and_context_skill_binding", "tests/test_v0_2_production_write_trust.py::test_sig_001_invalid_production_trust_fails_before_all_side_effects"]}
   }
 }
