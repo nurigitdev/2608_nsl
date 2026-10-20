@@ -8,7 +8,7 @@ from typing import Protocol, runtime_checkable
 from .core import CommitState, ToolCapability, TypeRef, VerificationStatus
 from .data_protection import ensure_no_credential_material
 from .ir import canonical_json
-from .runtime_models import ExecutionContext
+from .runtime_models import ExecutionContext, VerificationSummary
 from .tools import PostWriteVerification, ToolContract
 from .write_execution import WriteOutcomeIdentity, WriteResultEnvelope
 
@@ -195,6 +195,13 @@ class VerificationResult:
             raise VerificationError(
                 "FAILED or UNKNOWN verification requires reason_code"
             )
+
+    def to_summary(self) -> VerificationSummary:
+        return VerificationSummary(
+            status=self.status,
+            reason_code=self.reason_code,
+            evidence_ref=self.evidence_ref,
+        )
 
 
 class PostWriteVerifier:
