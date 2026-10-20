@@ -66,7 +66,7 @@ synchronization unit.
 | 0050 | COMPLETE | Write Intent and Canonical Payload Hash | `NSL-WRT-006`, `NSL-WRT-010` | `RD-001` | Runtime produces immutable Write Intent and Payload identities from strict typed canonical encoding, and any semantic payload change rejects prior Approval evidence with a new-Approval requirement. |
 | 0051 | COMPLETE | Idempotency Contract and Evidence | `NSL-IDM-001..008` | `RD-009` | Every WRITE has a stable tenant/business-operation/write-node key, separate payload hash, durable collision evidence, resume reuse, and verified provider retention guarantee. |
 | 0052 | COMPLETE | WriteGuard and Runtime Preflight | `NSL-WRT-009`, `NSL-WRT-011`, `NSL-RSK-003`, `NSL-RSK-005` | `RD-007` | Runtime revalidates current policy and precondition evidence immediately before invocation while requiring the provider to enforce the actual business condition atomically with WRITE. |
-| 0053 | PLANNED | WriteExecutionPort and Durable Request Evidence | `NSL-WRT-001`, `NSL-ARC-204..205` | `CHG-018`, `CHG-021` | Runtime durably records `WRITE_REQUESTED` before invoking one declared Canonical Business Tool exclusively through an injected side-effect Port. |
+| 0053 | COMPLETE | WriteExecutionPort and Durable Request Evidence | `NSL-WRT-001`, `NSL-ARC-204..205` | `CHG-018`, `CHG-021` | Runtime durably records `WRITE_REQUESTED` before invoking one declared Canonical Business Tool exclusively through an injected side-effect Port. |
 | 0054 | PLANNED | Commit Outcomes and Reconciliation | `NSL-WRT-007..008`, `NSL-CMT-001..004` | `RD-008` | Provider outcomes map to explicit commit states; uncertain commit becomes `RECONCILIATION_REQUIRED`, is never treated as ordinary failure, and is never automatically retried or re-keyed. |
 
 `RD-001`, `RD-007`, `RD-008`, and `RD-009` are FROZEN implementation
@@ -213,6 +213,20 @@ claims that the provider-side business condition passed.
 
 Slice 0053 stops at provider invocation and raw provider response acquisition.
 Commit-state normalization and recovery transitions belong to Slice 0054.
+
+Slice 0053 completion evidence is maintained in
+`tests/test_v0_2_write_execution.py`. The immutable request builder binds the
+execution, business operation, canonical Tool, Approval, idempotency,
+payload, intent, precondition, and protected trace identities while deeply
+freezing provider arguments. `WriteExecutionCoordinator` accepts only an
+ALLOWED guard decision, records a deterministic `WRITE_REQUESTED` record
+through an injected durable evidence Port, verifies its bound receipt, marks
+the checkpoint durable, and only then invokes the injected side-effect Port.
+Tests prove call order, exact request forwarding, identity mismatch rejection,
+retry identity reuse, argument immutability, and zero provider calls for
+persistence failure, malformed/undurable receipts, or non-allowed guards.
+The generic Port preserves the raw provider response without interpreting its
+commit state; that responsibility remains exclusively in Slice 0054.
 
 ### 5.5 Slice 0054
 

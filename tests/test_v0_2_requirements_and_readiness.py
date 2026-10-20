@@ -44,9 +44,9 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
     assert report.requirement_count == 123
     assert report.priority_counts == {"MUST": 121, "SHOULD": 2}
     assert report.status_counts == {
-        "IMPLEMENTED": 94,
+        "IMPLEMENTED": 97,
         "PARTIAL": 1,
-        "PLANNED": 28,
+        "PLANNED": 25,
     }
     assert report.target_slice_counts == {
         "0033": 1,
@@ -121,6 +121,9 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
     assert records["NSL-WRT-011"]["status"] == "IMPLEMENTED"
     assert records["NSL-RSK-003"]["status"] == "IMPLEMENTED"
     assert records["NSL-RSK-005"]["status"] == "IMPLEMENTED"
+    assert records["NSL-WRT-001"]["status"] == "IMPLEMENTED"
+    assert records["NSL-ARC-204"]["status"] == "IMPLEMENTED"
+    assert records["NSL-ARC-205"]["status"] == "IMPLEMENTED"
     assert records["NSL-APR-002"]["status"] == "IMPLEMENTED"
     assert records["NSL-APR-003"]["status"] == "IMPLEMENTED"
     assert records["NSL-APR-014"]["status"] == "IMPLEMENTED"
@@ -215,6 +218,9 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
             "NSL-WRT-011",
             "NSL-RSK-003",
             "NSL-RSK-005",
+            "NSL-WRT-001",
+            "NSL-ARC-204",
+            "NSL-ARC-205",
             "NSL-APR-002",
             "NSL-APR-003",
             "NSL-APR-014",
