@@ -148,19 +148,14 @@ def test_src_006_language_version_is_declared_in_source() -> None:
         NslCompiler(build_tool_catalog()).compile(empty)
 
 
-@pytest.mark.parametrize("version", ["0.0", "0.0.9", "0.2", "1.0"])
+@pytest.mark.parametrize("version", ["0.0", "0.0.9", "1.0", "9.9"])
 def test_src_007_unsupported_language_version_is_compile_error(version) -> None:
     source = SOURCE_TEXT.replace(
         'language NSL "0.1";', f'language NSL "{version}";', 1
     )
     with pytest.raises(CompileError) as captured:
         NslCompiler(build_tool_catalog()).compile(source)
-    expected_code = (
-        DiagnosticCode.SEM_UNSUPPORTED_LANGUAGE_VERSION
-        if version == "0.2"
-        else DiagnosticCode.LEX_UNSUPPORTED_LANGUAGE_VERSION
-    )
-    assert captured.value.code == expected_code
+    assert captured.value.code == DiagnosticCode.LEX_UNSUPPORTED_LANGUAGE_VERSION
     assert version in captured.value.public_message
 
 

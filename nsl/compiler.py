@@ -7,11 +7,15 @@ from .bounds import StaticBoundAnalyzer, UnboundedStructureError
 from .core import (
     CHECK_RESULT,
     DataClassification,
+    RiskLevel,
+    ToolCapability,
     TypeRef,
     classification_allows,
 )
 from .diagnostics import CompileError, DiagnosticCode, DiagnosticPhase
 from .ir import (
+    ApprovalPolicy,
+    ApprovalStatement,
     BinaryExpr,
     BuildMetadata,
     BuildSource,
@@ -35,6 +39,7 @@ from .ir import (
     Statement,
     SymbolRefExpr,
     SymbolSpec,
+    WriteExpression,
 )
 from .includes import (
     IncludeEdge,
@@ -69,10 +74,14 @@ from .syntax import (
     Parser,
 )
 from .tools import (
+    Atomicity,
+    IdempotencySemantics,
     IncompatibleToolVersionError,
+    OperationKind,
     ToolContract,
     ToolContractCatalog,
     UnknownToolContractError,
+    WriteSemantics,
 )
 from .type_system import StaticTypeChecker
 
@@ -85,6 +94,7 @@ class CompilationResult:
     source_bundle_hash: str
     source_manifest: tuple[SourceManifestEntry, ...]
     include_edges: tuple[IncludeEdge, ...]
+    write_safety: WriteSafetyAnalysis
 
 
 @dataclass(frozen=True, slots=True)
@@ -219,6 +229,111 @@ class ApprovalBindingAnalyzer:
         return tuple(events)
 
 
+@dataclass(frozen=True, slots=True)
+class WriteSafetyAnalysis:
+    write_node_count: int
+    approval_node_count: int
+    approval_write_mapping_count: int
+    unused_approval_count: int
+    max_write_calls: int
+    writes_inside_loop: bool
+    all_writes_approved_exactly_once: bool
+    all_write_operations_supported: bool
+    all_write_tools_atomic: bool
+    all_write_tools_idempotent: bool
+    all_write_risk_metadata_present: bool
+    requires_verified_package_for_write: bool
+
+
+class WriteSafetyAnalyzer:
+    def __init__(self, sources: tuple[SourceFile, ...]) -> None:
+        self._diagnostics = SourceDiagnosticContext(sources)
+
+    def analyze(
+        self,
+        approvals: ApprovalBindingAnalysis,
+        contracts_by_id: dict[str, ToolContract],
+    ) -> WriteSafetyAnalysis:
+        write_count = len(approvals.bindings)
+        if write_count > 1:
+            raise self._diagnostics.error(
+                DiagnosticCode.SEM_TOO_MANY_WRITES,
+                "only one WRITE is allowed per skill in NSL-0.2-STRICT",
+                approvals.bindings[1].write.span,
+            )
+        nested = next(
+            (binding for binding in approvals.bindings if binding.inside_foreach),
+            None,
+        )
+        if nested is not None:
+            raise self._diagnostics.error(
+                DiagnosticCode.SEM_WRITE_IN_FOREACH,
+                "WRITE is not allowed inside FOREACH in NSL-0.2-STRICT",
+                nested.write.span,
+            )
+
+        for binding in approvals.bindings:
+            write = binding.write
+            try:
+                contract = contracts_by_id[write.tool_id]
+            except KeyError as error:
+                raise self._diagnostics.error(
+                    DiagnosticCode.SEM_UNDECLARED_TOOL,
+                    f"tool not declared in requires: {write.tool_id}",
+                    write.span,
+                ) from error
+            if contract.capability != ToolCapability.WRITE:
+                raise self._diagnostics.error(
+                    DiagnosticCode.SEM_WRITE_CAPABILITY_REQUIRED,
+                    f"WRITE requires a WRITE tool contract: {write.tool_id}",
+                    write.span,
+                )
+            if not isinstance(contract.operation_kind, OperationKind):
+                raise self._diagnostics.error(
+                    DiagnosticCode.SEM_UNSUPPORTED_WRITE_OPERATION,
+                    f"unsupported WRITE operation: {write.tool_id}",
+                    write.span,
+                )
+            semantics = contract.write_semantics
+            if not isinstance(semantics, WriteSemantics) or (
+                semantics.atomicity is not Atomicity.ATOMIC
+            ):
+                raise self._diagnostics.error(
+                    DiagnosticCode.SEM_WRITE_ATOMICITY_REQUIRED,
+                    f"WRITE tool must be ATOMIC: {write.tool_id}",
+                    write.span,
+                )
+            if not isinstance(semantics.idempotency, IdempotencySemantics) or (
+                semantics.idempotency.required is not True
+            ):
+                raise self._diagnostics.error(
+                    DiagnosticCode.SEM_WRITE_IDEMPOTENCY_REQUIRED,
+                    f"WRITE tool must require idempotency: {write.tool_id}",
+                    write.span,
+                )
+            if not isinstance(contract.risk_level, RiskLevel):
+                raise self._diagnostics.error(
+                    DiagnosticCode.SEM_WRITE_RISK_METADATA_REQUIRED,
+                    f"WRITE tool risk metadata is invalid: {write.tool_id}",
+                    write.span,
+                )
+
+        return WriteSafetyAnalysis(
+            write_node_count=write_count,
+            approval_node_count=len(approvals.approvals),
+            approval_write_mapping_count=len(approvals.bindings),
+            unused_approval_count=0,
+            max_write_calls=write_count,
+            writes_inside_loop=False,
+            all_writes_approved_exactly_once=True,
+            all_write_operations_supported=True,
+            all_write_tools_atomic=True,
+            all_write_tools_idempotent=True,
+            all_write_risk_metadata_present=True,
+            requires_verified_package_for_write=write_count > 0,
+        )
+
+
 class NslCompiler:
     def __init__(
         self,
@@ -273,6 +388,7 @@ class NslCompiler:
             source_bundle_hash=source_bundle_hash,
             source_manifest=source_manifest,
             include_edges=include_edges,
+            write_safety=lowerer.write_safety,
         )
 
 
@@ -286,12 +402,27 @@ class _Lowerer:
     ) -> None:
         self.catalog = catalog
         self.ast = ast
+        self.sources = sources
         self.node_counters: dict[str, int] = {}
         self.symbol_table = SymbolTable(sources)
         self.type_checker = StaticTypeChecker(sources)
         self.diagnostics = SourceDiagnosticContext(sources)
         self.tools_by_id: dict[str, tuple[RequiredTool, ToolContract]] = {}
         self.approval_analysis = approval_analysis
+        self.write_safety = WriteSafetyAnalysis(
+            write_node_count=0,
+            approval_node_count=0,
+            approval_write_mapping_count=0,
+            unused_approval_count=0,
+            max_write_calls=0,
+            writes_inside_loop=False,
+            all_writes_approved_exactly_once=True,
+            all_write_operations_supported=True,
+            all_write_tools_atomic=True,
+            all_write_tools_idempotent=True,
+            all_write_risk_metadata_present=True,
+            requires_verified_package_for_write=False,
+        )
 
     def _node_id(self, kind: str) -> str:
         self.node_counters[kind] = self.node_counters.get(kind, 0) + 1
@@ -329,24 +460,27 @@ class _Lowerer:
                 self.ast.span,
                 DiagnosticPhase.INCLUDE,
             )
-        if self.ast.language_version != "0.1":
+        if self.ast.language_version not in {"0.1", "0.2"}:
             raise self.diagnostics.error(
                 DiagnosticCode.SEM_UNSUPPORTED_LANGUAGE_VERSION,
                 f"unsupported NSL version: {self.ast.language_version}",
                 self.ast.language_version_span,
             )
-        if self.ast.risk not in {"READ_ONLY", "READ_VALIDATE"}:
+        allowed_risks = {"READ_ONLY", "READ_VALIDATE"}
+        if self.ast.language_version == "0.2":
+            allowed_risks.add("WRITE")
+        if self.ast.risk not in allowed_risks:
             raise self.diagnostics.error(
                 DiagnosticCode.SEM_UNSUPPORTED_RISK,
                 f"unsupported risk profile: {self.ast.risk}",
                 self.ast.risk_span,
             )
 
-        required_tools: list[RequiredTool] = []
-        for index, declaration in enumerate(self.ast.requires, start=1):
+        contracts_by_id: dict[str, ToolContract] = {}
+        for declaration in self.ast.requires:
             tool_id = declaration.tool_id
             version = declaration.version
-            if tool_id in self.tools_by_id:
+            if tool_id in contracts_by_id:
                 raise self.diagnostics.error(
                     DiagnosticCode.SEM_DUPLICATE_TOOL,
                     f"duplicate required tool: {tool_id}",
@@ -366,23 +500,39 @@ class _Lowerer:
                     f"incompatible tool version: {tool_id}@{version}",
                     declaration.span,
                 ) from error
-            if contract.capability != "READ":
+            if self.ast.language_version == "0.1" and (
+                contract.capability != ToolCapability.READ
+            ):
                 raise self.diagnostics.error(
                     DiagnosticCode.SEM_WRITE_TOOL_FORBIDDEN,
                     f"{contract.capability} tool capability is forbidden "
                     f"in v0.1: {tool_id}",
                     declaration.span,
                 )
+            contracts_by_id[tool_id] = contract
+
+        self.write_safety = WriteSafetyAnalyzer(self.sources).analyze(
+            self.approval_analysis, contracts_by_id
+        )
+
+        required_tools: list[RequiredTool] = []
+        for index, declaration in enumerate(self.ast.requires, start=1):
+            contract = contracts_by_id[declaration.tool_id]
             requirement = RequiredTool(
                 tool_ref=f"tool{index:04d}",
-                tool_id=tool_id,
-                version=version,
+                tool_id=declaration.tool_id,
+                version=declaration.version,
                 capability=contract.capability,
                 contract_hash=contract.contract_hash,
                 required_scope=contract.required_scope,
                 output_classification=contract.output_classification,
+                risk_level=(
+                    contract.risk_level
+                    if contract.capability == ToolCapability.WRITE
+                    else None
+                ),
             )
-            self.tools_by_id[tool_id] = (requirement, contract)
+            self.tools_by_id[declaration.tool_id] = (requirement, contract)
             required_tools.append(requirement)
 
         input_specs: list[InputSpec] = []
@@ -470,15 +620,21 @@ class _Lowerer:
                 self.ast.limits.span,
             )
 
+        is_v0_2 = self.ast.language_version == "0.2"
         return SkillObject(
-            ir_version="1.0",
+            ir_version="1.1" if is_v0_2 else "1.0",
             language_version=self.ast.language_version,
             skill_id=self.ast.skill_id,
             skill_version=self.ast.skill_version,
             risk=self.ast.risk,
-            semantics_profile="NSL-0.1-STRICT",
+            semantics_profile=(
+                "NSL-0.2-STRICT" if is_v0_2 else "NSL-0.1-STRICT"
+            ),
             semantic_hash="",
-            features=frozenset({"READ", "FOREACH", "LET", "CHECK", "EMIT", "LIMITS"}),
+            features=frozenset(
+                {"READ", "FOREACH", "LET", "CHECK", "EMIT", "LIMITS"}
+                | ({"APPROVAL", "WRITE"} if is_v0_2 else set())
+            ),
             symbols=tuple(
                 SymbolSpec(
                     binding.symbol_id,
@@ -601,6 +757,15 @@ class _Lowerer:
                         )
                     fields.append((name, expression))
                 lowered.append(EmitStatement(self._node_id("emit"), tuple(fields)))
+            elif isinstance(statement, AstApprove):
+                lowered.append(
+                    ApprovalStatement(
+                        self._node_id("approval"),
+                        statement.approval_id,
+                        statement.message,
+                        ApprovalPolicy(),
+                    )
+                )
             else:
                 raise TypeError(statement)
         return tuple(lowered)
@@ -689,26 +854,13 @@ class _Lowerer:
                     f"tool not declared in requires: {ast.tool_id}",
                     ast.span,
                 ) from error
-            provided_names = tuple(name for name, _ in ast.arguments)
-            provided = set(provided_names)
-            expected = {name for name, _ in contract.input_types}
-            if provided != expected or len(provided_names) != len(provided):
+            if contract.capability != ToolCapability.READ:
                 raise self.diagnostics.error(
-                    DiagnosticCode.SEM_TOOL_ARGUMENTS,
-                    f"tool arguments for {ast.tool_id} must be {sorted(expected)}",
+                    DiagnosticCode.SEM_WRITE_TOOL_FORBIDDEN,
+                    f"READ expression requires a READ tool contract: {ast.tool_id}",
                     ast.span,
                 )
-            arguments: list[tuple[str, Any]] = []
-            for name, ast_value in ast.arguments:
-                value, _ = self._lower_expr(ast_value)
-                self.type_checker.require_exact(
-                    value.type_info,
-                    contract.input_type(name),
-                    DiagnosticCode.SEM_TOOL_ARGUMENT_TYPE,
-                    f"tool argument type mismatch: {ast.tool_id}.{name}",
-                    ast_value.span,
-                )
-                arguments.append((name, value))
+            arguments = self._lower_tool_arguments(ast, contract)
             return (
                 ReadExpr(
                     self._node_id("read"),
@@ -719,4 +871,42 @@ class _Lowerer:
                 ),
                 contract.output_classification,
             )
+        if isinstance(ast, AstWrite):
+            requirement, contract = self.tools_by_id[ast.tool_id]
+            arguments = self._lower_tool_arguments(ast, contract)
+            return (
+                WriteExpression(
+                    self._node_id("write"),
+                    requirement.tool_ref,
+                    arguments,
+                    ast.approval_id,
+                    contract.output_type,
+                ),
+                contract.output_classification,
+            )
         raise TypeError(ast)
+
+    def _lower_tool_arguments(
+        self, ast: AstRead | AstWrite, contract: ToolContract
+    ) -> tuple[tuple[str, Any], ...]:
+        provided_names = tuple(name for name, _ in ast.arguments)
+        provided = set(provided_names)
+        expected = {name for name, _ in contract.input_types}
+        if provided != expected or len(provided_names) != len(provided):
+            raise self.diagnostics.error(
+                DiagnosticCode.SEM_TOOL_ARGUMENTS,
+                f"tool arguments for {ast.tool_id} must be {sorted(expected)}",
+                ast.span,
+            )
+        arguments: list[tuple[str, Any]] = []
+        for name, ast_value in ast.arguments:
+            value, _ = self._lower_expr(ast_value)
+            self.type_checker.require_exact(
+                value.type_info,
+                contract.input_type(name),
+                DiagnosticCode.SEM_TOOL_ARGUMENT_TYPE,
+                f"tool argument type mismatch: {ast.tool_id}.{name}",
+                ast_value.span,
+            )
+            arguments.append((name, value))
+        return tuple(arguments)

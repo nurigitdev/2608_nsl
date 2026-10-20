@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0040",
+  "current_slice": "0041",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -143,6 +143,15 @@
     "NSL-SEM-204": {"status": "IMPLEMENTED", "target_slice": "0040", "verification": ["TEST-SEM-204"], "evidence": ["tests/test_v0_2_approval_semantics.py::test_sem_204_approval_must_precede_the_linked_write"]},
     "NSL-SEM-205": {"status": "IMPLEMENTED", "target_slice": "0040", "verification": ["TEST-SEM-205"], "evidence": ["tests/test_v0_2_approval_semantics.py::test_sem_205_and_apr_001_approval_cannot_be_shared_by_writes"]},
     "NSL-SEM-206": {"status": "IMPLEMENTED", "target_slice": "0040", "verification": ["TEST-SEM-206"], "evidence": ["tests/test_v0_2_approval_semantics.py::test_sem_206_unused_approval_is_rejected"]},
-    "NSL-APR-001": {"status": "IMPLEMENTED", "target_slice": "0040", "verification": ["TEST-APR-001"], "evidence": ["tests/test_v0_2_approval_semantics.py::test_sem_201_approval_namespace_and_analysis_are_explicit_and_immutable", "tests/test_v0_2_approval_semantics.py::test_sem_205_and_apr_001_approval_cannot_be_shared_by_writes", "tests/test_v0_2_approval_semantics.py::test_sem_206_unused_approval_is_rejected"]}
+    "NSL-APR-001": {"status": "IMPLEMENTED", "target_slice": "0040", "verification": ["TEST-APR-001"], "evidence": ["tests/test_v0_2_approval_semantics.py::test_sem_201_approval_namespace_and_analysis_are_explicit_and_immutable", "tests/test_v0_2_approval_semantics.py::test_sem_205_and_apr_001_approval_cannot_be_shared_by_writes", "tests/test_v0_2_approval_semantics.py::test_sem_206_unused_approval_is_rejected"]},
+    "NSL-TYP-201": {"status": "IMPLEMENTED", "target_slice": "0041", "verification": ["TEST-TYP-201"], "evidence": ["tests/test_v0_2_static_write_safety.py::test_typ_201_write_arguments_are_exactly_type_checked", "tests/test_v0_2_static_write_safety.py::test_typ_201_write_argument_shape_rejects_zero_duplicate_and_extra_values"]},
+    "NSL-TYP-202": {"status": "IMPLEMENTED", "target_slice": "0041", "verification": ["TEST-TYP-202"], "evidence": ["tests/test_v0_2_static_write_safety.py::test_typ_202_write_result_type_comes_from_the_tool_contract"]},
+    "NSL-TYP-203": {"status": "IMPLEMENTED", "target_slice": "0041", "verification": ["TEST-TYP-203"], "evidence": ["tests/test_v0_2_static_write_safety.py::test_typ_203_approval_is_a_control_gate_not_bool_truthiness"]},
+    "NSL-TYP-204": {"status": "IMPLEMENTED", "target_slice": "0041", "verification": ["TEST-TYP-204"], "evidence": ["tests/test_v0_2_static_write_safety.py::test_typ_204_check_requires_exact_bool_in_v0_2"]},
+    "NSL-WRT-002": {"status": "IMPLEMENTED", "target_slice": "0041", "verification": ["TEST-WRT-002"], "evidence": ["tests/test_v0_2_static_write_safety.py::test_wrt_002_zero_and_one_write_are_allowed", "tests/test_v0_2_static_write_safety.py::test_wrt_002_two_writes_are_rejected_without_a_relaxation_option"]},
+    "NSL-WRT-003": {"status": "IMPLEMENTED", "target_slice": "0041", "verification": ["TEST-WRT-003"], "evidence": ["tests/test_v0_2_static_write_safety.py::test_wrt_003_write_inside_foreach_is_rejected"]},
+    "NSL-WRT-004": {"status": "IMPLEMENTED", "target_slice": "0041", "verification": ["TEST-WRT-004"], "evidence": ["tests/test_v0_2_static_write_safety.py::test_wrt_004_non_atomic_contract_is_rejected_even_if_model_is_tampered", "tests/test_v0_2_static_write_safety.py::test_wrt_004_missing_write_semantics_is_rejected_before_hashing"]},
+    "NSL-RSK-002": {"status": "IMPLEMENTED", "target_slice": "0041", "verification": ["TEST-RSK-002"], "evidence": ["tests/test_v0_2_static_write_safety.py::test_rsk_002_invalid_risk_metadata_is_rejected_before_hashing", "tests/test_v0_2_static_write_safety.py::test_rsk_002_valid_boundary_risks_are_metadata_not_entitlement_decisions"]},
+    "NSL-IR-206": {"status": "PARTIAL", "target_slice": "0042", "verification": ["TEST-IR-206-PARTIAL"], "evidence": ["tests/test_v0_2_static_write_safety.py::test_wrt_002_zero_and_one_write_are_allowed", "tests/test_v0_2_static_write_safety.py::test_typ_202_write_result_type_comes_from_the_tool_contract"]}
   }
 }

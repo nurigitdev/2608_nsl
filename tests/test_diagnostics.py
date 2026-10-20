@@ -71,11 +71,6 @@ def test_err_003_source_snippet_is_included_when_available() -> None:
     ("source", "code", "snippet"),
     (
         (
-            SOURCE.replace('language NSL "0.1";', 'language NSL "0.2";'),
-            DiagnosticCode.SEM_UNSUPPORTED_LANGUAGE_VERSION,
-            'language NSL "0.2";',
-        ),
-        (
             SOURCE.replace("risk READ_VALIDATE;", "risk WRITE_HIGH;"),
             DiagnosticCode.SEM_UNSUPPORTED_RISK,
             "    risk WRITE_HIGH;",

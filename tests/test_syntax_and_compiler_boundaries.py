@@ -147,7 +147,6 @@ def test_parser_boundary_failures(source, message) -> None:
 @pytest.mark.parametrize(
     ("source", "message"),
     [
-        (SOURCE.replace('language NSL "0.1"', 'language NSL "0.2"'), "unsupported NSL version"),
         (SOURCE.replace("risk READ_VALIDATE", "risk WRITE"), "unsupported risk profile"),
         (
             SOURCE.replace(

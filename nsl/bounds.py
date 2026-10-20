@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .ir import (
+    ApprovalStatement,
     BinaryExpr,
     CallExpr,
     CheckStatement,
@@ -15,6 +16,7 @@ from .ir import (
     Statement,
     StaticAnalysis,
     SymbolRefExpr,
+    WriteExpression,
 )
 
 
@@ -62,6 +64,8 @@ class StaticBoundAnalyzer:
                     self._expression_tool_calls(value)
                     for _, value in statement.fields
                 )
+            elif isinstance(statement, ApprovalStatement):
+                continue
             else:
                 raise UnboundedStructureError(
                     f"unsupported statement in static bound analysis: "
@@ -70,7 +74,7 @@ class StaticBoundAnalyzer:
         return tool_calls, loop_iterations, emit_records
 
     def _expression_tool_calls(self, expression: Expression) -> int:
-        if isinstance(expression, ReadExpr):
+        if isinstance(expression, (ReadExpr, WriteExpression)):
             return 1 + sum(
                 self._expression_tool_calls(value)
                 for _, value in expression.arguments

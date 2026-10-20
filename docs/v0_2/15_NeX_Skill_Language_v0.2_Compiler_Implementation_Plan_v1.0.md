@@ -39,7 +39,7 @@ and synchronization unit.
 | 0038 | COMPLETE | Version-aware Lexer Bootstrap | `NSL-LEX-201..203` | `RD-003` | A bounded leading declaration scan selects the 0.1 or 0.2 keyword table before full tokenization. Invalid headers fail before tokenization, while 0.1 lexical compatibility remains unchanged. |
 | 0039 | COMPLETE | Approval and Write Parser AST | `NSL-PAR-201..204` | - | Approval and WRITE Source forms produce immutable AST nodes whose complete token ranges are retained as `SourceSpan` values. |
 | 0040 | COMPLETE | Approval Symbol and Binding Semantics | `NSL-SEM-201..206`, `NSL-APR-001` | `RD-002` | Approval IDs have a dedicated namespace; references obey declaration order, dominance, exactly 1:1 binding, and no-unused-approval rules. |
-| 0041 | PLANNED | Static Type and Write Safety Analysis | `NSL-TYP-201..204`, `NSL-WRT-002..004`, `NSL-RSK-002` | `RD-002` | WRITE payloads and tool contracts are statically typed; strict profile flow, count, loop, atomicity, and risk metadata rules are enforced without deciding user or tenant entitlement. |
+| 0041 | COMPLETE | Static Type and Write Safety Analysis | `NSL-TYP-201..204`, `NSL-WRT-002..004`, `NSL-RSK-002` | `RD-002` | WRITE payloads and tool contracts are statically typed; strict profile flow, count, loop, atomicity, and risk metadata rules are enforced without deciding user or tenant entitlement. |
 | 0042 | PLANNED | Compiler Lowering to IR 1.1 | `NSL-IR-206..207` | `RD-003` | Source Language 0.1 deterministically lowers to IR 1.0 and Source Language 0.2 to IR 1.1 without an override option or changes to 0.1 canonical output. |
 
 `RD-002` and `RD-003` are FROZEN implementation decisions, not additional SRS
@@ -94,6 +94,24 @@ Slice 0039 completion evidence is maintained in
 
 Slice 0040 completion evidence is maintained in
 `tests/test_v0_2_approval_semantics.py`.
+
+### 4.4 Slice 0041
+
+- Apply the existing exact static type rules to WRITE argument graphs and infer
+  each WRITE result exclusively from the resolved Tool Contract output type.
+- Keep Approval as a namespace-resolved control gate rather than a Bool or
+  value-truthiness expression, while retaining exact Bool CHECK enforcement.
+- Enforce immutable strict-profile limits of zero-or-one WRITE and no WRITE in
+  FOREACH, with no compiler option that can relax either rule.
+- Validate WRITE capability, bounded operation kind, ATOMIC semantics,
+  required idempotency, and typed RiskLevel metadata without accepting user,
+  tenant, principal, or entitlement inputs.
+- Produce an immutable `WriteSafetyAnalysis` alongside compilation results.
+  The emerging Language 0.2 to IR 1.1 path makes `NSL-IR-206` PARTIAL here;
+  Slice 0042 owns its deterministic mapping and compatibility certification.
+
+Slice 0041 completion evidence is maintained in
+`tests/test_v0_2_static_write_safety.py`.
 
 ## 5. Status and Evidence Rules
 
