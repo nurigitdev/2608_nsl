@@ -35,7 +35,7 @@ and synchronization unit.
 | Slice | Status | Title | Primary requirements | Governing decision | Completion boundary |
 |---|---|---|---|---|---|
 | 0047 | COMPLETE | Approval Request and Protected Evidence | `NSL-APR-002..003`, `NSL-APR-014` | `CHG-005`, `CHG-026` | Immutable request/evidence contracts distinguish static and execution identities, bind business and semantic identities, and expose only protected payload metadata. |
-| 0048 | PLANNED | Durable Suspend and Approval Publication | `NSL-APR-004..008`, `NSL-ARC-206`, `NSL-ARC-208..209` | `CHG-006`, `CHG-018` | Runtime durably saves a checkpoint before idempotent request publication and returns a non-blocking suspended result without taking ownership of workflow orchestration. |
+| 0048 | COMPLETE | Durable Suspend and Approval Publication | `NSL-APR-004..008`, `NSL-ARC-206`, `NSL-ARC-208..209` | `CHG-006`, `CHG-018` | Runtime durably saves a checkpoint before idempotent request publication and returns a non-blocking suspended result without taking ownership of workflow orchestration. |
 | 0049 | PLANNED | Resume Claim, Clock, and Evidence Validation | `NSL-APR-009..013` | `RD-004`, `RD-005`, `RD-006` | Resume atomically claims one checkpoint, validates trusted evidence and current bindings using injected ports and clock, and blocks rejected, expired, stale, duplicate, or mismatched attempts. |
 
 `RD-004..006` are FROZEN implementation decisions, not additional SRS
@@ -74,6 +74,12 @@ and credential rejection.
   worker can terminate without blocking.
 - Keep routing, UI, persistence of human workflow, notification, and resume job
   scheduling outside Runtime.
+
+Slice 0048 completion evidence is maintained in
+`tests/test_v0_2_approval_suspend_publish.py`, including save-before-publish
+ordering, persistence failure, lost-acknowledgement retry, idempotent request
+identity, restored pending state, binding mismatch, worker release, and the
+absence of workflow orchestration methods.
 
 ### 4.3 Slice 0049
 

@@ -3,17 +3,26 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any, Mapping, Protocol, runtime_checkable
 
+from .checkpoints import CheckpointCoordinator, ExecutionCheckpoint
 from .core import (
     ApprovalDecision,
     ApprovalRequestId,
+    ApprovalStatus,
     BusinessOperationId,
     DataClassification,
+    ExecutionStatus,
     PayloadHash,
     RiskLevel,
 )
 from .data_protection import ensure_no_credential_material
+from .runtime_models import (
+    ApprovalSummary,
+    ExecutionContext,
+    ExecutionResult,
+    SuspensionInfo,
+)
 
 
 def _required_text(value: object, name: str) -> str:
@@ -239,3 +248,139 @@ class ApprovalEvidence:
             "write_intent_hash": self.write_intent_hash,
             "evidence_integrity": self.evidence_integrity,
         }
+
+
+@runtime_checkable
+class CheckpointPort(Protocol):
+    async def save(self, checkpoint: ExecutionCheckpoint) -> None: ...
+
+
+@runtime_checkable
+class ApprovalPort(Protocol):
+    """Publishes requests idempotently by ApprovalRequestId."""
+
+    async def publish(self, request: ApprovalRequest) -> None: ...
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovalSuspension:
+    checkpoint: ExecutionCheckpoint
+    result: ExecutionResult
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.checkpoint, ExecutionCheckpoint):
+            raise TypeError("checkpoint must be an ExecutionCheckpoint")
+        if not isinstance(self.result, ExecutionResult):
+            raise TypeError("result must be an ExecutionResult")
+        if self.result.status is not ExecutionStatus.WAITING_FOR_APPROVAL:
+            raise ValueError("approval suspension must be WAITING_FOR_APPROVAL")
+
+
+class ApprovalSuspensionCoordinator:
+    """Persists then publishes without waiting for a human decision."""
+
+    __slots__ = ("_checkpoints",)
+
+    def __init__(
+        self,
+        checkpoints: CheckpointCoordinator | None = None,
+    ) -> None:
+        self._checkpoints = checkpoints or CheckpointCoordinator()
+
+    async def suspend(
+        self,
+        ctx: ExecutionContext,
+        request: ApprovalRequest,
+        checkpoint_port: CheckpointPort,
+        approval_port: ApprovalPort,
+    ) -> ApprovalSuspension:
+        if not isinstance(ctx, ExecutionContext):
+            raise TypeError("ctx must be an ExecutionContext")
+        if not isinstance(request, ApprovalRequest):
+            raise TypeError("request must be an ApprovalRequest")
+        if not isinstance(checkpoint_port, CheckpointPort):
+            raise TypeError("checkpoint_port must implement CheckpointPort")
+        if not isinstance(approval_port, ApprovalPort):
+            raise TypeError("approval_port must implement ApprovalPort")
+        self._validate_bindings(ctx, request)
+        self._stage_suspend(ctx, request)
+
+        checkpoint = self._checkpoints.capture(ctx)
+        await checkpoint_port.save(checkpoint)
+        await approval_port.publish(request)
+        ctx.checkpoint.approval_request_published = True
+
+        return ApprovalSuspension(
+            checkpoint=checkpoint,
+            result=ExecutionResult(
+                execution_id=ctx.identity.execution_id,
+                skill_id=ctx.skill.skill_id,
+                skill_version=ctx.skill.skill_version,
+                semantic_hash=ctx.skill.semantic_hash,
+                status=ExecutionStatus.WAITING_FOR_APPROVAL,
+                completeness=ctx.result_completeness(
+                    ExecutionStatus.WAITING_FOR_APPROVAL
+                ),
+                checks=tuple(ctx.checks),
+                outputs=tuple(ctx.outputs),
+                resources=ctx.usage(),
+                approval=ApprovalSummary(
+                    status=ApprovalStatus.PENDING,
+                    approval_id=request.approval_id,
+                    approval_request_id=request.approval_request_id,
+                ),
+                suspension=SuspensionInfo(
+                    reason="APPROVAL_REQUIRED",
+                    checkpoint_version=checkpoint.checkpoint_version,
+                    approval_id=request.approval_id,
+                    approval_request_id=request.approval_request_id,
+                ),
+            ),
+        )
+
+    @staticmethod
+    def _validate_bindings(
+        ctx: ExecutionContext,
+        request: ApprovalRequest,
+    ) -> None:
+        expected = {
+            "tenant_id": ctx.tenant_id,
+            "execution_id": ctx.identity.execution_id,
+            "business_operation_id": ctx.identity.business_operation_id,
+            "skill_id": ctx.skill.skill_id,
+            "skill_version": ctx.skill.skill_version,
+            "skill_semantic_hash": ctx.skill.semantic_hash,
+        }
+        for name, value in expected.items():
+            if getattr(request, name) != value:
+                raise ValueError(f"ApprovalRequest.{name} binding mismatch")
+
+    @staticmethod
+    def _stage_suspend(
+        ctx: ExecutionContext,
+        request: ApprovalRequest,
+    ) -> None:
+        prior_request_id = (
+            ctx.checkpoint.approval_request_ids_by_write_node.get(
+                request.write_node_id
+            )
+        )
+        if (
+            prior_request_id is not None
+            and prior_request_id != request.approval_request_id
+        ):
+            raise ValueError(
+                "write node is already bound to another ApprovalRequestId"
+            )
+        ctx.approvals.records[request.approval_id] = ApprovalStatus.PENDING
+        ctx.checkpoint.suspended_at_node_id = request.write_node_id
+        ctx.checkpoint.approval_request_published = False
+        ctx.checkpoint.approval_request_ids_by_write_node[
+            request.write_node_id
+        ] = request.approval_request_id
+        ctx.checkpoint.write_intent_hashes_by_write_node[
+            request.write_node_id
+        ] = request.write_intent_hash
+        ctx.checkpoint.payload_hashes_by_write_node[
+            request.write_node_id
+        ] = request.payload_hash

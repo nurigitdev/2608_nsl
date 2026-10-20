@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0047",
+  "current_slice": "0048",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -181,6 +181,14 @@
     "NSL-WRT-005": {"status": "IMPLEMENTED", "target_slice": "0046", "verification": ["TEST-WRT-005"], "evidence": ["tests/test_v0_2_prewrite_eligibility.py::test_wrt_005_write_entry_rejects_every_non_allowed_decision", "tests/test_v0_2_prewrite_eligibility.py::test_wrt_005_write_entry_accepts_only_allowed"]},
     "NSL-APR-002": {"status": "IMPLEMENTED", "target_slice": "0047", "verification": ["TEST-APR-002"], "evidence": ["tests/test_v0_2_approval_request_evidence.py::test_apr_002_static_and_execution_approval_identities_are_distinct"]},
     "NSL-APR-003": {"status": "IMPLEMENTED", "target_slice": "0047", "verification": ["TEST-APR-003"], "evidence": ["tests/test_v0_2_approval_request_evidence.py::test_apr_003_request_and_evidence_preserve_all_required_bindings", "tests/test_v0_2_approval_request_evidence.py::test_approval_evidence_rejects_malformed_values"]},
-    "NSL-APR-014": {"status": "IMPLEMENTED", "target_slice": "0047", "verification": ["TEST-APR-014"], "evidence": ["tests/test_v0_2_approval_request_evidence.py::test_apr_014_request_data_contains_protected_metadata_not_raw_payload", "tests/test_v0_2_approval_request_evidence.py::test_request_and_evidence_are_immutable_with_deep_frozen_summary", "tests/test_v0_2_approval_request_evidence.py::test_approval_request_rejects_credentials_in_summary_and_identity"]}
+    "NSL-APR-014": {"status": "IMPLEMENTED", "target_slice": "0047", "verification": ["TEST-APR-014"], "evidence": ["tests/test_v0_2_approval_request_evidence.py::test_apr_014_request_data_contains_protected_metadata_not_raw_payload", "tests/test_v0_2_approval_request_evidence.py::test_request_and_evidence_are_immutable_with_deep_frozen_summary", "tests/test_v0_2_approval_request_evidence.py::test_approval_request_rejects_credentials_in_summary_and_identity"]},
+    "NSL-ARC-206": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-ARC-206"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_arc_206_runtime_does_not_wait_for_human_approval", "tests/test_v0_2_approval_suspend_publish.py::test_apr_007_suspension_is_complete_worker_release_contract"]},
+    "NSL-ARC-208": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-ARC-208"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_arc_208_apr_008_platform_workflow_ownership_stays_outside_ports"]},
+    "NSL-ARC-209": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-ARC-209"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_arc_209_runtime_exposes_suspend_contract_not_workflow_orchestration"]},
+    "NSL-APR-004": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-APR-004"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_apr_004_transitions_to_waiting_for_approval"]},
+    "NSL-APR-005": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-APR-005"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_apr_005_checkpoint_is_saved_before_approval_publication", "tests/test_v0_2_approval_suspend_publish.py::test_apr_005_save_failure_prevents_publication"]},
+    "NSL-APR-006": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-APR-006"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_apr_006_publish_retry_reuses_request_identity_idempotently"]},
+    "NSL-APR-007": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-APR-007"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_apr_007_suspension_is_complete_worker_release_contract"]},
+    "NSL-APR-008": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-APR-008"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_arc_208_apr_008_platform_workflow_ownership_stays_outside_ports"]}
   }
 }
