@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
-from typing import Any, Iterable
+from typing import Any, Iterable, NewType
 
 
 class Presence(StrEnum):
@@ -33,6 +33,53 @@ class ExecutionStatus(StrEnum):
     VALIDATION_ERROR = "VALIDATION_ERROR"
     LIMIT_EXCEEDED = "LIMIT_EXCEEDED"
     CANCELLED = "CANCELLED"
+
+
+class ToolCapability(StrEnum):
+    READ = "READ"
+    WRITE = "WRITE"
+    TRANSACTION = "TRANSACTION"
+
+
+class RiskLevel(StrEnum):
+    R0 = "R0"
+    R1 = "R1"
+    R2 = "R2"
+    R3 = "R3"
+    R4 = "R4"
+    R5 = "R5"
+
+
+class ApprovalStatus(StrEnum):
+    NOT_REQUESTED = "NOT_REQUESTED"
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    EXPIRED = "EXPIRED"
+
+
+class PreWriteEligibility(StrEnum):
+    ALLOWED = "ALLOWED"
+    BLOCKED = "BLOCKED"
+    REQUIRES_APPROVAL = "REQUIRES_APPROVAL"
+
+
+class CommitState(StrEnum):
+    COMMITTED = "COMMITTED"
+    NOT_COMMITTED = "NOT_COMMITTED"
+    UNKNOWN_COMMIT_STATE = "UNKNOWN_COMMIT_STATE"
+
+
+class VerificationStatus(StrEnum):
+    NOT_REQUESTED = "NOT_REQUESTED"
+    VERIFIED = "VERIFIED"
+    FAILED = "FAILED"
+    UNKNOWN = "UNKNOWN"
+
+
+BusinessOperationId = NewType("BusinessOperationId", str)
+IdempotencyKey = NewType("IdempotencyKey", str)
+PayloadHash = NewType("PayloadHash", str)
 
 
 class DataClassification(StrEnum):

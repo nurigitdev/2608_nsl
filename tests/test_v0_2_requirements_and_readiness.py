@@ -43,20 +43,43 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
     assert report.baseline_id == "NSL-V0.2-SRS-RB1"
     assert report.requirement_count == 123
     assert report.priority_counts == {"MUST": 121, "SHOULD": 2}
-    assert report.status_counts == {"PLANNED": 123}
+    assert report.status_counts == {"PARTIAL": 1, "PLANNED": 122}
     assert report.target_slice_counts == {
-        "0033": 16,
-        "0034": 17,
-        "0035": 18,
-        "0036": 14,
-        "0037": 21,
-        "0038": 12,
-        "0039": 14,
-        "0040": 11,
+        "0033": 1,
+        "0034": 7,
+        "0035": 2,
+        "0036": 4,
+        "0037": 2,
+        "0038": 3,
+        "0039": 4,
+        "0040": 7,
+        "0041": 8,
+        "0042": 2,
+        "0043": 8,
+        "0044": 3,
+        "0045": 8,
+        "0046": 6,
+        "0047": 3,
+        "0048": 8,
+        "0049": 5,
+        "0050": 2,
+        "0051": 8,
+        "0052": 4,
+        "0053": 3,
+        "0054": 6,
+        "0055": 8,
+        "0056": 5,
+        "0058": 4,
+        "0062": 2,
     }
     assert tuple(records)[0] == "NSL-ARC-201"
     assert tuple(records)[-1] == "NSL-RPL-203"
-    assert all(record["status"] == "PLANNED" for record in records.values())
+    assert records["NSL-ARC-201"]["status"] == "PARTIAL"
+    assert all(
+        record["status"] == "PLANNED"
+        for requirement_id, record in records.items()
+        if requirement_id != "NSL-ARC-201"
+    )
 
 
 def test_repository_v0_2_readiness_baseline_is_complete(capsys) -> None:

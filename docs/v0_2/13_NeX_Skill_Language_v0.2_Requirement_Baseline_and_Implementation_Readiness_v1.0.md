@@ -28,18 +28,25 @@ The five FROZEN architecture authority documents are pinned by SHA-256. CHG-001 
 
 ## 3. Implementation Slices
 
-| Slice | Scope | Requirements |
-|---|---|---:|
-| 0033 | Shared Core, IR, and Tool Contract | 16 |
-| 0034 | Version-aware Source and Compiler | 17 |
-| 0035 | Runtime Context, State, and Result Foundation | 18 |
-| 0036 | Approval and Suspend Resume | 14 |
-| 0037 | Write Safety, Eligibility, and Preconditions | 21 |
-| 0038 | Idempotency, Commit, and Recovery | 12 |
-| 0039 | Verification, Trust, and Replay | 14 |
-| 0040 | Architecture Integration and Certification | 11 |
+The original eight ownership groups were rebaselined into independently
+implementable and verifiable Slices 0033 through 0062. The first phase is the
+five-Slice Foundation defined in
+`14_NeX_Skill_Language_v0.2_Foundation_Implementation_Plan_v1.0.md`.
 
-These are requirement ownership slices. A large slice may be delivered in internal Parts, but a requirement has one traceability owner at a time.
+| Range | Phase | Numbered requirements |
+|---|---|---:|
+| 0033-0037 | Foundation | 16 |
+| 0038-0042 | Compiler | 24 |
+| 0043-0046 | Runtime Foundation | 25 |
+| 0047-0049 | Approval | 16 |
+| 0050-0054 | Write Execution | 23 |
+| 0055-0058 | Trust and Evidence | 17 |
+| 0059-0062 | Vertical Integration and Certification | 2 |
+
+The machine baseline owns the exact per-requirement allocation. Slices without
+a numbered requirement deliver SRS acceptance behavior such as v0.2 audit,
+vertical examples, and CLI developer experience. A requirement has one
+traceability owner at a time.
 
 ## 4. Authority and Change Ledger
 
