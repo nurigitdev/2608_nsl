@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "readiness_id": "NSL-V0.2-IMPLEMENTATION-READINESS-RB1",
+  "traceability_baseline": "requirements/nsl_v0_2_traceability.json",
+  "traceability_baseline_id": "NSL-V0.2-SRS-RB1",
+  "expected_authority_document_count": 5,
+  "expected_source_document_count": 14,
+  "expected_change_count": 32,
+  "expected_decision_count": 10,
+  "authority_documents": [
+    {
+      "path": "docs/v0_2/00_0_NSL_v0.2_Architecture_Delta_Decision_Record_v1.0_FROZEN.docx",
+      "sha256": "364751bcdc08664e89a9ee8a65ca7060dc6af764af76a8b7d4dd415eacb6bca5"
+    },
+    {
+      "path": "docs/v0_2/00_1_NSL_v0.2_Batch_A_Execution_Contract_Alignment_Decision_Record_v1.0_FROZEN.docx",
+      "sha256": "c8e0719e729dbf1198604bf9d97ad6def7e0da88817c9a5a5b24ac783977a4ee"
+    },
+    {
+      "path": "docs/v0_2/00_2_NSL_v0.2_Batch_B_Compiler_Architecture_Alignment_Decision_Record_v1.0_FROZEN.docx",
+      "sha256": "c15d5aef84e12758dc24e251c523ca977f7b72523ff77ec502aaacd26ddda720"
+    },
+    {
+      "path": "docs/v0_2/00_3_NSL_v0.2_Batch_C_Runtime_Architecture_Alignment_Decision_Record_v1.0_FROZEN.docx",
+      "sha256": "13c94e77318385500c955c8ab60fdea1d92730cfec645cd6cde5a1eb3e4197b4"
+    },
+    {
+      "path": "docs/v0_2/00_4_NSL_v0.2_Architecture_Consistency_Closure_and_Unified_Change_Ledger_v1.0_FROZEN.docx",
+      "sha256": "88dd3ae9eec62d93170ad8a605aab14ea4d6b86803a661e1be2204e8cee7401d"
+    }
+  ],
+  "source_documents": {
+    "00-master": "docs/v0_2/00_MASTER_PROMPT.md",
+    "00-prd": "docs/v0_2/00_NeX_Skill_Language_v0.1_to_v0.2_Upgrade_Implementation_PRD_v1.0.md",
+    "01": "docs/v0_2/01_NeX_Skill_Language_v0.2_Document_Baseline_and_Upgrade_Plan_v1.0.md",
+    "02": "docs/v0_2/02_NeX_Skill_v0.2_Controlled_Write_Approval_Idempotency_Detailed_Design_v0.1.md",
+    "03": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
+    "04": "docs/v0_2/04_NeX_Skill_Shared_Core_IR_Single_Source_of_Truth_Detailed_Design_v0.2.md",
+    "05": "docs/v0_2/05_NeX_Skill_Object_NSO_IR_Schema_Detailed_Design_v0.3.md",
+    "06": "docs/v0_2/06_NeX_Skill_Tool_Contract_Detailed_Design_v0.2.md",
+    "07": "docs/v0_2/07_NeX_Skill_Language_Compiler_Detailed_Design_v0.2.md",
+    "08": "docs/v0_2/08_NeX_Skill_Language_Compiler_Python_Class_Interface_Detailed_Design_v0.2.md",
+    "09": "docs/v0_2/09_NeX_Skill_Runtime_Validation_Semantics_Detailed_Design_v0.2.md",
+    "10": "docs/v0_2/10_NeX_Skill_Runtime_ExecutionContext_Detailed_Design_v0.2.md",
+    "11": "docs/v0_2/11_NeX_Skill_Runtime_Class_Object_Model_Detailed_Design_v0.2.md",
+    "12": "docs/v0_2/12_NeX_Skill_Runtime_Python_Interface_Protocol_Detailed_Design_v0.2.md"
+  },
+  "change_ledger": [
+    {"change_id": "CHG-001", "priority": "P0", "title": "Document authority hierarchy", "affected_documents": ["00-master", "00-prd", "01", "02", "03"]},
+    {"change_id": "CHG-002", "priority": "P0", "title": "Quality gate and Python 3.12 baseline", "affected_documents": ["00-master", "00-prd", "03", "12"]},
+    {"change_id": "CHG-003", "priority": "P0", "title": "BusinessOperationId", "affected_documents": ["02", "03", "04", "06", "09", "10", "11", "12"]},
+    {"change_id": "CHG-004", "priority": "P0", "title": "IdempotencyKey and PayloadHash separation", "affected_documents": ["02", "03", "04", "06", "10", "11", "12"]},
+    {"change_id": "CHG-005", "priority": "P0", "title": "ApprovalRequestId and evidence binding", "affected_documents": ["02", "03", "09", "10", "11", "12"]},
+    {"change_id": "CHG-006", "priority": "P0", "title": "Platform approval workflow ownership", "affected_documents": ["00-prd", "01", "02", "03", "10", "11", "12"]},
+    {"change_id": "CHG-007", "priority": "P0", "title": "PreWriteEligibility excludes reconciliation", "affected_documents": ["02", "03", "04", "09", "12"]},
+    {"change_id": "CHG-008", "priority": "P0", "title": "ExecutionStatus alignment", "affected_documents": ["03", "10", "11", "12"]},
+    {"change_id": "CHG-009", "priority": "P0", "title": "Principal and DataPolicy preservation", "affected_documents": ["03", "10", "12"]},
+    {"change_id": "CHG-010", "priority": "P0", "title": "Signed NSP trust boundary reuse", "affected_documents": ["02", "03", "04", "05", "07", "08", "11", "12"]},
+    {"change_id": "CHG-011", "priority": "P0", "title": "Approval and WRITE exactly one to one", "affected_documents": ["02", "03", "04", "05", "07", "08"]},
+    {"change_id": "CHG-012", "priority": "P0", "title": "Language-version-aware keywords", "affected_documents": ["07", "08"]},
+    {"change_id": "CHG-013", "priority": "P0", "title": "Immutable strict-profile safety", "affected_documents": ["00-prd", "03", "07", "08"]},
+    {"change_id": "CHG-014", "priority": "P0", "title": "Deterministic language to IR version mapping", "affected_documents": ["03", "05", "07", "08"]},
+    {"change_id": "CHG-015", "priority": "P0", "title": "Deterministic NodeId and SemanticHash compatibility", "affected_documents": ["05", "07", "08"]},
+    {"change_id": "CHG-016", "priority": "P0", "title": "Additive NSO and Tool Contract compatibility", "affected_documents": ["05", "06"]},
+    {"change_id": "CHG-017", "priority": "P0", "title": "Write-time business preconditions", "affected_documents": ["02", "03", "06", "09", "10", "11", "12"]},
+    {"change_id": "CHG-018", "priority": "P0", "title": "Checkpoint before approval publish", "affected_documents": ["02", "03", "10", "11", "12"]},
+    {"change_id": "CHG-019", "priority": "P0", "title": "Durable WRITE_REQUESTED before provider call", "affected_documents": ["10", "11", "12"]},
+    {"change_id": "CHG-020", "priority": "P0", "title": "Cancellation and timeout commit uncertainty", "affected_documents": ["09", "11", "12"]},
+    {"change_id": "CHG-021", "priority": "P0", "title": "RuntimePreflight and WriteGuard separation", "affected_documents": ["09", "11", "12"]},
+    {"change_id": "CHG-022", "priority": "P0", "title": "Three-way WriteOutcome algebra", "affected_documents": ["06", "10", "11", "12"]},
+    {"change_id": "CHG-023", "priority": "P1", "title": "Risk classification and PolicyDecision separation", "affected_documents": ["02", "03", "04", "06", "07", "08", "09", "11", "12"]},
+    {"change_id": "CHG-024", "priority": "P1", "title": "Protected approval payload reference", "affected_documents": ["02", "03", "09", "10", "12"]},
+    {"change_id": "CHG-025", "priority": "P1", "title": "Replay control-evidence snapshots", "affected_documents": ["09", "10", "11", "12"]},
+    {"change_id": "CHG-026", "priority": "P1", "title": "RetrySafety evidence boundary", "affected_documents": ["02", "06", "11", "12"]},
+    {"change_id": "CHG-027", "priority": "P1", "title": "ExecutionContext state-only terminology", "affected_documents": ["03", "10", "11", "12"]},
+    {"change_id": "CHG-028", "priority": "P1", "title": "Approval status decision and validation separation", "affected_documents": ["09", "10", "12"]},
+    {"change_id": "CHG-029", "priority": "P1", "title": "Typed VerificationStatus separate from commit", "affected_documents": ["03", "04", "06", "09", "10", "11", "12"]},
+    {"change_id": "CHG-030", "priority": "P1", "title": "Additive ExecutionResult compatibility", "affected_documents": ["03", "09", "10", "12"]},
+    {"change_id": "CHG-031", "priority": "P1", "title": "Artifact and package hash ownership", "affected_documents": ["04", "05", "07", "08"]},
+    {"change_id": "CHG-032", "priority": "P1", "title": "Repository-first physical refactor", "affected_documents": ["00-master", "00-prd", "04", "07", "08", "11", "12"]}
+  ],
+  "readiness_decisions": [
+    {"decision_id": "RD-001", "status": "FROZEN", "target_slice": "0037", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-001"},
+    {"decision_id": "RD-002", "status": "FROZEN", "target_slice": "0034", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-002"},
+    {"decision_id": "RD-003", "status": "FROZEN", "target_slice": "0034", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-003"},
+    {"decision_id": "RD-004", "status": "FROZEN", "target_slice": "0036", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-004"},
+    {"decision_id": "RD-005", "status": "FROZEN", "target_slice": "0036", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-005"},
+    {"decision_id": "RD-006", "status": "FROZEN", "target_slice": "0036", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-006"},
+    {"decision_id": "RD-007", "status": "FROZEN", "target_slice": "0037", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-007"},
+    {"decision_id": "RD-008", "status": "FROZEN", "target_slice": "0035", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-008"},
+    {"decision_id": "RD-009", "status": "FROZEN", "target_slice": "0038", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-009"},
+    {"decision_id": "RD-010", "status": "FROZEN", "target_slice": "0039", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-010"}
+  ]
+}

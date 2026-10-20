@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "baseline_id": "NSL-V0.2-SRS-RB1",
+  "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
+  "expected_requirement_count": 123,
+  "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
+  "current_slice": "0032",
+  "scope_decisions": [
+    {
+      "decision_id": "RB2-001",
+      "decision": "The v0.2 SRS baseline contains 123 independently traceable requirements: 121 MUST and 2 SHOULD."
+    },
+    {
+      "decision_id": "RB2-002",
+      "decision": "NSL-TOL-206 and NSL-VFY-001 are SHOULD requirements; every other v0.2 requirement is MUST."
+    },
+    {
+      "decision_id": "RB2-003",
+      "decision": "All v0.2 requirements begin as PLANNED because no v0.2 product behavior has repository implementation evidence at Slice 0032."
+    },
+    {
+      "decision_id": "RB2-004",
+      "decision": "The five FROZEN architecture authority documents and CHG-001 through CHG-032 are governed by requirements/nsl_v0_2_readiness.json."
+    },
+    {
+      "decision_id": "RB2-005",
+      "decision": "The v0.1 325-requirement baseline remains an independent mandatory regression gate throughout v0.2 development."
+    },
+    {
+      "decision_id": "RB2-006",
+      "decision": "Approval routing, user interface, notification, resume scheduling, retry decisions, and reconciliation decisions remain Agent or Platform responsibilities."
+    },
+    {
+      "decision_id": "RB2-007",
+      "decision": "NSL-0.2-STRICT safety invariants cannot be weakened by ordinary compiler or runtime options."
+    },
+    {
+      "decision_id": "RB2-008",
+      "decision": "Changing requirement text, priority, or membership requires an explicit fingerprint rebaseline and regression evidence."
+    }
+  ],
+  "extension_requirement_exceptions": [],
+  "slices": {
+    "0032": {"scope": "SRS", "title": "v0.2 Requirement Baseline and Implementation Readiness"},
+    "0033": {"scope": "SRS", "title": "Shared Core, IR, and Tool Contract"},
+    "0034": {"scope": "SRS", "title": "Version-aware Source and Compiler"},
+    "0035": {"scope": "SRS", "title": "Runtime Context, State, and Result Foundation"},
+    "0036": {"scope": "SRS", "title": "Approval and Suspend Resume"},
+    "0037": {"scope": "SRS", "title": "Write Safety, Eligibility, and Preconditions"},
+    "0038": {"scope": "SRS", "title": "Idempotency, Commit, and Recovery"},
+    "0039": {"scope": "SRS", "title": "Verification, Trust, and Replay"},
+    "0040": {"scope": "SRS", "title": "Architecture Integration and Certification"}
+  },
+  "assignments": [
+    {"selectors": ["NSL-ARC-201..211"], "status": "PLANNED", "target_slice": "0040", "verification": ["TEST-V02-ARCHITECTURE-CERTIFICATION"], "evidence": []},
+    {"selectors": ["NSL-LEX-201..203"], "status": "PLANNED", "target_slice": "0034", "verification": ["TEST-V02-LEXER-CONFORMANCE"], "evidence": []},
+    {"selectors": ["NSL-PAR-201..204"], "status": "PLANNED", "target_slice": "0034", "verification": ["TEST-V02-PARSER-AST-CONFORMANCE"], "evidence": []},
+    {"selectors": ["NSL-SEM-201..206"], "status": "PLANNED", "target_slice": "0034", "verification": ["TEST-V02-SYMBOL-WRITE-SAFETY"], "evidence": []},
+    {"selectors": ["NSL-TYP-201..204"], "status": "PLANNED", "target_slice": "0034", "verification": ["TEST-V02-STATIC-TYPE-CONFORMANCE"], "evidence": []},
+    {"selectors": ["NSL-TOL-201..207"], "status": "PLANNED", "target_slice": "0033", "verification": ["TEST-V02-TOOL-CONTRACT-CONFORMANCE"], "evidence": []},
+    {"selectors": ["NSL-WRT-001..011"], "status": "PLANNED", "target_slice": "0037", "verification": ["TEST-V02-CONTROLLED-WRITE"], "evidence": []},
+    {"selectors": ["NSL-APR-001..014"], "status": "PLANNED", "target_slice": "0036", "verification": ["TEST-V02-APPROVAL-SUSPEND-RESUME"], "evidence": []},
+    {"selectors": ["NSL-WEL-001..005"], "status": "PLANNED", "target_slice": "0037", "verification": ["TEST-V02-PREWRITE-ELIGIBILITY"], "evidence": []},
+    {"selectors": ["NSL-IDM-001..008"], "status": "PLANNED", "target_slice": "0038", "verification": ["TEST-V02-IDEMPOTENCY"], "evidence": []},
+    {"selectors": ["NSL-CMT-001..004"], "status": "PLANNED", "target_slice": "0038", "verification": ["TEST-V02-COMMIT-RECOVERY"], "evidence": []},
+    {"selectors": ["NSL-VFY-001..005"], "status": "PLANNED", "target_slice": "0039", "verification": ["TEST-V02-POSTWRITE-VERIFICATION"], "evidence": []},
+    {"selectors": ["NSL-CTX-201..210"], "status": "PLANNED", "target_slice": "0035", "verification": ["TEST-V02-RUNTIME-CONTEXT-CHECKPOINT"], "evidence": []},
+    {"selectors": ["NSL-STS-201..205"], "status": "PLANNED", "target_slice": "0035", "verification": ["TEST-V02-EXECUTION-STATUS"], "evidence": []},
+    {"selectors": ["NSL-RSL-201..203"], "status": "PLANNED", "target_slice": "0035", "verification": ["TEST-V02-RESULT-COMPATIBILITY"], "evidence": []},
+    {"selectors": ["NSL-IR-201..209"], "status": "PLANNED", "target_slice": "0033", "verification": ["TEST-V02-IR-1-1-COMPATIBILITY"], "evidence": []},
+    {"selectors": ["NSL-SIG-001..006"], "status": "PLANNED", "target_slice": "0039", "verification": ["TEST-V02-PACKAGE-TRUST"], "evidence": []},
+    {"selectors": ["NSL-RSK-001..005"], "status": "PLANNED", "target_slice": "0037", "verification": ["TEST-V02-RISK-POLICY-BOUNDARY"], "evidence": []},
+    {"selectors": ["NSL-RPL-201..203"], "status": "PLANNED", "target_slice": "0039", "verification": ["TEST-V02-REPLAY-NO-LIVE-WRITE"], "evidence": []}
+  ],
+  "overrides": {}
+}

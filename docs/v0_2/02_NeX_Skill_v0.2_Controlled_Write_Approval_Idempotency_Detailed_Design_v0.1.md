@@ -985,6 +985,7 @@ Tenant/User Policy authoring
 본 문서에 적용한 주요 Unified Change Ledger 항목:
 
 ```text
+CHG-001  Document authority hierarchy 통일
 CHG-003  BusinessOperationId 도입
 CHG-004  IdempotencyKey / PayloadHash 분리
 CHG-005  ApprovalRequestId + Approval Evidence binding

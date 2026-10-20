@@ -613,6 +613,7 @@ CHG-024  Approval Payload Protected-reference Model
 CHG-025  Replay Control-Evidence Snapshot
 CHG-028  ApprovalStatus / Decision / EvidenceValidation 분리
 CHG-029  VerificationStatus typed + CommitState 분리
+CHG-030  ExecutionResult additive compatibility
 ```
 
 본 문서는 위 Closure 결정을 Runtime Validation / Pre-Write Decision 의미론으로 구체화한다.

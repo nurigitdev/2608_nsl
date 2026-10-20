@@ -11,7 +11,13 @@ from extension_traceability import (
     ExtensionTraceabilityError,
     validate_extension_traceability,
 )
-from requirements_traceability import TraceabilityError, validate_traceability
+from requirements_traceability import (
+    TraceabilityError,
+    V0_2_BASELINE,
+    V0_2_SOURCE,
+    validate_traceability,
+)
+from v0_2_readiness import ReadinessError, validate_v0_2_readiness
 
 
 STATEMENT_THRESHOLD = 95.0
@@ -31,9 +37,29 @@ def main() -> int:
         print(str(exc), file=sys.stderr)
         return 2
     print(
-        "Traceability gate: "
+        "v0.1 traceability gate: "
         f"{traceability.requirement_count} requirements, "
         f"statuses={traceability.status_counts}"
+    )
+    try:
+        v0_2_traceability = validate_traceability(V0_2_SOURCE, V0_2_BASELINE)
+    except TraceabilityError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(
+        "v0.2 traceability gate: "
+        f"{v0_2_traceability.requirement_count} requirements, "
+        f"statuses={v0_2_traceability.status_counts}"
+    )
+    try:
+        readiness = validate_v0_2_readiness()
+    except ReadinessError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(
+        "v0.2 readiness gate: "
+        f"{readiness.change_count} changes, "
+        f"{readiness.decision_count} decisions"
     )
     try:
         extension = validate_extension_traceability()

@@ -261,22 +261,22 @@ NSL은 Approval Request/Evidence의 의미론과 Suspend/Resume execution contra
 
 # 6. Source / Lexer Requirements
 
-| ID | 요구사항 |
-|---|---|
-| NSL-LEX-201 | `write`, `approve`, `approved_by`를 Reserved Keyword로 인식해야 한다. |
-| NSL-LEX-202 | v0.1의 `include`, `true`, `false`를 유지해야 한다. |
-| NSL-LEX-203 | Identifier/Decimal/Money 관련 기존 규칙을 유지해야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-LEX-201 | `write`, `approve`, `approved_by`를 Reserved Keyword로 인식해야 한다. | MUST |
+| NSL-LEX-202 | v0.1의 `include`, `true`, `false`를 유지해야 한다. | MUST |
+| NSL-LEX-203 | Identifier/Decimal/Money 관련 기존 규칙을 유지해야 한다. | MUST |
 
 ---
 
 # 7. Parser / AST Requirements
 
-| ID | 요구사항 |
-|---|---|
-| NSL-PAR-201 | `WriteExpressionAst`를 생성할 수 있어야 한다. |
-| NSL-PAR-202 | `ApproveStatementAst`를 생성할 수 있어야 한다. |
-| NSL-PAR-203 | WRITE와 Approval Reference를 Source AST에서 보존해야 한다. |
-| NSL-PAR-204 | SourceSpan을 유지해야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-PAR-201 | `WriteExpressionAst`를 생성할 수 있어야 한다. | MUST |
+| NSL-PAR-202 | `ApproveStatementAst`를 생성할 수 있어야 한다. | MUST |
+| NSL-PAR-203 | WRITE와 Approval Reference를 Source AST에서 보존해야 한다. | MUST |
+| NSL-PAR-204 | SourceSpan을 유지해야 한다. | MUST |
 
 권장 문법:
 
@@ -299,14 +299,14 @@ write_expr
 
 # 8. Symbol / Scope Requirements
 
-| ID | 요구사항 |
-|---|---|
-| NSL-SEM-201 | Approval ID Namespace를 관리해야 한다. |
-| NSL-SEM-202 | 중복 Approval ID를 금지해야 한다. |
-| NSL-SEM-203 | `approved_by`는 선언된 Approval ID를 Resolve해야 한다. |
-| NSL-SEM-204 | Approval Reference는 해당 WRITE보다 앞에 위치해야 한다. |
-| NSL-SEM-205 | `NSL-0.2-STRICT`에서는 Approval과 WRITE가 exactly 1:1로 연결되어야 한다. |
-| NSL-SEM-206 | WRITE와 연결되지 않은 unused Approval을 허용하지 않아야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-SEM-201 | Approval ID Namespace를 관리해야 한다. | MUST |
+| NSL-SEM-202 | 중복 Approval ID를 금지해야 한다. | MUST |
+| NSL-SEM-203 | `approved_by`는 선언된 Approval ID를 Resolve해야 한다. | MUST |
+| NSL-SEM-204 | Approval Reference는 해당 WRITE보다 앞에 위치해야 한다. | MUST |
+| NSL-SEM-205 | `NSL-0.2-STRICT`에서는 Approval과 WRITE가 exactly 1:1로 연결되어야 한다. | MUST |
+| NSL-SEM-206 | WRITE와 연결되지 않은 unused Approval을 허용하지 않아야 한다. | MUST |
 
 ---
 
@@ -316,65 +316,65 @@ write_expr
 
 WRITE Argument는 Tool Contract Input Type과 정적으로 일치해야 한다.
 
-| ID | 요구사항 |
-|---|---|
-| NSL-TYP-201 | WRITE Argument Type을 Compile-time에 검증해야 한다. |
-| NSL-TYP-202 | WRITE Result Type은 Tool Contract Output에서 결정해야 한다. |
-| NSL-TYP-203 | Approval은 Value Truthiness와 무관한 Control Gate이어야 한다. |
-| NSL-TYP-204 | CHECK assert는 정확히 Bool이어야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-TYP-201 | WRITE Argument Type을 Compile-time에 검증해야 한다. | MUST |
+| NSL-TYP-202 | WRITE Result Type은 Tool Contract Output에서 결정해야 한다. | MUST |
+| NSL-TYP-203 | Approval은 Value Truthiness와 무관한 Control Gate이어야 한다. | MUST |
+| NSL-TYP-204 | CHECK assert는 정확히 Bool이어야 한다. | MUST |
 
 ---
 
 # 10. Tool Contract Requirements
 
-| ID | 요구사항 |
-|---|---|
-| NSL-TOL-201 | WRITE Tool은 capability=WRITE를 선언해야 한다. |
-| NSL-TOL-202 | WRITE Tool은 operation_kind를 선언해야 한다. |
-| NSL-TOL-203 | WRITE Tool은 idempotency.required=true를 선언해야 한다. |
-| NSL-TOL-204 | WRITE Tool은 atomicity를 선언해야 한다. |
-| NSL-TOL-205 | WRITE Tool은 commit semantics를 선언해야 한다. |
-| NSL-TOL-206 | 가능하면 post-write verification 정보를 제공해야 한다. |
-| NSL-TOL-207 | contract_hash에 WRITE semantics가 포함되어야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-TOL-201 | WRITE Tool은 capability=WRITE를 선언해야 한다. | MUST |
+| NSL-TOL-202 | WRITE Tool은 operation_kind를 선언해야 한다. | MUST |
+| NSL-TOL-203 | WRITE Tool은 idempotency.required=true를 선언해야 한다. | MUST |
+| NSL-TOL-204 | WRITE Tool은 atomicity를 선언해야 한다. | MUST |
+| NSL-TOL-205 | WRITE Tool은 commit semantics를 선언해야 한다. | MUST |
+| NSL-TOL-206 | 가능하면 post-write verification 정보를 제공해야 한다. | SHOULD |
+| NSL-TOL-207 | contract_hash에 WRITE semantics가 포함되어야 한다. | MUST |
 
 ---
 
 # 11. WRITE Requirements
 
-| ID | 요구사항 |
-|---|---|
-| NSL-WRT-001 | Runtime은 `write`를 Side Effect Tool Invocation으로 실행해야 한다. |
-| NSL-WRT-002 | `NSL-0.2-STRICT`에서 Skill당 WRITE는 최대 1개여야 하며 일반 Option으로 완화할 수 없어야 한다. |
-| NSL-WRT-003 | WRITE는 FOREACH 내부에서 실행할 수 없어야 하며 일반 Option으로 완화할 수 없어야 한다. |
-| NSL-WRT-004 | WRITE는 Tool Contract가 ATOMIC일 때만 허용해야 한다. |
-| NSL-WRT-005 | WRITE 실행 전 `PreWriteEligibility`가 ALLOWED여야 한다. |
-| NSL-WRT-006 | WRITE Payload와 Write Intent는 Approval Evidence가 승인한 내용과 동일해야 한다. |
-| NSL-WRT-007 | WRITE 결과는 CommitState를 포함해야 한다. |
-| NSL-WRT-008 | UNKNOWN_COMMIT_STATE에서 자동 재시도하지 않아야 한다. |
-| NSL-WRT-009 | WRITE 직전 현재 Business Preconditions를 검증해야 한다. |
-| NSL-WRT-010 | Approval 이후 Payload를 변경해야 하는 경우 기존 Approval Evidence를 재사용하지 않고 새로운 WriteIntent/Approval Request를 생성해야 한다. |
-| NSL-WRT-011 | Business Preconditions는 version/revision, ETag/precondition token, transactional business revalidation 또는 동등한 provider-side mechanism으로 검증할 수 있어야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-WRT-001 | Runtime은 `write`를 Side Effect Tool Invocation으로 실행해야 한다. | MUST |
+| NSL-WRT-002 | `NSL-0.2-STRICT`에서 Skill당 WRITE는 최대 1개여야 하며 일반 Option으로 완화할 수 없어야 한다. | MUST |
+| NSL-WRT-003 | WRITE는 FOREACH 내부에서 실행할 수 없어야 하며 일반 Option으로 완화할 수 없어야 한다. | MUST |
+| NSL-WRT-004 | WRITE는 Tool Contract가 ATOMIC일 때만 허용해야 한다. | MUST |
+| NSL-WRT-005 | WRITE 실행 전 `PreWriteEligibility`가 ALLOWED여야 한다. | MUST |
+| NSL-WRT-006 | WRITE Payload와 Write Intent는 Approval Evidence가 승인한 내용과 동일해야 한다. | MUST |
+| NSL-WRT-007 | WRITE 결과는 CommitState를 포함해야 한다. | MUST |
+| NSL-WRT-008 | UNKNOWN_COMMIT_STATE에서 자동 재시도하지 않아야 한다. | MUST |
+| NSL-WRT-009 | WRITE 직전 현재 Business Preconditions를 검증해야 한다. | MUST |
+| NSL-WRT-010 | Approval 이후 Payload를 변경해야 하는 경우 기존 Approval Evidence를 재사용하지 않고 새로운 WriteIntent/Approval Request를 생성해야 한다. | MUST |
+| NSL-WRT-011 | Business Preconditions는 version/revision, ETag/precondition token, transactional business revalidation 또는 동등한 provider-side mechanism으로 검증할 수 있어야 한다. | MUST |
 
 ---
 
 # 12. Approval Requirements
 
-| ID | 요구사항 |
-|---|---|
-| NSL-APR-001 | 모든 WRITE는 `approve`와 exactly 1:1로 연결되어야 한다. |
-| NSL-APR-002 | Approval Request는 정적 `ApprovalId`와 실행 instance `ApprovalRequestId`를 구분해야 한다. |
-| NSL-APR-003 | Approval Request/Evidence는 `BusinessOperationId`, `ApprovalRequestId`, `skill_semantic_hash`, `write_intent_hash`에 Binding되어야 한다. |
-| NSL-APR-004 | Approval 대기 시 Execution을 WAITING_FOR_APPROVAL로 전환해야 한다. |
-| NSL-APR-005 | Runtime은 Approval Request를 publish하기 전에 Checkpoint를 durable하게 저장해야 한다. |
-| NSL-APR-006 | Approval Request publish는 `ApprovalRequestId`를 기준으로 idempotent해야 한다. |
-| NSL-APR-007 | Runtime Worker는 Checkpoint 저장과 Approval Request publish 후 종료할 수 있어야 한다. |
-| NSL-APR-008 | Approval Routing/UI/Persistence/Notification 및 Resume Job 생성은 Agent/Platform이 담당해야 한다. |
-| NSL-APR-009 | Resume 시 Approval Evidence의 integrity와 BusinessOperationId/ApprovalRequestId Binding을 검증해야 한다. |
-| NSL-APR-010 | Resume 시 Approval Evidence의 `write_intent_hash`는 현재 계산한 `write_intent_hash`와 일치해야 한다. |
-| NSL-APR-011 | Resume 시 Approval 대상 PayloadHash는 현재 Canonical PayloadHash와 일치해야 한다. |
-| NSL-APR-012 | REJECTED Approval에서는 WRITE하지 않아야 한다. |
-| NSL-APR-013 | Expired Approval은 재승인을 요구해야 한다. |
-| NSL-APR-014 | Approval Event/Queue/Audit에는 raw WRITE Payload를 기본 복제하지 않고 `display_safe_summary`, `protected_payload_ref`, `payload_hash`, `data_classification` 중심으로 전달해야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-APR-001 | 모든 WRITE는 `approve`와 exactly 1:1로 연결되어야 한다. | MUST |
+| NSL-APR-002 | Approval Request는 정적 `ApprovalId`와 실행 instance `ApprovalRequestId`를 구분해야 한다. | MUST |
+| NSL-APR-003 | Approval Request/Evidence는 `BusinessOperationId`, `ApprovalRequestId`, `skill_semantic_hash`, `write_intent_hash`에 Binding되어야 한다. | MUST |
+| NSL-APR-004 | Approval 대기 시 Execution을 WAITING_FOR_APPROVAL로 전환해야 한다. | MUST |
+| NSL-APR-005 | Runtime은 Approval Request를 publish하기 전에 Checkpoint를 durable하게 저장해야 한다. | MUST |
+| NSL-APR-006 | Approval Request publish는 `ApprovalRequestId`를 기준으로 idempotent해야 한다. | MUST |
+| NSL-APR-007 | Runtime Worker는 Checkpoint 저장과 Approval Request publish 후 종료할 수 있어야 한다. | MUST |
+| NSL-APR-008 | Approval Routing/UI/Persistence/Notification 및 Resume Job 생성은 Agent/Platform이 담당해야 한다. | MUST |
+| NSL-APR-009 | Resume 시 Approval Evidence의 integrity와 BusinessOperationId/ApprovalRequestId Binding을 검증해야 한다. | MUST |
+| NSL-APR-010 | Resume 시 Approval Evidence의 `write_intent_hash`는 현재 계산한 `write_intent_hash`와 일치해야 한다. | MUST |
+| NSL-APR-011 | Resume 시 Approval 대상 PayloadHash는 현재 Canonical PayloadHash와 일치해야 한다. | MUST |
+| NSL-APR-012 | REJECTED Approval에서는 WRITE하지 않아야 한다. | MUST |
+| NSL-APR-013 | Expired Approval은 재승인을 요구해야 한다. | MUST |
+| NSL-APR-014 | Approval Event/Queue/Audit에는 raw WRITE Payload를 기본 복제하지 않고 `display_safe_summary`, `protected_payload_ref`, `payload_hash`, `data_classification` 중심으로 전달해야 한다. | MUST |
 
 ---
 
@@ -390,28 +390,28 @@ REQUIRES_APPROVAL
 
 `RECONCILIATION_REQUIRED`는 Pre-write Eligibility가 아니라 post-write `ExecutionStatus / Disposition`이다.
 
-| ID | 요구사항 |
-|---|---|
-| NSL-WEL-001 | Required CHECK 중 FAIL이 있으면 BLOCKED여야 한다. |
-| NSL-WEL-002 | Required CHECK 중 UNKNOWN이 있으면 BLOCKED여야 한다. |
-| NSL-WEL-003 | CHECK가 모두 PASS라도 Approval Evidence가 아직 없거나 Pending이면 REQUIRES_APPROVAL이어야 한다. |
-| NSL-WEL-004 | Approval Evidence, current PolicyDecision, Tool Preconditions 중 하나라도 WRITE를 허용하지 않으면 ALLOWED가 되어서는 안 된다. |
-| NSL-WEL-005 | UNKNOWN_COMMIT_STATE를 PreWriteEligibility 값으로 표현해서는 안 된다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-WEL-001 | Required CHECK 중 FAIL이 있으면 BLOCKED여야 한다. | MUST |
+| NSL-WEL-002 | Required CHECK 중 UNKNOWN이 있으면 BLOCKED여야 한다. | MUST |
+| NSL-WEL-003 | CHECK가 모두 PASS라도 Approval Evidence가 아직 없거나 Pending이면 REQUIRES_APPROVAL이어야 한다. | MUST |
+| NSL-WEL-004 | Approval Evidence, current PolicyDecision, Tool Preconditions 중 하나라도 WRITE를 허용하지 않으면 ALLOWED가 되어서는 안 된다. | MUST |
+| NSL-WEL-005 | UNKNOWN_COMMIT_STATE를 PreWriteEligibility 값으로 표현해서는 안 된다. | MUST |
 
 ---
 
 # 14. Idempotency Requirements
 
-| ID | 요구사항 |
-|---|---|
-| NSL-IDM-001 | 모든 WRITE invocation은 IdempotencyKey를 가져야 한다. |
-| NSL-IDM-002 | 동일 업무 WRITE를 식별하는 stable `BusinessOperationId`는 Suspend/Resume/Re-execution/Reconciliation 동안 유지되어야 한다. |
-| NSL-IDM-003 | IdempotencyKey는 최소한 Tenant/BusinessOperationId/WriteNode identity에 안정적으로 연결되어야 한다. |
-| NSL-IDM-004 | PayloadHash는 Canonical WRITE Payload에서 계산하며 IdempotencyKey와 별도 필드로 관리해야 한다. |
-| NSL-IDM-005 | 동일 IdempotencyKey + 동일 PayloadHash는 동일 Business Result를 반환해야 한다. |
-| NSL-IDM-006 | 동일 IdempotencyKey + 다른 PayloadHash는 IDEMPOTENCY_CONFLICT여야 한다. |
-| NSL-IDM-007 | Runtime은 Suspend/Resume에서 동일 BusinessOperationId/WriteNode에 동일 IdempotencyKey를 재사용해야 한다. |
-| NSL-IDM-008 | Durable duplicate guarantee는 Canonical Business API/Tool Contract가 제공해야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-IDM-001 | 모든 WRITE invocation은 IdempotencyKey를 가져야 한다. | MUST |
+| NSL-IDM-002 | 동일 업무 WRITE를 식별하는 stable `BusinessOperationId`는 Suspend/Resume/Re-execution/Reconciliation 동안 유지되어야 한다. | MUST |
+| NSL-IDM-003 | IdempotencyKey는 최소한 Tenant/BusinessOperationId/WriteNode identity에 안정적으로 연결되어야 한다. | MUST |
+| NSL-IDM-004 | PayloadHash는 Canonical WRITE Payload에서 계산하며 IdempotencyKey와 별도 필드로 관리해야 한다. | MUST |
+| NSL-IDM-005 | 동일 IdempotencyKey + 동일 PayloadHash는 동일 Business Result를 반환해야 한다. | MUST |
+| NSL-IDM-006 | 동일 IdempotencyKey + 다른 PayloadHash는 IDEMPOTENCY_CONFLICT여야 한다. | MUST |
+| NSL-IDM-007 | Runtime은 Suspend/Resume에서 동일 BusinessOperationId/WriteNode에 동일 IdempotencyKey를 재사용해야 한다. | MUST |
+| NSL-IDM-008 | Durable duplicate guarantee는 Canonical Business API/Tool Contract가 제공해야 한다. | MUST |
 
 ---
 
@@ -425,12 +425,12 @@ NOT_COMMITTED
 UNKNOWN_COMMIT_STATE
 ```
 
-| ID | 요구사항 |
-|---|---|
-| NSL-CMT-001 | WRITE 결과에 CommitState가 있어야 한다. |
-| NSL-CMT-002 | UNKNOWN_COMMIT_STATE를 ordinary failure로 변환하지 않아야 한다. |
-| NSL-CMT-003 | UNKNOWN_COMMIT_STATE는 RECONCILIATION_REQUIRED로 이어져야 한다. |
-| NSL-CMT-004 | Reconciliation 전 동일 업무를 새 Key로 재실행하지 않아야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-CMT-001 | WRITE 결과에 CommitState가 있어야 한다. | MUST |
+| NSL-CMT-002 | UNKNOWN_COMMIT_STATE를 ordinary failure로 변환하지 않아야 한다. | MUST |
+| NSL-CMT-003 | UNKNOWN_COMMIT_STATE는 RECONCILIATION_REQUIRED로 이어져야 한다. | MUST |
+| NSL-CMT-004 | Reconciliation 전 동일 업무를 새 Key로 재실행하지 않아야 한다. | MUST |
 
 ---
 
@@ -447,30 +447,30 @@ FAILED
 UNKNOWN
 ```
 
-| ID | 요구사항 |
-|---|---|
-| NSL-VFY-001 | COMMITTED 결과는 가능한 경우 Business Reference를 반환해야 한다. |
-| NSL-VFY-002 | Tool Contract가 Verification 방법을 제공할 수 있어야 한다. |
-| NSL-VFY-003 | Verification 실패와 Commit 실패를 구분해야 한다. |
-| NSL-VFY-004 | Verification 결과는 typed `VerificationStatus`로 Audit/Result에 포함되어야 한다. |
-| NSL-VFY-005 | `commit_state=COMMITTED` 이후 Verification이 FAILED/UNKNOWN이어도 CommitState를 NOT_COMMITTED로 재분류해서는 안 된다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-VFY-001 | COMMITTED 결과는 가능한 경우 Business Reference를 반환해야 한다. | SHOULD |
+| NSL-VFY-002 | Tool Contract가 Verification 방법을 제공할 수 있어야 한다. | MUST |
+| NSL-VFY-003 | Verification 실패와 Commit 실패를 구분해야 한다. | MUST |
+| NSL-VFY-004 | Verification 결과는 typed `VerificationStatus`로 Audit/Result에 포함되어야 한다. | MUST |
+| NSL-VFY-005 | `commit_state=COMMITTED` 이후 Verification이 FAILED/UNKNOWN이어도 CommitState를 NOT_COMMITTED로 재분류해서는 안 된다. | MUST |
 
 ---
 
 # 17. ExecutionContext / Checkpoint Requirements
 
-| ID | 요구사항 |
-|---|---|
-| NSL-CTX-201 | ExecutionContext는 per-execution Approval State를 보존할 수 있어야 한다. |
-| NSL-CTX-202 | ExecutionContext는 per-execution Write Journal State를 보존할 수 있어야 한다. |
-| NSL-CTX-203 | ExecutionContext는 per-execution Idempotency State를 보존할 수 있어야 한다. |
-| NSL-CTX-204 | ExecutionContext는 Checkpoint State를 보존할 수 있어야 한다. |
-| NSL-CTX-205 | Approval/Write/Idempotency 객체가 `Store`/`Journal`로 명명되더라도 외부 Persistence Service가 아니라 per-execution mutable state container여야 한다. |
-| NSL-CTX-206 | External persistence, Approval Service, Tool Executor, DB/MCP Client, Trace Sink, Trust Verifier는 ExecutionContext에 Service Locator 형태로 포함되어서는 안 되며 Port/Service로 주입되어야 한다. |
-| NSL-CTX-207 | Resume 후 Symbol/Check/Resource/Approval/Write/Idempotency 상태를 복원할 수 있어야 한다. |
-| NSL-CTX-208 | Checkpoint는 Skill semantic hash와 binding되어야 한다. |
-| NSL-CTX-209 | Checkpoint는 `BusinessOperationId`, `ApprovalRequestId`, `write_intent_hash`, `PayloadHash`를 Resume 검증에 필요한 수준으로 보존해야 한다. |
-| NSL-CTX-210 | v0.2 ExecutionRequest는 v0.1의 Principal / DataPolicy Security Context를 제거하지 않고 보존해야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-CTX-201 | ExecutionContext는 per-execution Approval State를 보존할 수 있어야 한다. | MUST |
+| NSL-CTX-202 | ExecutionContext는 per-execution Write Journal State를 보존할 수 있어야 한다. | MUST |
+| NSL-CTX-203 | ExecutionContext는 per-execution Idempotency State를 보존할 수 있어야 한다. | MUST |
+| NSL-CTX-204 | ExecutionContext는 Checkpoint State를 보존할 수 있어야 한다. | MUST |
+| NSL-CTX-205 | Approval/Write/Idempotency 객체가 `Store`/`Journal`로 명명되더라도 외부 Persistence Service가 아니라 per-execution mutable state container여야 한다. | MUST |
+| NSL-CTX-206 | External persistence, Approval Service, Tool Executor, DB/MCP Client, Trace Sink, Trust Verifier는 ExecutionContext에 Service Locator 형태로 포함되어서는 안 되며 Port/Service로 주입되어야 한다. | MUST |
+| NSL-CTX-207 | Resume 후 Symbol/Check/Resource/Approval/Write/Idempotency 상태를 복원할 수 있어야 한다. | MUST |
+| NSL-CTX-208 | Checkpoint는 Skill semantic hash와 binding되어야 한다. | MUST |
+| NSL-CTX-209 | Checkpoint는 `BusinessOperationId`, `ApprovalRequestId`, `write_intent_hash`, `PayloadHash`를 Resume 검증에 필요한 수준으로 보존해야 한다. | MUST |
+| NSL-CTX-210 | v0.2 ExecutionRequest는 v0.1의 Principal / DataPolicy Security Context를 제거하지 않고 보존해야 한다. | MUST |
 
 ---
 
@@ -506,13 +506,13 @@ WRITE_IN_PROGRESS
 → internal write-attempt state / audit event
 ```
 
-| ID | 요구사항 |
-|---|---|
-| NSL-STS-201 | v0.1 ExecutionStatus를 additive하게 보존해야 한다. |
-| NSL-STS-202 | `VALIDATION_ERROR`를 v0.2에서도 유지해야 한다. |
-| NSL-STS-203 | `RESUME_QUEUED`를 NSL durable ExecutionStatus로 정의해서는 안 된다. |
-| NSL-STS-204 | `WRITE_IN_PROGRESS`는 public durable ExecutionStatus가 아니라 internal attempt state 또는 trace/audit event로 모델링해야 한다. |
-| NSL-STS-205 | UNKNOWN_COMMIT_STATE는 `RECONCILIATION_REQUIRED` ExecutionStatus/Disposition으로 이어질 수 있어야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-STS-201 | v0.1 ExecutionStatus를 additive하게 보존해야 한다. | MUST |
+| NSL-STS-202 | `VALIDATION_ERROR`를 v0.2에서도 유지해야 한다. | MUST |
+| NSL-STS-203 | `RESUME_QUEUED`를 NSL durable ExecutionStatus로 정의해서는 안 된다. | MUST |
+| NSL-STS-204 | `WRITE_IN_PROGRESS`는 public durable ExecutionStatus가 아니라 internal attempt state 또는 trace/audit event로 모델링해야 한다. | MUST |
+| NSL-STS-205 | UNKNOWN_COMMIT_STATE는 `RECONCILIATION_REQUIRED` ExecutionStatus/Disposition으로 이어질 수 있어야 한다. | MUST |
 
 ## 18.1 ExecutionResult Additive Compatibility
 
@@ -532,27 +532,27 @@ Public field name은 Runtime Python Interface의 canonical `ExecutionResult`와 
 
 READ-only IR 1.0 실행에서는 v0.2 WRITE 관련 필드가 `None`/Not Applicable 의미를 가질 수 있어야 한다.
 
-| ID | 요구사항 |
-|---|---|
-| NSL-RSL-201 | v0.1 ExecutionResult의 기존 validation/evidence/output/resource/error 의미를 보존해야 한다. |
-| NSL-RSL-202 | v0.2 WRITE/Approval/Verification 필드는 additive optional field로 확장해야 한다. |
-| NSL-RSL-203 | READ-only 실행을 위해 WRITE 관련 필드를 강제로 의미 있는 값으로 채우지 않아야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-RSL-201 | v0.1 ExecutionResult의 기존 validation/evidence/output/resource/error 의미를 보존해야 한다. | MUST |
+| NSL-RSL-202 | v0.2 WRITE/Approval/Verification 필드는 additive optional field로 확장해야 한다. | MUST |
+| NSL-RSL-203 | READ-only 실행을 위해 WRITE 관련 필드를 강제로 의미 있는 값으로 채우지 않아야 한다. | MUST |
 
 ---
 
 # 19. `.nso` IR Requirements
 
-| ID | 요구사항 |
-|---|---|
-| NSL-IR-201 | IR Version 1.1을 지원해야 한다. |
-| NSL-IR-202 | ApprovalStatement Node를 지원해야 한다. |
-| NSL-IR-203 | WriteExpression Node를 지원해야 한다. |
-| NSL-IR-204 | WRITE Node는 approval_ref를 가져야 한다. |
-| NSL-IR-205 | RequiredTool에는 WRITE capability/risk/contract hash가 포함되어야 한다. |
-| NSL-IR-206 | Source Language `0.1`은 IR `1.0`, Source Language `0.2`는 IR `1.1`로 deterministic mapping되어야 한다. |
-| NSL-IR-207 | Source Language declaration은 authoritative하며 Compiler Option으로 임의 override해서는 안 된다. |
-| NSL-IR-208 | v1.0 READ-only IR은 계속 Load할 수 있어야 한다. |
-| NSL-IR-209 | Production WRITE Authenticity를 위해 IR 자체에 별도의 중복 Signature 경로를 강제해서는 안 되며 Signed NSP Package Trust Boundary를 재사용해야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-IR-201 | IR Version 1.1을 지원해야 한다. | MUST |
+| NSL-IR-202 | ApprovalStatement Node를 지원해야 한다. | MUST |
+| NSL-IR-203 | WriteExpression Node를 지원해야 한다. | MUST |
+| NSL-IR-204 | WRITE Node는 approval_ref를 가져야 한다. | MUST |
+| NSL-IR-205 | RequiredTool에는 WRITE capability/risk/contract hash가 포함되어야 한다. | MUST |
+| NSL-IR-206 | Source Language `0.1`은 IR `1.0`, Source Language `0.2`는 IR `1.1`로 deterministic mapping되어야 한다. | MUST |
+| NSL-IR-207 | Source Language declaration은 authoritative하며 Compiler Option으로 임의 override해서는 안 된다. | MUST |
+| NSL-IR-208 | v1.0 READ-only IR은 계속 Load할 수 있어야 한다. | MUST |
+| NSL-IR-209 | Production WRITE Authenticity를 위해 IR 자체에 별도의 중복 Signature 경로를 강제해서는 안 되며 Signed NSP Package Trust Boundary를 재사용해야 한다. | MUST |
 
 ---
 
@@ -572,14 +572,14 @@ Verified Package / Verified Skill Artifact
 Runtime Preflight
 ```
 
-| ID | 요구사항 |
-|---|---|
-| NSL-SIG-001 | Production WRITE Skill은 유효하게 검증된 Signed NSP Package에서 로드되어야 한다. |
-| NSL-SIG-002 | Package Integrity와 Publisher Signature는 Canonical package/artifact payload에 대해 검증되어야 한다. |
-| NSL-SIG-003 | Trusted Signing Key만 허용해야 한다. |
-| NSL-SIG-004 | Package/Artifact integrity가 변경되면 기존 Trust Evidence를 재사용해서는 안 된다. |
-| NSL-SIG-005 | Runtime Preflight는 raw SkillObject에 대한 별도 중복 signature path보다 Verified Package/Skill Trust Evidence를 확인해야 한다. |
-| NSL-SIG-006 | v0.1 Signed NSP trust boundary와 호환되어야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-SIG-001 | Production WRITE Skill은 유효하게 검증된 Signed NSP Package에서 로드되어야 한다. | MUST |
+| NSL-SIG-002 | Package Integrity와 Publisher Signature는 Canonical package/artifact payload에 대해 검증되어야 한다. | MUST |
+| NSL-SIG-003 | Trusted Signing Key만 허용해야 한다. | MUST |
+| NSL-SIG-004 | Package/Artifact integrity가 변경되면 기존 Trust Evidence를 재사용해서는 안 된다. | MUST |
+| NSL-SIG-005 | Runtime Preflight는 raw SkillObject에 대한 별도 중복 signature path보다 Verified Package/Skill Trust Evidence를 확인해야 한다. | MUST |
+| NSL-SIG-006 | v0.1 Signed NSP trust boundary와 호환되어야 한다. | MUST |
 
 ---
 
@@ -598,23 +598,23 @@ R5 final/external transaction
 
 Risk Level은 Tool/Skill의 **static classification metadata**다. User/Tenant별 실제 WRITE 허용 여부는 외부 Policy/OA Decision이다.
 
-| ID | 요구사항 |
-|---|---|
-| NSL-RSK-001 | Tool Contract는 Risk Level을 선언해야 한다. |
-| NSL-RSK-002 | Compiler는 Risk metadata의 존재/형식/계약 정합성을 검증하되 User/Tenant entitlement를 결정해서는 안 된다. |
-| NSL-RSK-003 | Runtime은 WRITE 실행 전 현재의 외부 PolicyDecision 또는 검증 가능한 Policy Evidence를 확인해야 한다. |
-| NSL-RSK-004 | Tenant/User entitlement, MFA, 추가 승인 조건을 Canonical Tool Contract hash의 환경별 policy 값으로 하드코딩해서는 안 된다. |
-| NSL-RSK-005 | v0.2 초기 Acceptance는 R3 중심으로 제한할 수 있어야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-RSK-001 | Tool Contract는 Risk Level을 선언해야 한다. | MUST |
+| NSL-RSK-002 | Compiler는 Risk metadata의 존재/형식/계약 정합성을 검증하되 User/Tenant entitlement를 결정해서는 안 된다. | MUST |
+| NSL-RSK-003 | Runtime은 WRITE 실행 전 현재의 외부 PolicyDecision 또는 검증 가능한 Policy Evidence를 확인해야 한다. | MUST |
+| NSL-RSK-004 | Tenant/User entitlement, MFA, 추가 승인 조건을 Canonical Tool Contract hash의 환경별 policy 값으로 하드코딩해서는 안 된다. | MUST |
+| NSL-RSK-005 | v0.2 초기 Acceptance는 R3 중심으로 제한할 수 있어야 한다. | MUST |
 
 ---
 
 # 22. Replay Requirements
 
-| ID | 요구사항 |
-|---|---|
-| NSL-RPL-201 | Replay에서 Live WRITE Provider 호출을 금지해야 한다. |
-| NSL-RPL-202 | Approval/Write/Commit 결과 Snapshot을 재생할 수 있어야 한다. |
-| NSL-RPL-203 | Replay 결과는 원 실행의 WRITE Side Effect를 반복 생성하지 않아야 한다. |
+| ID | 요구사항 | 우선순위 |
+|---|---|---|
+| NSL-RPL-201 | Replay에서 Live WRITE Provider 호출을 금지해야 한다. | MUST |
+| NSL-RPL-202 | Approval/Write/Commit 결과 Snapshot을 재생할 수 있어야 한다. | MUST |
+| NSL-RPL-203 | Replay 결과는 원 실행의 WRITE Side Effect를 반복 생성하지 않아야 한다. | MUST |
 
 ---
 

@@ -128,6 +128,8 @@ class ApprovalRecord:
 
     node_id: NodeId
     status: ApprovalStatus
+    decision: ApprovalDecision | None
+    evidence_validation: ApprovalEvidenceValidation | None
     message: str
 
     payload_hash: PayloadHash
@@ -151,6 +153,8 @@ ApprovalId
 ```
 
 Approval Evidence는 최소한 `BusinessOperationId`, `ApprovalRequestId`, `skill semantic hash`, `write_intent_hash`, `payload_hash`와 검증 가능하게 Binding되어야 한다.
+
+`status`는 Approval lifecycle, `decision`은 human decision, `evidence_validation`은 integrity/binding 검증 결과다. 세 의미를 하나의 enum으로 합치지 않는다.
 
 ---
 
@@ -257,6 +261,8 @@ class WriteJournalEntry:
 `WRITE_REQUESTED`는 Provider 호출 전에 durable하게 기록되어야 하므로 `commit_state=None`일 수 있다.
 
 `verification_status`는 raw string이 아니라 shared typed `VerificationStatus`를 사용한다.
+
+Terminal WRITE outcome은 `COMMITTED`, `NOT_COMMITTED`, `UNKNOWN_COMMIT_STATE`의 3-way algebra로 고정하며 별도 failure hierarchy로 같은 의미를 중복 표현하지 않는다.
 
 ---
 
@@ -800,6 +806,8 @@ IR 1.0 deterministic replay behavior
 
 v0.2 state 추가는 additive extension이어야 하며 READ-only consumer가 WRITE 관련 state를 강제로 해석하도록 만들지 않는다.
 
+ExecutionContext의 v0.2 state는 기존 v0.1 Result 의미를 제거하지 않고 optional approval/write/verification summary로 투영되어야 한다.
+
 ---
 
 # 25.1 Closure Alignment Trace
@@ -818,10 +826,13 @@ CHG-017  TOCTOU / Write-time Business Preconditions
 CHG-018  Checkpoint → Approval Publish Crash Consistency
 CHG-019  Provider 호출 전 durable WRITE_REQUESTED
 CHG-020  Cancellation/Timeout Commit Uncertainty
+CHG-022  WriteOutcome 3-way Canonical Algebra
 CHG-024  Approval Payload Protected-reference Model
 CHG-025  Replay Control-Evidence Snapshot
 CHG-027  ExecutionContext State-only Terminology
+CHG-028  ApprovalStatus / Decision / EvidenceValidation 분리
 CHG-029  VerificationStatus typed + Commit 분리
+CHG-030  ExecutionResult additive compatibility
 ```
 
 본 문서는 위 Closure 결정을 **per-execution mutable state / checkpoint / recovery model** 관점에서 구체화한다.

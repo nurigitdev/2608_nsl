@@ -11,11 +11,20 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SOURCE = (
+V0_1_SOURCE = (
     ROOT
     / "docs/v0_1/01_NeX_Skill_Language_v0.1_Interpreter_Runtime_SRS_v1.1_Draft.md"
 )
-DEFAULT_BASELINE = ROOT / "requirements/nsl_v0_1_traceability.json"
+V0_1_BASELINE = ROOT / "requirements/nsl_v0_1_traceability.json"
+V0_2_SOURCE = (
+    ROOT
+    / "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md"
+)
+V0_2_BASELINE = ROOT / "requirements/nsl_v0_2_traceability.json"
+
+# Preserve the public default used by the v0.1 certification and CLI.
+DEFAULT_SOURCE = V0_1_SOURCE
+DEFAULT_BASELINE = V0_1_BASELINE
 
 REQUIREMENT_ROW = re.compile(
     r"^\|\s*(NSL-[A-Z]+-\d{3})\s*\|\s*(.*?)\s*\|\s*(MUST|SHOULD|MAY)\s*\|$"

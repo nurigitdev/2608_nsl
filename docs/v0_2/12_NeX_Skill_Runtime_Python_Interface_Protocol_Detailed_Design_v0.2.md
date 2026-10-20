@@ -633,6 +633,7 @@ class PackageTrustEvidence:
     publisher_id: str
     signing_key_id: str
     verified_at: datetime
+    trust_status: TrustStatus
     trust_policy_id: str
 
 
@@ -1236,6 +1237,7 @@ CHG-003  BusinessOperationId Runtime Contract
 CHG-004  IdempotencyKey / PayloadHash 분리
 CHG-005  ApprovalRequestId + Evidence Binding
 CHG-006  Approval Workflow Ownership → Agent/Platform
+CHG-007  PreWriteEligibility에서 Reconciliation 제거
 CHG-008  Runtime ExecutionStatus 정리
 CHG-009  Principal / DataPolicy 보존
 CHG-010  Signed NSP / Verified Package Trust 재사용
@@ -1245,8 +1247,10 @@ CHG-019  Provider 호출 전 durable WRITE_REQUESTED
 CHG-020  Cancellation / Timeout Commit Uncertainty
 CHG-021  RuntimePreflight / WriteGuard 책임 분리
 CHG-022  WriteOutcome 3-way Algebra
+CHG-023  Risk Classification / PolicyDecision 분리
 CHG-024  Approval Payload Protected Reference
 CHG-025  Replay Control-Evidence Snapshot
+CHG-026  RetrySafety evidence / actual retry decision 분리
 CHG-027  ExecutionContext State-only / Ports Boundary
 CHG-028  Approval Status / Decision / Evidence Validation 분리
 CHG-029  VerificationStatus typed + Commit 분리

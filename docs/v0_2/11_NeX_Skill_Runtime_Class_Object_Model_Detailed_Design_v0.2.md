@@ -686,6 +686,7 @@ class PackageTrustEvidence:
     signing_key_id: str
     verified_at: datetime
     trust_status: TrustStatus
+    trust_policy_id: str
 ```
 
 구체적인 verifier implementation은 NSP Package/Security Adapter의 책임이다.
@@ -986,6 +987,7 @@ CHG-006  Approval Workflow Ownership → Agent/Platform
 CHG-008  Runtime Status Boundary 정리
 CHG-010  Signed NSP Trust Boundary 재사용
 CHG-017  Write-time Business Preconditions
+CHG-018  Checkpoint → Approval Publish Crash Consistency
 CHG-019  Provider 호출 전 durable WRITE_REQUESTED
 CHG-020  Cancellation/Timeout Commit Uncertainty
 CHG-021  RuntimePreflight / WriteGuard 책임 분리
