@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0039",
+  "current_slice": "0040",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -136,6 +136,13 @@
     "NSL-PAR-201": {"status": "IMPLEMENTED", "target_slice": "0039", "verification": ["TEST-PAR-201"], "evidence": ["tests/test_v0_2_parser_and_ast.py::test_par_201_write_expression_ast_preserves_tool_and_arguments", "tests/test_v0_2_parser_and_ast.py::test_par_201_write_expression_accepts_empty_argument_list"]},
     "NSL-PAR-202": {"status": "IMPLEMENTED", "target_slice": "0039", "verification": ["TEST-PAR-202"], "evidence": ["tests/test_v0_2_parser_and_ast.py::test_par_202_approve_statement_ast_is_immutable"]},
     "NSL-PAR-203": {"status": "IMPLEMENTED", "target_slice": "0039", "verification": ["TEST-PAR-203"], "evidence": ["tests/test_v0_2_parser_and_ast.py::test_par_203_write_preserves_the_exact_approval_reference", "tests/test_v0_2_parser_and_ast.py::test_parser_rejects_malformed_approval_and_write_forms"]},
-    "NSL-PAR-204": {"status": "IMPLEMENTED", "target_slice": "0039", "verification": ["TEST-PAR-204"], "evidence": ["tests/test_v0_2_parser_and_ast.py::test_par_204_new_ast_nodes_retain_complete_source_spans"]}
+    "NSL-PAR-204": {"status": "IMPLEMENTED", "target_slice": "0039", "verification": ["TEST-PAR-204"], "evidence": ["tests/test_v0_2_parser_and_ast.py::test_par_204_new_ast_nodes_retain_complete_source_spans"]},
+    "NSL-SEM-201": {"status": "IMPLEMENTED", "target_slice": "0040", "verification": ["TEST-SEM-201"], "evidence": ["tests/test_v0_2_approval_semantics.py::test_sem_201_approval_namespace_and_analysis_are_explicit_and_immutable", "tests/test_v0_2_approval_semantics.py::test_sem_201_symbol_table_resolves_only_the_requested_namespace", "tests/test_v0_2_approval_semantics.py::test_sem_201_approval_declaration_inside_foreach_is_rejected"]},
+    "NSL-SEM-202": {"status": "IMPLEMENTED", "target_slice": "0040", "verification": ["TEST-SEM-202"], "evidence": ["tests/test_v0_2_approval_semantics.py::test_sem_202_duplicate_approval_id_is_rejected_at_second_declaration"]},
+    "NSL-SEM-203": {"status": "IMPLEMENTED", "target_slice": "0040", "verification": ["TEST-SEM-203"], "evidence": ["tests/test_v0_2_approval_semantics.py::test_sem_203_approved_by_must_resolve_an_approval_symbol", "tests/test_v0_2_approval_semantics.py::test_sem_203_compiler_pipeline_runs_approval_resolution_before_lowering"]},
+    "NSL-SEM-204": {"status": "IMPLEMENTED", "target_slice": "0040", "verification": ["TEST-SEM-204"], "evidence": ["tests/test_v0_2_approval_semantics.py::test_sem_204_approval_must_precede_the_linked_write"]},
+    "NSL-SEM-205": {"status": "IMPLEMENTED", "target_slice": "0040", "verification": ["TEST-SEM-205"], "evidence": ["tests/test_v0_2_approval_semantics.py::test_sem_205_and_apr_001_approval_cannot_be_shared_by_writes"]},
+    "NSL-SEM-206": {"status": "IMPLEMENTED", "target_slice": "0040", "verification": ["TEST-SEM-206"], "evidence": ["tests/test_v0_2_approval_semantics.py::test_sem_206_unused_approval_is_rejected"]},
+    "NSL-APR-001": {"status": "IMPLEMENTED", "target_slice": "0040", "verification": ["TEST-APR-001"], "evidence": ["tests/test_v0_2_approval_semantics.py::test_sem_201_approval_namespace_and_analysis_are_explicit_and_immutable", "tests/test_v0_2_approval_semantics.py::test_sem_205_and_apr_001_approval_cannot_be_shared_by_writes", "tests/test_v0_2_approval_semantics.py::test_sem_206_unused_approval_is_rejected"]}
   }
 }

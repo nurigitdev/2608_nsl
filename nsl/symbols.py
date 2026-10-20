@@ -15,6 +15,7 @@ from .source import SourceFile, SourceSpan
 class SymbolNamespace(StrEnum):
     VALUE = "VALUE"
     CHECK = "CHECK"
+    APPROVAL = "APPROVAL"
 
 
 class ScopeKind(StrEnum):
@@ -101,12 +102,48 @@ class SymbolTable:
         return binding
 
     def resolve(self, name: str, span: SourceSpan | None) -> SymbolBinding:
+        return self._resolve(
+            name,
+            span,
+            namespace=None,
+            code=DiagnosticCode.SEM_UNKNOWN_IDENTIFIER,
+            message=f"unknown identifier: {name}",
+        )
+
+    def resolve_in_namespace(
+        self,
+        name: str,
+        namespace: SymbolNamespace,
+        span: SourceSpan | None,
+        *,
+        code: DiagnosticCode = DiagnosticCode.SEM_UNKNOWN_IDENTIFIER,
+        message: str | None = None,
+    ) -> SymbolBinding:
+        return self._resolve(
+            name,
+            span,
+            namespace=namespace,
+            code=code,
+            message=message or f"unknown {namespace.value.lower()} symbol: {name}",
+        )
+
+    def _resolve(
+        self,
+        name: str,
+        span: SourceSpan | None,
+        *,
+        namespace: SymbolNamespace | None,
+        code: DiagnosticCode,
+        message: str,
+    ) -> SymbolBinding:
         for frame in reversed(self._frames):
             binding = frame.bindings.get(name)
-            if binding is not None:
+            if binding is not None and (
+                namespace is None or binding.namespace is namespace
+            ):
                 return binding
         raise self._diagnostics.error(
-            DiagnosticCode.SEM_UNKNOWN_IDENTIFIER,
-            f"unknown identifier: {name}",
+            code,
+            message,
             span,
         )

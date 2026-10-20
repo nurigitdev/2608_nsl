@@ -38,7 +38,7 @@ and synchronization unit.
 |---|---|---|---|---|---|
 | 0038 | COMPLETE | Version-aware Lexer Bootstrap | `NSL-LEX-201..203` | `RD-003` | A bounded leading declaration scan selects the 0.1 or 0.2 keyword table before full tokenization. Invalid headers fail before tokenization, while 0.1 lexical compatibility remains unchanged. |
 | 0039 | COMPLETE | Approval and Write Parser AST | `NSL-PAR-201..204` | - | Approval and WRITE Source forms produce immutable AST nodes whose complete token ranges are retained as `SourceSpan` values. |
-| 0040 | PLANNED | Approval Symbol and Binding Semantics | `NSL-SEM-201..206`, `NSL-APR-001` | `RD-002` | Approval IDs have a dedicated namespace; references obey declaration order, dominance, exactly 1:1 binding, and no-unused-approval rules. |
+| 0040 | COMPLETE | Approval Symbol and Binding Semantics | `NSL-SEM-201..206`, `NSL-APR-001` | `RD-002` | Approval IDs have a dedicated namespace; references obey declaration order, dominance, exactly 1:1 binding, and no-unused-approval rules. |
 | 0041 | PLANNED | Static Type and Write Safety Analysis | `NSL-TYP-201..204`, `NSL-WRT-002..004`, `NSL-RSK-002` | `RD-002` | WRITE payloads and tool contracts are statically typed; strict profile flow, count, loop, atomicity, and risk metadata rules are enforced without deciding user or tenant entitlement. |
 | 0042 | PLANNED | Compiler Lowering to IR 1.1 | `NSL-IR-206..207` | `RD-003` | Source Language 0.1 deterministically lowers to IR 1.0 and Source Language 0.2 to IR 1.1 without an override option or changes to 0.1 canonical output. |
 
@@ -80,6 +80,20 @@ bootstrap behavior in addition to the three assigned SRS requirements.
 
 Slice 0039 completion evidence is maintained in
 `tests/test_v0_2_parser_and_ast.py`.
+
+### 4.3 Slice 0040
+
+- Add the Approval namespace to `SymbolTable` and require namespace-specific
+  resolution for every `approved_by` reference.
+- Build an immutable approval declaration and WRITE binding analysis in
+  deterministic Source order.
+- Reject duplicate, unknown, forward, shared, unused, and loop-local approval
+  declarations or references with source-aware diagnostics.
+- Run approval binding analysis in the compiler pipeline before lowering while
+  leaving WRITE contract/type analysis and IR 1.1 lowering to later Slices.
+
+Slice 0040 completion evidence is maintained in
+`tests/test_v0_2_approval_semantics.py`.
 
 ## 5. Status and Evidence Rules
 

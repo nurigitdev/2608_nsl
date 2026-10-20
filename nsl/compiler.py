@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Any
 
 from .bounds import StaticBoundAnalyzer, UnboundedStructureError
@@ -47,10 +47,11 @@ from .includes import (
 )
 from .integrity import source_manifest_sha256
 from .semantic_diagnostics import SourceDiagnosticContext
-from .source import SourceFile, coerce_source
+from .source import SourceFile, SourceSpan, coerce_source
 from .symbols import ScopeKind, SymbolBinding, SymbolNamespace, SymbolTable
 from .syntax import (
     AstBinary,
+    AstApprove,
     AstCall,
     AstCheck,
     AstEmit,
@@ -63,6 +64,7 @@ from .syntax import (
     AstRead,
     AstSkill,
     AstStatement,
+    AstWrite,
     Lexer,
     Parser,
 )
@@ -83,6 +85,138 @@ class CompilationResult:
     source_bundle_hash: str
     source_manifest: tuple[SourceManifestEntry, ...]
     include_edges: tuple[IncludeEdge, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovalSymbol:
+    approval_id: str
+    symbol_id: str
+    declaration_span: SourceSpan | None
+    declaration_order: int
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovalWriteBinding:
+    approval: ApprovalSymbol
+    write: AstWrite
+    write_order: int
+    inside_foreach: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovalBindingAnalysis:
+    approvals: tuple[ApprovalSymbol, ...]
+    bindings: tuple[ApprovalWriteBinding, ...]
+
+
+class ApprovalBindingAnalyzer:
+    _APPROVAL_TYPE = TypeRef(kind="domain", name="Approval")
+
+    def __init__(self, sources: tuple[SourceFile, ...]) -> None:
+        self._symbols = SymbolTable(sources)
+        self._diagnostics = SourceDiagnosticContext(sources)
+
+    def analyze(self, ast: AstSkill) -> ApprovalBindingAnalysis:
+        if ast.language_version != "0.2":
+            return ApprovalBindingAnalysis((), ())
+
+        events = tuple(self._walk(ast.body, inside_foreach=False))
+        approvals: dict[str, ApprovalSymbol] = {}
+        writes: list[tuple[int, AstWrite, bool]] = []
+        for order, (node, inside_foreach) in enumerate(events, start=1):
+            if isinstance(node, AstApprove):
+                if inside_foreach:
+                    raise self._diagnostics.error(
+                        DiagnosticCode.SEM_APPROVAL_SCOPE,
+                        "approval declarations must be in skill scope",
+                        node.approval_id_span or node.span,
+                    )
+                if node.approval_id in approvals:
+                    raise self._diagnostics.error(
+                        DiagnosticCode.SEM_DUPLICATE_SYMBOL,
+                        f"duplicate approval ID: {node.approval_id}",
+                        node.approval_id_span or node.span,
+                    )
+                binding = self._symbols.declare(
+                    node.approval_id,
+                    SymbolNamespace.APPROVAL,
+                    "APPROVAL",
+                    self._APPROVAL_TYPE,
+                    DataClassification.INTERNAL,
+                    node.approval_id_span or node.span,
+                )
+                approvals[node.approval_id] = ApprovalSymbol(
+                    node.approval_id,
+                    binding.symbol_id,
+                    node.approval_id_span or node.span,
+                    order,
+                )
+            else:
+                writes.append((order, node, inside_foreach))
+
+        linked_ids: set[str] = set()
+        bindings: list[ApprovalWriteBinding] = []
+        for order, write, inside_foreach in writes:
+            self._symbols.resolve_in_namespace(
+                write.approval_id,
+                SymbolNamespace.APPROVAL,
+                write.approval_span or write.span,
+                code=DiagnosticCode.SEM_UNKNOWN_APPROVAL,
+                message=f"unknown approval ID: {write.approval_id}",
+            )
+            approval = approvals[write.approval_id]
+            if approval.declaration_order >= order:
+                raise self._diagnostics.error(
+                    DiagnosticCode.SEM_APPROVAL_ORDER,
+                    "approval must be declared before WRITE: "
+                    f"{write.approval_id}",
+                    write.approval_span or write.span,
+                )
+            if write.approval_id in linked_ids:
+                raise self._diagnostics.error(
+                    DiagnosticCode.SEM_APPROVAL_WRITE_NOT_ONE_TO_ONE,
+                    "approval must be linked to exactly one WRITE: "
+                    f"{write.approval_id}",
+                    write.approval_span or write.span,
+                )
+            linked_ids.add(write.approval_id)
+            bindings.append(
+                ApprovalWriteBinding(approval, write, order, inside_foreach)
+            )
+
+        for approval_id, approval in approvals.items():
+            if approval_id not in linked_ids:
+                raise self._diagnostics.error(
+                    DiagnosticCode.SEM_UNUSED_APPROVAL,
+                    f"approval is not linked to a WRITE: {approval_id}",
+                    approval.declaration_span,
+                )
+        return ApprovalBindingAnalysis(tuple(approvals.values()), tuple(bindings))
+
+    @classmethod
+    def _walk(
+        cls, value: object, inside_foreach: bool
+    ) -> tuple[tuple[AstApprove | AstWrite, bool], ...]:
+        if isinstance(value, tuple):
+            return tuple(
+                event
+                for item in value
+                for event in cls._walk(item, inside_foreach)
+            )
+        if not isinstance(value, AstNode):
+            return ()
+
+        events: list[tuple[AstApprove | AstWrite, bool]] = []
+        if isinstance(value, (AstApprove, AstWrite)):
+            events.append((value, inside_foreach))
+        for item in fields(value):
+            if item.name.endswith("span"):
+                continue
+            child_inside = inside_foreach or (
+                isinstance(value, AstForeach) and item.name == "body"
+            )
+            events.extend(cls._walk(getattr(value, item.name), child_inside))
+        return tuple(events)
 
 
 class NslCompiler:
@@ -112,6 +246,7 @@ class NslCompiler:
             source_manifest = bundle.manifest
             include_edges = bundle.edges
             source_files = bundle.sources
+        approval_analysis = ApprovalBindingAnalyzer(source_files).analyze(ast)
         source_bundle_hash = source_manifest_sha256(source_manifest)
         build = BuildMetadata(
             source_bundle_sha256=source_bundle_hash,
@@ -126,7 +261,9 @@ class NslCompiler:
                 for item in source_manifest
             ),
         )
-        lowerer = _Lowerer(self.tool_catalog, ast, source_files)
+        lowerer = _Lowerer(
+            self.tool_catalog, ast, source_files, approval_analysis
+        )
         skill = lowerer.lower(build).with_computed_hash()
         nso_bytes = NsoCodec.encode(skill)
         return CompilationResult(
@@ -145,6 +282,7 @@ class _Lowerer:
         catalog: ToolContractCatalog,
         ast: AstSkill,
         sources: tuple[SourceFile, ...],
+        approval_analysis: ApprovalBindingAnalysis,
     ) -> None:
         self.catalog = catalog
         self.ast = ast
@@ -153,6 +291,7 @@ class _Lowerer:
         self.type_checker = StaticTypeChecker(sources)
         self.diagnostics = SourceDiagnosticContext(sources)
         self.tools_by_id: dict[str, tuple[RequiredTool, ToolContract]] = {}
+        self.approval_analysis = approval_analysis
 
     def _node_id(self, kind: str) -> str:
         self.node_counters[kind] = self.node_counters.get(kind, 0) + 1
