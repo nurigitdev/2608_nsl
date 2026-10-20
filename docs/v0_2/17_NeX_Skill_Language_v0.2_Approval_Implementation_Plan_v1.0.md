@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Approval slices:** 0047-0049  
-**Status:** IN PROGRESS  
+**Status:** COMPLETE<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`  
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`
 
@@ -36,7 +36,7 @@ and synchronization unit.
 |---|---|---|---|---|---|
 | 0047 | COMPLETE | Approval Request and Protected Evidence | `NSL-APR-002..003`, `NSL-APR-014` | `CHG-005`, `CHG-026` | Immutable request/evidence contracts distinguish static and execution identities, bind business and semantic identities, and expose only protected payload metadata. |
 | 0048 | COMPLETE | Durable Suspend and Approval Publication | `NSL-APR-004..008`, `NSL-ARC-206`, `NSL-ARC-208..209` | `CHG-006`, `CHG-018` | Runtime durably saves a checkpoint before idempotent request publication and returns a non-blocking suspended result without taking ownership of workflow orchestration. |
-| 0049 | PLANNED | Resume Claim, Clock, and Evidence Validation | `NSL-APR-009..013` | `RD-004`, `RD-005`, `RD-006` | Resume atomically claims one checkpoint, validates trusted evidence and current bindings using injected ports and clock, and blocks rejected, expired, stale, duplicate, or mismatched attempts. |
+| 0049 | COMPLETE | Resume Claim, Clock, and Evidence Validation | `NSL-APR-009..013` | `RD-004`, `RD-005`, `RD-006` | Resume atomically claims one checkpoint, validates trusted evidence and current bindings using injected ports and clock, and blocks rejected, expired, stale, duplicate, or mismatched attempts. |
 
 `RD-004..006` are FROZEN implementation decisions, not additional SRS
 requirements. They constrain Slice 0049 without changing the 123-requirement
@@ -93,6 +93,13 @@ absence of workflow orchestration methods.
 - Compare current write intent and canonical payload hashes after resume.
 - Treat rejection as a no-WRITE business outcome and expiry as requiring a new
   Approval.
+
+Slice 0049 completion evidence is maintained in
+`tests/test_v0_2_approval_resume_validation.py`, including claim-before-restore
+ordering, stale/live/consumed rejection, verifier failure, every frozen
+identity binding, current intent and payload mismatch, UTC and exact expiry
+boundaries, replay-recorded time, rejection, release/retry, and malformed port
+contracts.
 
 ## 5. Status and Evidence Rules
 

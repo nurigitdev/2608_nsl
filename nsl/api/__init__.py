@@ -1,5 +1,20 @@
 """Stable framework-neutral API for NeX-AE Worker integration."""
 
+from ..approval import (
+    ApprovalClock,
+    ApprovalEvidence,
+    ApprovalEvidenceVerifier,
+    ApprovalPort,
+    ApprovalRequest,
+    ApprovalResumeCoordinator,
+    ApprovalResumeOutcome,
+    ApprovalSuspension,
+    ApprovalSuspensionCoordinator,
+    CheckpointPort,
+    RecordedApprovalClock,
+    ResumeCheckpointPort,
+    ResumeToken,
+)
 from ..audit import AuditSink, SnapshotStore
 from ..dispatch import (
     DispatchStatus,
@@ -47,7 +62,17 @@ from ..worker import (
 )
 
 __all__ = [
+    "ApprovalClock",
+    "ApprovalEvidence",
+    "ApprovalEvidenceVerifier",
+    "ApprovalPort",
+    "ApprovalRequest",
+    "ApprovalResumeCoordinator",
+    "ApprovalResumeOutcome",
+    "ApprovalSuspension",
+    "ApprovalSuspensionCoordinator",
     "AuditSink",
+    "CheckpointPort",
     "DispatchStatus",
     "ExecutionRequest",
     "ExecutionResult",
@@ -67,11 +92,14 @@ __all__ = [
     "ProgressEvent",
     "ProgressSink",
     "ProgressState",
+    "RecordedApprovalClock",
     "ResolvedSkill",
     "RuntimeEngine",
     "RuntimeResultEnvelope",
     "RuntimeResultRecord",
     "RuntimeResultStore",
+    "ResumeCheckpointPort",
+    "ResumeToken",
     "SkillExecutionJob",
     "SkillExecutionWorker",
     "SkillResolutionCode",

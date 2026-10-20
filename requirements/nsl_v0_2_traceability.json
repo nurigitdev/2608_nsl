@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0048",
+  "current_slice": "0049",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -189,6 +189,11 @@
     "NSL-APR-005": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-APR-005"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_apr_005_checkpoint_is_saved_before_approval_publication", "tests/test_v0_2_approval_suspend_publish.py::test_apr_005_save_failure_prevents_publication"]},
     "NSL-APR-006": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-APR-006"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_apr_006_publish_retry_reuses_request_identity_idempotently"]},
     "NSL-APR-007": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-APR-007"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_apr_007_suspension_is_complete_worker_release_contract"]},
-    "NSL-APR-008": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-APR-008"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_arc_208_apr_008_platform_workflow_ownership_stays_outside_ports"]}
+    "NSL-APR-008": {"status": "IMPLEMENTED", "target_slice": "0048", "verification": ["TEST-APR-008"], "evidence": ["tests/test_v0_2_approval_suspend_publish.py::test_arc_208_apr_008_platform_workflow_ownership_stays_outside_ports"]},
+    "NSL-APR-009": {"status": "IMPLEMENTED", "target_slice": "0049", "verification": ["TEST-APR-009"], "evidence": ["tests/test_v0_2_approval_resume_validation.py::test_apr_009_integrity_verifier_must_authenticate_opaque_evidence", "tests/test_v0_2_approval_resume_validation.py::test_apr_009_010_011_all_current_bindings_fail_closed", "tests/test_v0_2_approval_resume_validation.py::test_rd_004_claim_occurs_before_mutable_state_restore"]},
+    "NSL-APR-010": {"status": "IMPLEMENTED", "target_slice": "0049", "verification": ["TEST-APR-010"], "evidence": ["tests/test_v0_2_approval_resume_validation.py::test_apr_010_current_intent_recalculation_mismatch_blocks", "tests/test_v0_2_approval_resume_validation.py::test_apr_009_010_011_all_current_bindings_fail_closed"]},
+    "NSL-APR-011": {"status": "IMPLEMENTED", "target_slice": "0049", "verification": ["TEST-APR-011"], "evidence": ["tests/test_v0_2_approval_resume_validation.py::test_apr_011_current_canonical_payload_mismatch_blocks", "tests/test_v0_2_approval_resume_validation.py::test_apr_009_010_011_all_current_bindings_fail_closed"]},
+    "NSL-APR-012": {"status": "IMPLEMENTED", "target_slice": "0049", "verification": ["TEST-APR-012"], "evidence": ["tests/test_v0_2_approval_resume_validation.py::test_apr_012_rejected_decision_is_consumed_without_write_permission"]},
+    "NSL-APR-013": {"status": "IMPLEMENTED", "target_slice": "0049", "verification": ["TEST-APR-013"], "evidence": ["tests/test_v0_2_approval_resume_validation.py::test_apr_013_expiry_boundary_requires_reapproval", "tests/test_v0_2_approval_resume_validation.py::test_rd_005_before_expiry_and_no_expiry_are_valid"]}
   }
 }

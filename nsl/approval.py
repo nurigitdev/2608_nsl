@@ -8,6 +8,7 @@ from typing import Any, Mapping, Protocol, runtime_checkable
 from .checkpoints import CheckpointCoordinator, ExecutionCheckpoint
 from .core import (
     ApprovalDecision,
+    ApprovalEvidenceValidation,
     ApprovalRequestId,
     ApprovalStatus,
     BusinessOperationId,
@@ -17,10 +18,13 @@ from .core import (
     RiskLevel,
 )
 from .data_protection import ensure_no_credential_material
+from .ir import SkillObject
 from .runtime_models import (
     ApprovalSummary,
     ExecutionContext,
+    ExecutionRequest,
     ExecutionResult,
+    RuntimeClock,
     SuspensionInfo,
 )
 
@@ -384,3 +388,441 @@ class ApprovalSuspensionCoordinator:
         ctx.checkpoint.payload_hashes_by_write_node[
             request.write_node_id
         ] = request.payload_hash
+
+
+class ResumeClaimError(RuntimeError):
+    pass
+
+
+@runtime_checkable
+class ResumeCheckpointPort(Protocol):
+    async def claim(
+        self,
+        execution_id: str,
+        checkpoint_version: int,
+        claim_id: str,
+    ) -> ExecutionCheckpoint: ...
+
+    async def release(
+        self,
+        execution_id: str,
+        checkpoint_version: int,
+        claim_id: str,
+    ) -> None: ...
+
+    async def consume(
+        self,
+        execution_id: str,
+        checkpoint_version: int,
+        claim_id: str,
+    ) -> None: ...
+
+
+@runtime_checkable
+class ApprovalClock(Protocol):
+    def now(self) -> datetime: ...
+
+
+@runtime_checkable
+class ApprovalEvidenceVerifier(Protocol):
+    def verify(self, evidence: ApprovalEvidence) -> bool: ...
+
+
+@dataclass(frozen=True, slots=True)
+class RecordedApprovalClock:
+    recorded_at: datetime
+
+    def __post_init__(self) -> None:
+        _utc_instant(
+            self.recorded_at,
+            "RecordedApprovalClock.recorded_at",
+            optional=False,
+        )
+
+    def now(self) -> datetime:
+        return self.recorded_at
+
+
+@dataclass(frozen=True, slots=True)
+class ResumeToken:
+    execution_id: str
+    business_operation_id: BusinessOperationId
+    checkpoint_version: int
+    approval_evidence: ApprovalEvidence
+
+    def __post_init__(self) -> None:
+        _required_text(self.execution_id, "ResumeToken.execution_id")
+        _required_text(
+            self.business_operation_id,
+            "ResumeToken.business_operation_id",
+        )
+        if (
+            not isinstance(self.checkpoint_version, int)
+            or isinstance(self.checkpoint_version, bool)
+            or self.checkpoint_version <= 0
+        ):
+            raise ValueError("ResumeToken.checkpoint_version must be positive")
+        if not isinstance(self.approval_evidence, ApprovalEvidence):
+            raise TypeError(
+                "ResumeToken.approval_evidence must be ApprovalEvidence"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovalResumeBindings:
+    tenant_id: str
+    execution_id: str
+    business_operation_id: BusinessOperationId
+    approval_id: str
+    approval_request_id: ApprovalRequestId
+    skill_semantic_hash: str
+    payload_hash: PayloadHash
+    write_intent_hash: str
+
+    def __post_init__(self) -> None:
+        for name in (
+            "tenant_id",
+            "execution_id",
+            "business_operation_id",
+            "approval_id",
+            "approval_request_id",
+            "write_intent_hash",
+        ):
+            _required_text(getattr(self, name), f"ApprovalResumeBindings.{name}")
+        _sha256(
+            self.skill_semantic_hash,
+            "ApprovalResumeBindings.skill_semantic_hash",
+        )
+        _sha256(
+            self.payload_hash,
+            "ApprovalResumeBindings.payload_hash",
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovalValidationResult:
+    validation: ApprovalEvidenceValidation
+    approval_status: ApprovalStatus
+    reason_code: str | None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.validation, ApprovalEvidenceValidation):
+            raise TypeError(
+                "validation must be an ApprovalEvidenceValidation"
+            )
+        if not isinstance(self.approval_status, ApprovalStatus):
+            raise TypeError("approval_status must be an ApprovalStatus")
+        if self.reason_code is not None:
+            _required_text(
+                self.reason_code,
+                "ApprovalValidationResult.reason_code",
+            )
+
+    @property
+    def approval_gate_passed(self) -> bool:
+        return (
+            self.validation is ApprovalEvidenceValidation.VALID
+            and self.approval_status is ApprovalStatus.APPROVED
+        )
+
+    @property
+    def requires_reapproval(self) -> bool:
+        return self.approval_status is ApprovalStatus.EXPIRED
+
+
+class ApprovalEvidenceValidator:
+    def validate(
+        self,
+        evidence: ApprovalEvidence,
+        bindings: ApprovalResumeBindings,
+        verifier: ApprovalEvidenceVerifier,
+        clock: ApprovalClock,
+    ) -> ApprovalValidationResult:
+        if not isinstance(evidence, ApprovalEvidence):
+            raise TypeError("evidence must be ApprovalEvidence")
+        if not isinstance(bindings, ApprovalResumeBindings):
+            raise TypeError("bindings must be ApprovalResumeBindings")
+        if not isinstance(verifier, ApprovalEvidenceVerifier):
+            raise TypeError(
+                "verifier must implement ApprovalEvidenceVerifier"
+            )
+        if not isinstance(clock, ApprovalClock):
+            raise TypeError("clock must implement ApprovalClock")
+
+        verified = verifier.verify(evidence)
+        if not isinstance(verified, bool):
+            raise TypeError("ApprovalEvidenceVerifier.verify must return bool")
+        if not verified:
+            return self._blocked(
+                ApprovalEvidenceValidation.INVALID,
+                "APPROVAL_EVIDENCE_INVALID",
+            )
+
+        mismatch_checks = (
+            (
+                evidence.business_operation_id
+                != bindings.business_operation_id,
+                ApprovalEvidenceValidation.BUSINESS_OPERATION_MISMATCH,
+                "APPROVAL_BUSINESS_OPERATION_MISMATCH",
+            ),
+            (
+                evidence.approval_request_id
+                != bindings.approval_request_id,
+                ApprovalEvidenceValidation.APPROVAL_REQUEST_MISMATCH,
+                "APPROVAL_REQUEST_MISMATCH",
+            ),
+            (
+                evidence.write_intent_hash != bindings.write_intent_hash,
+                ApprovalEvidenceValidation.INTENT_MISMATCH,
+                "APPROVAL_INTENT_MISMATCH",
+            ),
+            (
+                evidence.payload_hash != bindings.payload_hash,
+                ApprovalEvidenceValidation.PAYLOAD_MISMATCH,
+                "APPROVAL_PAYLOAD_MISMATCH",
+            ),
+        )
+        for mismatched, validation, reason_code in mismatch_checks:
+            if mismatched:
+                return self._blocked(validation, reason_code)
+
+        if (
+            evidence.tenant_id != bindings.tenant_id
+            or evidence.execution_id != bindings.execution_id
+            or evidence.approval_id != bindings.approval_id
+            or evidence.skill_semantic_hash
+            != bindings.skill_semantic_hash
+        ):
+            return self._blocked(
+                ApprovalEvidenceValidation.INVALID,
+                "APPROVAL_EVIDENCE_BINDING_MISMATCH",
+            )
+
+        now = _utc_instant(
+            clock.now(),
+            "ApprovalClock.now",
+            optional=False,
+        )
+        if evidence.expires_at is not None and now >= evidence.expires_at:
+            return ApprovalValidationResult(
+                ApprovalEvidenceValidation.EXPIRED,
+                ApprovalStatus.EXPIRED,
+                "APPROVAL_EXPIRED",
+            )
+        if evidence.decision is ApprovalDecision.REJECTED:
+            return ApprovalValidationResult(
+                ApprovalEvidenceValidation.VALID,
+                ApprovalStatus.REJECTED,
+                "APPROVAL_REJECTED",
+            )
+        return ApprovalValidationResult(
+            ApprovalEvidenceValidation.VALID,
+            ApprovalStatus.APPROVED,
+            None,
+        )
+
+    @staticmethod
+    def _blocked(
+        validation: ApprovalEvidenceValidation,
+        reason_code: str,
+    ) -> ApprovalValidationResult:
+        return ApprovalValidationResult(
+            validation,
+            ApprovalStatus.PENDING,
+            reason_code,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovalResumeOutcome:
+    context: ExecutionContext
+    checkpoint: ExecutionCheckpoint
+    claim_id: str
+    validation: ApprovalValidationResult
+    claim_consumed: bool
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.context, ExecutionContext):
+            raise TypeError("context must be an ExecutionContext")
+        if not isinstance(self.checkpoint, ExecutionCheckpoint):
+            raise TypeError("checkpoint must be an ExecutionCheckpoint")
+        _required_text(self.claim_id, "ApprovalResumeOutcome.claim_id")
+        if not isinstance(self.validation, ApprovalValidationResult):
+            raise TypeError("validation must be ApprovalValidationResult")
+        if not isinstance(self.claim_consumed, bool):
+            raise TypeError("claim_consumed must be bool")
+
+
+class ApprovalResumeCoordinator:
+    __slots__ = ("_checkpoints", "_validator")
+
+    def __init__(
+        self,
+        checkpoints: CheckpointCoordinator | None = None,
+        validator: ApprovalEvidenceValidator | None = None,
+    ) -> None:
+        self._checkpoints = checkpoints or CheckpointCoordinator()
+        self._validator = validator or ApprovalEvidenceValidator()
+
+    async def resume(
+        self,
+        *,
+        token: ResumeToken,
+        skill: SkillObject,
+        request: ExecutionRequest,
+        approval_id: str,
+        write_node_id: str,
+        current_write_intent_hash: str,
+        current_payload_hash: PayloadHash,
+        claim_id: str,
+        checkpoint_port: ResumeCheckpointPort,
+        verifier: ApprovalEvidenceVerifier,
+        clock: ApprovalClock,
+        runtime_clock: RuntimeClock | None = None,
+    ) -> ApprovalResumeOutcome:
+        self._validate_contracts(
+            token,
+            skill,
+            request,
+            checkpoint_port,
+            verifier,
+            clock,
+        )
+        _required_text(approval_id, "approval_id")
+        _required_text(write_node_id, "write_node_id")
+        _required_text(current_write_intent_hash, "current_write_intent_hash")
+        _sha256(current_payload_hash, "current_payload_hash")
+        _required_text(claim_id, "claim_id")
+        self._validate_token_request(token, request)
+
+        checkpoint = await checkpoint_port.claim(
+            token.execution_id,
+            token.checkpoint_version,
+            claim_id,
+        )
+        try:
+            context = self._checkpoints.restore(
+                checkpoint,
+                skill,
+                request,
+                runtime_clock,
+            )
+            bindings = self._bindings(
+                context,
+                approval_id,
+                write_node_id,
+                current_write_intent_hash,
+                current_payload_hash,
+            )
+            validation = self._validator.validate(
+                token.approval_evidence,
+                bindings,
+                verifier,
+                clock,
+            )
+        except Exception:
+            await checkpoint_port.release(
+                token.execution_id,
+                token.checkpoint_version,
+                claim_id,
+            )
+            raise
+
+        if validation.validation in {
+            ApprovalEvidenceValidation.INVALID,
+            ApprovalEvidenceValidation.INTENT_MISMATCH,
+            ApprovalEvidenceValidation.PAYLOAD_MISMATCH,
+            ApprovalEvidenceValidation.BUSINESS_OPERATION_MISMATCH,
+            ApprovalEvidenceValidation.APPROVAL_REQUEST_MISMATCH,
+        }:
+            await checkpoint_port.release(
+                token.execution_id,
+                token.checkpoint_version,
+                claim_id,
+            )
+            consumed = False
+        else:
+            context.approvals.records[approval_id] = validation.approval_status
+            await checkpoint_port.consume(
+                token.execution_id,
+                token.checkpoint_version,
+                claim_id,
+            )
+            consumed = True
+
+        return ApprovalResumeOutcome(
+            context,
+            checkpoint,
+            claim_id,
+            validation,
+            consumed,
+        )
+
+    @staticmethod
+    def _validate_contracts(
+        token: object,
+        skill: object,
+        request: object,
+        checkpoint_port: object,
+        verifier: object,
+        clock: object,
+    ) -> None:
+        contracts = (
+            (token, ResumeToken, "token must be ResumeToken"),
+            (skill, SkillObject, "skill must be SkillObject"),
+            (request, ExecutionRequest, "request must be ExecutionRequest"),
+            (
+                checkpoint_port,
+                ResumeCheckpointPort,
+                "checkpoint_port must implement ResumeCheckpointPort",
+            ),
+            (
+                verifier,
+                ApprovalEvidenceVerifier,
+                "verifier must implement ApprovalEvidenceVerifier",
+            ),
+            (clock, ApprovalClock, "clock must implement ApprovalClock"),
+        )
+        for value, expected, message in contracts:
+            if not isinstance(value, expected):
+                raise TypeError(message)
+
+    @staticmethod
+    def _validate_token_request(
+        token: ResumeToken,
+        request: ExecutionRequest,
+    ) -> None:
+        if token.execution_id != request.execution_id:
+            raise ValueError("ResumeToken.execution_id binding mismatch")
+        if token.business_operation_id != request.business_operation_id:
+            raise ValueError(
+                "ResumeToken.business_operation_id binding mismatch"
+            )
+
+    @staticmethod
+    def _bindings(
+        context: ExecutionContext,
+        approval_id: str,
+        write_node_id: str,
+        current_write_intent_hash: str,
+        current_payload_hash: PayloadHash,
+    ) -> ApprovalResumeBindings:
+        if context.approvals.records.get(approval_id) is not ApprovalStatus.PENDING:
+            raise ValueError("checkpoint approval is not pending")
+        approval_request_id = (
+            context.checkpoint.approval_request_ids_by_write_node.get(
+                write_node_id
+            )
+        )
+        if approval_request_id is None:
+            raise ValueError("checkpoint approval request binding is missing")
+        return ApprovalResumeBindings(
+            tenant_id=context.tenant_id,
+            execution_id=context.identity.execution_id,
+            business_operation_id=context.identity.business_operation_id,
+            approval_id=approval_id,
+            approval_request_id=ApprovalRequestId(approval_request_id),
+            skill_semantic_hash=context.skill.semantic_hash,
+            payload_hash=current_payload_hash,
+            write_intent_hash=current_write_intent_hash,
+        )
