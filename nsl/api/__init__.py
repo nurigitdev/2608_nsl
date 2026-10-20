@@ -73,7 +73,7 @@ from ..preflight import (
     TrustPreflightEvidence,
     TrustPreflightStatus,
 )
-from ..runtime import RuntimeEngine
+from ..runtime import ControlledExecutionPlan, RuntimeEngine
 from ..runtime_models import ExecutionRequest, ExecutionResult
 from ..tools import ToolExecutionPort
 from ..trust import (
@@ -114,6 +114,7 @@ from ..worker import (
 from ..write_execution import (
     CommitAwareWriteExecutor,
     ProviderInvocationUncertainError,
+    TrustedCommitAwareWriteExecutor,
     TrustedWriteExecutionCoordinator,
     WriteAttemptRecord,
     WriteCallRequest,
@@ -170,6 +171,7 @@ __all__ = [
     "CheckpointPort",
     "CanonicalWriteValueError",
     "CommitAwareWriteExecutor",
+    "ControlledExecutionPlan",
     "DispatchStatus",
     "ExecutionRequest",
     "ExecutionResult",
@@ -232,6 +234,7 @@ __all__ = [
     "TrustPreflightError",
     "TrustPreflightEvidence",
     "TrustPreflightStatus",
+    "TrustedCommitAwareWriteExecutor",
     "TrustedWriteExecutionCoordinator",
     "VerifiedSkillArtifact",
     "VerifiedPackageSkillResolver",

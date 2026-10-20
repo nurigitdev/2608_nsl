@@ -1,0 +1,15 @@
+{
+  "tenant_id": "tenant-finance",
+  "subject_id": "user-finance-approver",
+  "actor_type": "USER",
+  "roles": ["FINANCE_APPROVER"],
+  "scopes": [
+    "nsl:skill:execute",
+    "finance:voucher:validate",
+    "finance:voucher:write",
+    "finance:voucher:verify",
+    "nsl:replay:read"
+  ],
+  "auth_context_ref": "auth-voucher-write-001",
+  "verification": "VERIFIED"
+}

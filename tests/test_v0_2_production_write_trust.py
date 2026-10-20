@@ -12,7 +12,9 @@ from nsl.compiler import NslCompiler
 from nsl.core import (
     ApprovalRequestId,
     BusinessOperationId,
+    CommitState,
     DataClassification,
+    ExecutionStatus,
     IdempotencyKey,
     PreWriteEligibility,
     RiskLevel,
@@ -67,11 +69,15 @@ from nsl.validation import (
 )
 from nsl.vertical_slice import build_principal
 from nsl.write_execution import (
+    TrustedCommitAwareWriteExecutor,
     TrustedWriteExecutionCoordinator,
     WriteAttemptRecord,
     WriteCallRequest,
     WriteCallRequestBuilder,
     WriteExecutionCoordinator,
+    WriteOutcomeCoordinator,
+    WriteOutcomeReceipt,
+    WriteOutcomeRecord,
     WriteRequestedReceipt,
 )
 from nsl.write_intent import WriteIntentBuilder
@@ -743,3 +749,96 @@ def test_trusted_write_coordinator_rejects_invalid_dependencies_and_context() ->
             )
         )
     assert events == []
+
+
+class _CommitOutcomePort:
+    def __init__(self) -> None:
+        self.records: list[WriteOutcomeRecord] = []
+
+    async def record_outcome(
+        self,
+        record: WriteOutcomeRecord,
+    ) -> WriteOutcomeReceipt:
+        self.records.append(record)
+        return WriteOutcomeReceipt(
+            record_hash=record.record_hash,
+            durable_ref="write-outcome:0056",
+            persisted_at=record.recorded_at,
+        )
+
+
+class _TimeoutWritePort(_WritePort):
+    async def execute(self, request: WriteCallRequest) -> str:
+        self.events.append("PROVIDER_WRITE")
+        raise TimeoutError("provider acknowledgement lost")
+
+
+@pytest.mark.parametrize(
+    ("provider_type", "reason_code"),
+    (
+        (_WritePort, "PROVIDER_ACKNOWLEDGEMENT_MALFORMED"),
+        (_TimeoutWritePort, "PROVIDER_TIMEOUT"),
+    ),
+)
+def test_trusted_commit_boundary_maps_unconfirmed_provider_results_to_unknown(
+    provider_type,
+    reason_code: str,
+) -> None:
+    artifact = _artifact()
+    context = _context(artifact.skill)
+    request = _request(context)
+    context.idempotency.keys_by_write_node[request.node_id] = request.idempotency_key
+    context.idempotency.payload_hashes_by_write_node[
+        request.node_id
+    ] = request.payload_hash
+    events: list[str] = []
+    outcomes = _CommitOutcomePort()
+    executor = TrustedCommitAwareWriteExecutor(
+        TrustedWriteExecutionCoordinator(
+            WriteExecutionCoordinator(
+                provider_type(events),
+                _EvidencePort(events),
+            )
+        ),
+        WriteOutcomeCoordinator(outcomes),
+    )
+
+    decision = asyncio.run(
+        executor.execute(
+            artifact=artifact,
+            profile=_profile(artifact),
+            trust_checked_at=NOW,
+            request=request,
+            decision=WriteGuardDecision(PreWriteEligibility.ALLOWED),
+            context=context,
+            requested_at=NOW,
+            recorded_at=NOW,
+        )
+    )
+
+    assert decision.execution_status is ExecutionStatus.RECONCILIATION_REQUIRED
+    assert decision.outcome.commit_state is CommitState.UNKNOWN_COMMIT_STATE
+    assert decision.outcome.reason_code == reason_code
+    assert decision.automatic_retry_allowed is False
+    assert decision.reconciliation_required is True
+    assert events == ["WRITE_REQUESTED", "PROVIDER_WRITE"]
+    assert len(outcomes.records) == 1
+
+
+def test_trusted_commit_boundary_rejects_invalid_dependencies() -> None:
+    events: list[str] = []
+    invocation = TrustedWriteExecutionCoordinator(
+        WriteExecutionCoordinator(_WritePort(events), _EvidencePort(events))
+    )
+    outcomes = WriteOutcomeCoordinator(_CommitOutcomePort())
+
+    with pytest.raises(TypeError, match="TrustedWriteExecutionCoordinator"):
+        TrustedCommitAwareWriteExecutor(  # type: ignore[arg-type]
+            object(),
+            outcomes,
+        )
+    with pytest.raises(TypeError, match="WriteOutcomeCoordinator"):
+        TrustedCommitAwareWriteExecutor(  # type: ignore[arg-type]
+            invocation,
+            object(),
+        )

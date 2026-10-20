@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from decimal import Decimal
 from traceback import format_exception
@@ -20,14 +20,17 @@ from .core import (
     DATE,
     DATETIME,
     DECIMAL,
+    ApprovalStatus,
     Completeness,
     DataClassification,
     ExecutionStatus,
     Money,
     MoneyError,
     Presence,
+    PreWriteEligibility,
     TypeRef,
     ValueEnvelope,
+    VerificationStatus,
     classification_allows,
     encode_value,
     highest_classification,
@@ -53,6 +56,7 @@ from .ir import (
     WriteExpression,
 )
 from .runtime_models import (
+    ApprovalSummary,
     EmitRecord,
     ExecutionRequest,
     ExecutionResult,
@@ -89,10 +93,73 @@ from .tools import (
     execute_with_timeout,
 )
 from .validation import CheckEvaluationError, StrictRuleEvaluator
+from .verification import VerificationResult
+from .write_execution import WriteCommitDecision, WriteCommitted
+from .write_intent import WriteIntent, WriteIntentBuilder
 
 
 class RuntimeContractError(RuntimeError):
     """A controlled runtime validation error that is safe to return to callers."""
+
+
+@dataclass(frozen=True, slots=True)
+class ControlledExecutionPlan:
+    """Top-level execution partition for one approved WRITE."""
+
+    approval: ApprovalStatement
+    write_statement: LetStatement
+    prefix: tuple[Statement, ...]
+    suffix: tuple[Statement, ...]
+
+    @property
+    def write_expression(self) -> WriteExpression:
+        value = self.write_statement.value
+        if not isinstance(value, WriteExpression):
+            raise RuntimeContractError(
+                "controlled execution plan WRITE statement is invalid"
+            )
+        return value
+
+    @classmethod
+    def from_skill(cls, skill: SkillObject) -> ControlledExecutionPlan:
+        if not isinstance(skill, SkillObject):
+            raise TypeError("skill must be a SkillObject")
+        if (skill.ir_version, skill.language_version) != ("1.1", "0.2"):
+            raise RuntimeContractError(
+                "controlled execution requires NSL 0.2 and IR 1.1"
+            )
+        approvals = tuple(
+            (index, statement)
+            for index, statement in enumerate(skill.body)
+            if isinstance(statement, ApprovalStatement)
+        )
+        writes = tuple(
+            (index, statement)
+            for index, statement in enumerate(skill.body)
+            if isinstance(statement, LetStatement)
+            and isinstance(statement.value, WriteExpression)
+        )
+        if len(approvals) != 1 or len(writes) != 1:
+            raise RuntimeContractError(
+                "controlled execution requires exactly one top-level Approval "
+                "and WRITE"
+            )
+        approval_index, approval = approvals[0]
+        write_index, write_statement = writes[0]
+        write_expression = write_statement.value
+        if (
+            approval_index >= write_index
+            or write_expression.approval_ref != approval.approval_id
+        ):
+            raise RuntimeContractError(
+                "controlled execution Approval/WRITE binding is invalid"
+            )
+        return cls(
+            approval=approval,
+            write_statement=write_statement,
+            prefix=skill.body[:approval_index],
+            suffix=skill.body[write_index + 1 :],
+        )
 
 
 _SUPPORTED_RUNTIME_PROFILES = {
@@ -285,6 +352,139 @@ class RuntimeEngine:
         coordinator = checkpoint_coordinator or CheckpointCoordinator()
         return CheckpointedExecution(result, coordinator.capture(context))
 
+    async def execute_controlled_prefix(
+        self,
+        skill: SkillObject,
+        request: ExecutionRequest,
+        tools: ToolExecutionPort,
+        audit_sink: AuditSink,
+        snapshot_store: SnapshotStore | None = None,
+        checkpoint_coordinator: CheckpointCoordinator | None = None,
+    ) -> CheckpointedExecution:
+        """Execute and seal only the READ/CHECK prefix of a v0.2 WRITE Skill."""
+        if request.business_operation_id is None:
+            raise RuntimeContractError(
+                "controlled execution requires a business operation identity"
+            )
+        if checkpoint_coordinator is not None and not isinstance(
+            checkpoint_coordinator, CheckpointCoordinator
+        ):
+            raise TypeError(
+                "checkpoint_coordinator must be a CheckpointCoordinator"
+            )
+        plan = ControlledExecutionPlan.from_skill(skill)
+        result, context = await self._execute_with_context(
+            skill,
+            request,
+            tools,
+            audit_sink,
+            snapshot_store,
+            statements=plan.prefix,
+            allow_controlled=True,
+        )
+        if result.status is not ExecutionStatus.COMPLETED:
+            return CheckpointedExecution(result, None)
+        if context is None:
+            raise RuntimeContractError("completed execution context is unavailable")
+        coordinator = checkpoint_coordinator or CheckpointCoordinator()
+        return CheckpointedExecution(result, coordinator.capture(context))
+
+    async def prepare_controlled_write_intent(
+        self,
+        context: ExecutionContext,
+        tools: ToolExecutionPort,
+    ) -> WriteIntent:
+        """Evaluate the canonical WRITE payload against restored prefix state."""
+        if not isinstance(context, ExecutionContext):
+            raise TypeError("context must be an ExecutionContext")
+        plan = ControlledExecutionPlan.from_skill(context.skill)
+        expression = plan.write_expression
+        arguments = {
+            name: await self._evaluate(context, value, tools)
+            for name, value in expression.arguments
+        }
+        return WriteIntentBuilder().build(expression, arguments, context)
+
+    async def complete_controlled_execution(
+        self,
+        *,
+        context: ExecutionContext,
+        approval_request_id: str,
+        commit: WriteCommitDecision,
+        verification: VerificationResult | None,
+        tools: ToolExecutionPort,
+        audit_sink: AuditSink,
+        snapshot_store: SnapshotStore | None = None,
+    ) -> ExecutionResult:
+        """Project a durable WRITE outcome into the Skill result and suffix."""
+        if not isinstance(context, ExecutionContext):
+            raise TypeError("context must be an ExecutionContext")
+        if not isinstance(approval_request_id, str) or not approval_request_id.strip():
+            raise TypeError("approval_request_id must be a non-empty string")
+        if not isinstance(commit, WriteCommitDecision):
+            raise TypeError("commit must be a WriteCommitDecision")
+        plan = ControlledExecutionPlan.from_skill(context.skill)
+        expression = plan.write_expression
+        if (
+            context.approvals.records.get(plan.approval.approval_id)
+            is not ApprovalStatus.APPROVED
+        ):
+            raise RuntimeContractError("controlled WRITE requires valid Approval")
+        if commit.outcome.identity.approval_request_id != approval_request_id:
+            raise RuntimeContractError("Approval and WRITE request binding mismatch")
+        if commit.outcome.identity.node_id != expression.node_id:
+            raise RuntimeContractError("WRITE outcome node binding mismatch")
+
+        if isinstance(commit.outcome, WriteCommitted):
+            if not isinstance(verification, VerificationResult):
+                raise TypeError("committed WRITE requires VerificationResult")
+            if verification.identity != commit.outcome.identity:
+                raise RuntimeContractError("verification identity binding mismatch")
+            should_emit = verification.status in {
+                VerificationStatus.NOT_REQUESTED,
+                VerificationStatus.VERIFIED,
+            }
+            if should_emit:
+                value = commit.outcome.result.value
+                if value.type_info != expression.type_info:
+                    raise RuntimeContractError("WRITE result type mismatch")
+                context.bind(plan.write_statement.target_symbol_id, value)
+                audit = AuditRecorder(
+                    audit_sink,
+                    context.request.data_policy,
+                    execution_id=context.identity.execution_id,
+                    skill_id=context.skill.skill_id,
+                    skill_version=context.skill.skill_version,
+                    semantic_hash=context.skill.semantic_hash,
+                    runtime_version=RUNTIME_VERSION,
+                    principal=context.request.principal,
+                )
+                await self._execute_block(
+                    context,
+                    plan.suffix,
+                    tools,
+                    _ExecutionServices(audit, snapshot_store),
+                )
+        elif verification is not None:
+            raise RuntimeContractError(
+                "non-committed WRITE cannot contain verification evidence"
+            )
+
+        base = self._result(context, commit.execution_status)
+        return replace(
+            base,
+            pre_write_eligibility=PreWriteEligibility.ALLOWED,
+            approval=ApprovalSummary(
+                status=ApprovalStatus.APPROVED,
+                approval_id=plan.approval.approval_id,
+                approval_request_id=approval_request_id,
+            ),
+            write=commit.write_summary,
+            verification=(
+                None if verification is None else verification.to_summary()
+            ),
+        )
+
     async def _execute_with_context(
         self,
         skill: SkillObject,
@@ -292,6 +492,9 @@ class RuntimeEngine:
         tools: ToolExecutionPort,
         audit_sink: AuditSink,
         snapshot_store: SnapshotStore | None = None,
+        *,
+        statements: tuple[Statement, ...] | None = None,
+        allow_controlled: bool = False,
     ) -> tuple[ExecutionResult, ExecutionContext | None]:
         principal = (
             request.principal
@@ -334,7 +537,7 @@ class RuntimeEngine:
         )
         try:
             ctx.resource_guard.check_deadline()
-            self._preflight(skill)
+            self._preflight(skill, allow_controlled=allow_controlled)
             declared_inputs = project_declared_inputs(skill, request.inputs)
             input_classification = highest_declared_classification(skill.inputs)
             if declared_inputs != dict(request.inputs):
@@ -402,7 +605,12 @@ class RuntimeEngine:
                 self.runtime_clock,
                 self.tool_measurement_sink,
             )
-            await self._execute_block(ctx, skill.body, measured_tools, services)
+            await self._execute_block(
+                ctx,
+                skill.body if statements is None else statements,
+                measured_tools,
+                services,
+            )
             ctx.resource_guard.check_deadline()
             result = self._result(ctx, ExecutionStatus.COMPLETED)
             audit.emit(
@@ -590,7 +798,12 @@ class RuntimeEngine:
         except Exception:
             return
 
-    def _preflight(self, skill: SkillObject) -> None:
+    def _preflight(
+        self,
+        skill: SkillObject,
+        *,
+        allow_controlled: bool = False,
+    ) -> None:
         expected_profile = _SUPPORTED_RUNTIME_PROFILES.get(
             (skill.ir_version, skill.language_version)
         )
@@ -602,10 +815,13 @@ class RuntimeEngine:
             raise RuntimeContractError("semantic hash mismatch")
         if not skill.analysis.bounded:
             raise RuntimeContractError("unbounded skill")
-        if _contains_controlled_operation(skill.body):
+        contains_controlled = _contains_controlled_operation(skill.body)
+        if contains_controlled and not allow_controlled:
             raise RuntimeContractError(
                 "Approval and WRITE require the controlled v0.2 execution pipeline"
             )
+        if allow_controlled:
+            ControlledExecutionPlan.from_skill(skill)
         for required in skill.required_tools:
             try:
                 contract = self.tool_catalog.resolve(
@@ -620,7 +836,9 @@ class RuntimeEngine:
                 raise RuntimeContractError(
                     f"tool contract mismatch: {required.tool_id}"
                 )
-            if required.capability != "READ":
+            if required.capability != "READ" and not (
+                allow_controlled and required.capability == "WRITE"
+            ):
                 raise RuntimeContractError("WRITE capability is forbidden")
 
     def _bind_inputs_and_contexts(self, ctx: ExecutionContext) -> None:

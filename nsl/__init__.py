@@ -44,7 +44,12 @@ from .preflight import (
     TrustPreflightEvidence,
     TrustPreflightStatus,
 )
-from .runtime import ExecutionRequest, ExecutionResult, RuntimeEngine
+from .runtime import (
+    ControlledExecutionPlan,
+    ExecutionRequest,
+    ExecutionResult,
+    RuntimeEngine,
+)
 from .source import SourceFile, SourceId, SourcePosition, SourceSpan
 from .syntax import ParseMode
 from .trust import (
@@ -66,6 +71,7 @@ from .verification import (
 __all__ = [
     "CompileError",
     "CompilationResult",
+    "ControlledExecutionPlan",
     "Diagnostic",
     "DiagnosticCode",
     "DiagnosticPhase",

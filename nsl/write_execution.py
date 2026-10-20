@@ -1005,3 +1005,73 @@ class CommitAwareWriteExecutor:
             message="provider outcome is uncertain; reconciliation is required",
             evidence_refs=request.trace_refs,
         )
+
+
+class TrustedCommitAwareWriteExecutor:
+    """Production WRITE boundary combining trust, durability, and commit state."""
+
+    __slots__ = ("_invocation", "_outcomes")
+
+    def __init__(
+        self,
+        invocation: TrustedWriteExecutionCoordinator[object],
+        outcomes: WriteOutcomeCoordinator,
+    ) -> None:
+        if not isinstance(invocation, TrustedWriteExecutionCoordinator):
+            raise TypeError(
+                "invocation must be a TrustedWriteExecutionCoordinator"
+            )
+        if not isinstance(outcomes, WriteOutcomeCoordinator):
+            raise TypeError("outcomes must be a WriteOutcomeCoordinator")
+        self._invocation = invocation
+        self._outcomes = outcomes
+
+    async def execute(
+        self,
+        *,
+        artifact: VerifiedSkillArtifact,
+        profile: ExecutionTrustProfile,
+        trust_checked_at: datetime,
+        request: WriteCallRequest,
+        decision: WriteGuardDecision,
+        context: ExecutionContext,
+        requested_at: datetime,
+        recorded_at: datetime,
+    ) -> WriteCommitDecision:
+        requested_record_hash = WriteAttemptRecord.from_request(
+            request,
+            requested_at,
+        ).record_hash
+        try:
+            raw_outcome = await self._invocation.execute(
+                artifact=artifact,
+                profile=profile,
+                trust_checked_at=trust_checked_at,
+                request=request,
+                decision=decision,
+                context=context,
+                requested_at=requested_at,
+            )
+        except ProviderInvocationUncertainError as error:
+            outcome = CommitAwareWriteExecutor._uncertain(
+                request,
+                error.reason_code,
+            )
+        else:
+            if isinstance(
+                raw_outcome,
+                (WriteCommitted, WriteNotCommitted, WriteCommitUnknown),
+            ):
+                outcome = raw_outcome
+            else:
+                outcome = CommitAwareWriteExecutor._uncertain(
+                    request,
+                    "PROVIDER_ACKNOWLEDGEMENT_MALFORMED",
+                )
+        return await self._outcomes.finalize(
+            request=request,
+            context=context,
+            requested_record_hash=requested_record_hash,
+            outcome=outcome,
+            recorded_at=recorded_at,
+        )

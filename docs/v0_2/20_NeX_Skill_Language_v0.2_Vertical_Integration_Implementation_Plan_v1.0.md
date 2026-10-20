@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Vertical Integration slices:** 0061-0069<br>
-**Status:** IN PROGRESS (Slice 0062 COMPLETE)<br>
+**Status:** IN PROGRESS (Slice 0063 COMPLETE)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`<br>
 **Implementation readiness:** `requirements/nsl_v0_2_readiness.json`
@@ -90,7 +90,7 @@ traceability, commit, and synchronization unit.
 |---|---|---|---|---|
 | 0061 | COMPLETE | Voucher Scenario Contract and READ Validation | `AC-W01` prefix, SRS sections 10, 13, and 26 | Canonical Voucher source, Tool contracts, profiles, and fixtures deterministically exercise account, project, period, amount, and partial-data validation without a WRITE call. |
 | 0062 | COMPLETE | Voucher Approval Suspend and Resume | `AC-W01` Approval path | A passing Voucher validation requests approval, durably suspends, and resumes only from valid evidence; rejection, expiry, tampering, and duplicate resume produce zero WRITE calls. |
-| 0063 | PLANNED | Voucher Write Commit and Verification E2E | `AC-W01` | Trusted approval proceeds through idempotent WRITE, durable request evidence, commit outcome, `FINANCE.GET_VOUCHER` verification, Audit/Replay evidence, and structured `voucher_no` output. |
+| 0063 | COMPLETE | Voucher Write Commit and Verification E2E | `AC-W01` | Trusted approval proceeds through idempotent WRITE, durable request evidence, commit outcome, `FINANCE.GET_VOUCHER` verification, Audit/Replay evidence, and structured `voucher_no` output. |
 | 0064 | PLANNED | Project Scenario Contract and Validation | `AC-W02` prefix, SRS section 26 | Canonical Project source, Tool contracts, profiles, and fixtures exercise duplicate, parent, period/date-range, team-authority, and partial-data validation without domain logic in Runtime. |
 | 0065 | PLANNED | Project Draft Generalization E2E | `AC-W02` | The same public Runtime pipeline performs approval, idempotent Project WRITE, verification, Audit/Replay evidence, and structured `project_code` output without a Project-specific Runtime branch. |
 | 0066 | PLANNED | CLI v0.2 Run and Resume Workflow | SRS section 24 | CLI compile/run exposes suspension evidence and an explicit resume workflow while preserving existing v0.1 command behavior and prohibiting implicit Production approval. |
@@ -211,7 +211,21 @@ and
 - Cover happy path, approval rejection/expiry, idempotent resume, unknown
   commit, verification failure, partial data, and dependency failure.
 
-**Planned verification:** `TEST-AC-W01-E2E`.
+**Verification:** `TEST-AC-W01-E2E`.<br>
+**Completion evidence:**
+`examples/voucher_draft_validation/voucher_draft_write.ns`,
+`examples/voucher_draft_validation/principal_write.json`,
+`nsl/runtime.py::ControlledExecutionPlan`,
+`nsl/runtime.py::RuntimeEngine.execute_controlled_prefix`,
+`nsl/runtime.py::RuntimeEngine.prepare_controlled_write_intent`,
+`nsl/runtime.py::RuntimeEngine.complete_controlled_execution`,
+`nsl/write_execution.py::TrustedCommitAwareWriteExecutor`,
+`tests/test_v0_2_controlled_runtime.py::test_direct_runtime_still_rejects_write_but_controlled_prefix_checkpoints`,
+`tests/test_v0_2_controlled_runtime.py::test_controlled_write_intent_is_deterministic_after_checkpoint_restore`,
+`tests/test_v0_2_controlled_runtime.py::test_verified_commit_is_the_only_path_that_emits_voucher_number`,
+`tests/test_v0_2_controlled_runtime.py::test_unconfirmed_outcomes_never_emit_voucher_number`,
+and
+`tests/test_v0_2_controlled_runtime.py::test_ac_w01_e2e_approved_voucher_is_committed_verified_and_replayable`.
 
 ### 6.4 Slice 0064: Project Scenario Contract and Validation
 
