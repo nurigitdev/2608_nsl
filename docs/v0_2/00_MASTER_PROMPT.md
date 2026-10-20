@@ -285,8 +285,8 @@ Coverage / Runtime Baseline:
 
 ```text
 Python    >= 3.12
-Statement >= 95%
-Branch    >= 90%
+Statement >= 99%
+Branch    >= 98%
 ```
 
 v0.1 Verified Baseline보다 Quality Gate를 낮추지 않는다.
@@ -377,7 +377,7 @@ UNKNOWN Commit 자동 Retry 없음
 Production Signed NSP Package Trust 검증
 Replay Live WRITE 없음
 Voucher/Project Vertical Slice PASS
-Statement >=95%, Branch >=90%
+Statement >=99%, Branch >=98%
 Architecture Test PASS
 ```
 
@@ -410,7 +410,7 @@ Validate
 
 ```text
 CHG-001  Document Authority Hierarchy 통일
-CHG-002  Quality Gate 95/90 + Python 3.12+
+CHG-002  Quality Gate baseline + Python 3.12+; v0.2 repository gate는 99/98로 강화
 CHG-032  Physical Package Refactor는 Repository-first
 ```
 

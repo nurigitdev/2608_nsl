@@ -721,8 +721,8 @@ language 0.2 → IR 1.1
 Coverage 목표:
 
 ```text
-Statement >= 95%
-Branch >= 90%
+Statement >= 99%
+Branch >= 98%
 ```
 
 Python 검증 baseline:
@@ -787,7 +787,7 @@ v0.2 Source는 IR 1.1로 deterministic하게 compile되어야 하며, write-less
 
 ```text
 CHG-001  Document authority hierarchy 통일
-CHG-002  Python 3.12+ / Coverage 95/90
+CHG-002  Python 3.12+ / v0.2 Repository Coverage 99/98
 CHG-003  BusinessOperationId 도입
 CHG-004  IdempotencyKey / PayloadHash 분리
 CHG-005  ApprovalRequestId + Evidence Binding

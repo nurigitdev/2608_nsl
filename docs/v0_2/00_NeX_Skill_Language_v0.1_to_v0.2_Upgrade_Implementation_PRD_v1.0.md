@@ -168,7 +168,7 @@ CLI check / compile / run / test
 11. `UNKNOWN_COMMIT_STATE`에서 자동 Retry하지 않아야 한다.
 12. Replay/Test는 실제 Live WRITE를 호출하지 않아야 한다.
 13. Production WRITE Skill은 Trusted Verified Signed NSP Package 경계를 통해 Authenticity/Trust가 검증되어야 한다.
-14. Statement Coverage ≥ 95%, Branch Coverage ≥ 90%를 만족해야 한다.
+14. Statement Coverage ≥ 99%, Branch Coverage ≥ 98%를 만족해야 한다.
 
 ## 4.2 P1 — 강하게 권장
 
@@ -1197,8 +1197,8 @@ Architecture Tests
 ## Coverage
 
 ```text
-Statement Coverage >= 95%
-Branch Coverage >= 90%
+Statement Coverage >= 99%
+Branch Coverage >= 98%
 ```
 
 ## Test Design
@@ -1439,7 +1439,7 @@ NSL v0.2 구현 완료 조건:
 15. Production WRITE가 Trusted Verified Signed NSP Package 경계에서만 허용된다.
 16. Voucher Draft Vertical Slice가 통과한다.
 17. Project Draft Vertical Slice가 통과한다.
-18. Statement Coverage ≥ 95%, Branch Coverage ≥ 90%.
+18. Statement Coverage ≥ 99%, Branch Coverage ≥ 98%.
 19. Architecture Dependency Test가 통과한다.
 20. 문서와 실제 Public Interface가 일치한다.
 
@@ -1510,7 +1510,7 @@ NSL v0.2 구현 완료 조건:
 | Change ID | 본 PRD 반영 내용 |
 |---|---|
 | CHG-001 | 문서 Authority를 Concern별로 분리하고 PRD를 Implementation Plan으로 위치시킴 |
-| CHG-002 | Python Baseline 3.12+, Statement 95% / Branch 90% Quality Gate로 통일 |
+| CHG-002 | Python Baseline 3.12+와 Quality Gate를 유지하고, v0.2 repository gate는 Statement 99% / Branch 98%로 강화 |
 | CHG-003 | `BusinessOperationId`를 Runtime business WRITE의 stable identity로 구현 계획에 반영 |
 | CHG-004 | `IdempotencyKey`와 `PayloadHash`를 분리하고 same-key/different-payload conflict 경로를 반영 |
 | CHG-005 | 정적 `ApprovalId`와 실행 instance `ApprovalRequestId`를 분리하고 evidence binding을 반영 |

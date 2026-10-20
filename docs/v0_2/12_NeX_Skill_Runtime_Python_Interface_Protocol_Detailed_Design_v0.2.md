@@ -1232,7 +1232,7 @@ WriteCallRequest
 본 문서에 적용한 주요 Unified Change Ledger 항목:
 
 ```text
-CHG-002  Python 3.12+
+CHG-002  Python 3.12+ / v0.2 Repository Coverage 99/98
 CHG-003  BusinessOperationId Runtime Contract
 CHG-004  IdempotencyKey / PayloadHash 분리
 CHG-005  ApprovalRequestId + Evidence Binding

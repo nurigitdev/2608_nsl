@@ -29,14 +29,14 @@ Use the project virtual environment and run exactly one pytest regression/covera
 The command must report:
 
 - regression failures: `0`
-- statement coverage: `>= 95.00%`
-- branch coverage: `>= 90.00%`
+- statement coverage: `>= 99.00%`
+- branch coverage: `>= 98.00%`
 
 Pytest temporary files and coverage artifacts must use the repository-local `test/` directory configured by `--basetemp=test`.
 
 Do not commit or push when the mandatory quality gate fails.
 
-The quality command also validates `requirements/nsl_v0_1_traceability.json`. Do not mark a Requirement `IMPLEMENTED` without repository evidence, and do not change a Requirement row without explicitly rebaselining its fingerprint.
+The quality command also validates the v0.1 and v0.2 traceability baselines and the v0.2 readiness ledger. Do not mark a Requirement `IMPLEMENTED` without repository evidence, and do not change a Requirement row without explicitly rebaselining its fingerprint.
 
 ## Architecture Boundaries
 

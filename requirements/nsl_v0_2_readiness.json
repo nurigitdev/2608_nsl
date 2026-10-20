@@ -6,7 +6,7 @@
   "expected_authority_document_count": 5,
   "expected_source_document_count": 14,
   "expected_change_count": 32,
-  "expected_decision_count": 10,
+  "expected_decision_count": 11,
   "authority_documents": [
     {
       "path": "docs/v0_2/00_0_NSL_v0.2_Architecture_Delta_Decision_Record_v1.0_FROZEN.docx",
@@ -89,6 +89,7 @@
     {"decision_id": "RD-007", "status": "FROZEN", "target_slice": "0037", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-007"},
     {"decision_id": "RD-008", "status": "FROZEN", "target_slice": "0035", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-008"},
     {"decision_id": "RD-009", "status": "FROZEN", "target_slice": "0038", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-009"},
-    {"decision_id": "RD-010", "status": "FROZEN", "target_slice": "0039", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-010"}
+    {"decision_id": "RD-010", "status": "FROZEN", "target_slice": "0039", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-010"},
+    {"decision_id": "RD-011", "status": "FROZEN", "target_slice": "0040", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-011"}
   ]
 }

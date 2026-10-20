@@ -37,6 +37,10 @@
     {
       "decision_id": "RB2-008",
       "decision": "Changing requirement text, priority, or membership requires an explicit fingerprint rebaseline and regression evidence."
+    },
+    {
+      "decision_id": "RB2-009",
+      "decision": "The v0.2 development and release gate requires statement coverage >= 99% and branch coverage >= 98%, preserving the verified v0.1 quality level above the historical 95% and 90% SRS floor."
     }
   ],
   "extension_requirement_exceptions": [],

@@ -67,14 +67,14 @@ def test_repository_v0_2_readiness_baseline_is_complete(capsys) -> None:
     assert report.source_document_count == 14
     assert report.change_count == 32
     assert report.change_priority_counts == {"P0": 22, "P1": 10}
-    assert report.decision_count == 10
+    assert report.decision_count == 11
     assert report.to_data()["change_count"] == 32
 
     assert main(["--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload["decision_count"] == 10
+    assert payload["decision_count"] == 11
     assert main([]) == 0
-    assert "32 changes, 10 decisions" in capsys.readouterr().out
+    assert "32 changes, 11 decisions" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize(
@@ -287,18 +287,18 @@ def test_readiness_rejects_change_ledger_boundary_and_robustness(
         ),
         (
             lambda data: data["readiness_decisions"].pop(),
-            "expected_decision_count=10, actual=9",
+            "expected_decision_count=11, actual=10",
         ),
         (
             lambda data: data["readiness_decisions"].append(
                 {
-                    "decision_id": "RD-011",
+                    "decision_id": "RD-012",
                     "status": "FROZEN",
                     "target_slice": "0039",
                     "evidence": data["readiness_decisions"][0]["evidence"],
                 }
             ),
-            "expected_decision_count=10, actual=11",
+            "expected_decision_count=11, actual=12",
         ),
         (
             lambda data: data["readiness_decisions"][1].update(
@@ -344,7 +344,7 @@ def test_readiness_rejects_change_ledger_boundary_and_robustness(
         ),
         (
             lambda data: data["readiness_decisions"].append("invalid"),
-            "readiness_decisions\\[10\\] must be an object",
+            "readiness_decisions\\[11\\] must be an object",
         ),
     ],
 )

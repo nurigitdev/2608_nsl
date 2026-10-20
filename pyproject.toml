@@ -30,7 +30,7 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=json:test/coverage.json",
     "--cov-report=xml:test/coverage.xml",
-    "--cov-fail-under=95",
+    "--cov-fail-under=98",
 ]
 
 [tool.coverage.run]

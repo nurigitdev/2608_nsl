@@ -110,6 +110,10 @@ The provider idempotency retention declared by the Tool Contract must cover the 
 
 The runtime-facing `PackageTrustEvidence` contains `package_id`, `package_hash`, `publisher_id`, `signing_key_id`, `verified_at`, `trust_status`, and `trust_policy_id`. Production WRITE requires `trust_status=VERIFIED` under the referenced trust policy. `trust_status` and `trust_policy_id` are complementary and neither field replaces the other.
 
+### RD-011 Preserved Coverage Quality
+
+The v0.2 development and release gate requires statement coverage of at least 99 percent and branch coverage of at least 98 percent. This preserves the verified v0.1 quality level and intentionally strengthens the historical v0.1 SRS floor of 95 percent and 90 percent. A change that falls below either independent threshold cannot be committed or pushed.
+
 ## 6. Quality Gate
 
 Every v0.2 change must keep both requirement baselines valid and run exactly:
@@ -118,4 +122,4 @@ Every v0.2 change must keep both requirement baselines valid and run exactly:
 .\.venv\Scripts\python.exe tools\run_quality.py
 ```
 
-The gate requires zero regression failures, statement coverage at least 95 percent, and branch coverage at least 90 percent. It also verifies the v0.2 authority hashes, Change Ledger coverage, and all RD-001 through RD-010 evidence anchors.
+The gate requires zero regression failures, statement coverage at least 99 percent, and branch coverage at least 98 percent. It also verifies the v0.2 authority hashes, Change Ledger coverage, and all RD-001 through RD-011 evidence anchors.

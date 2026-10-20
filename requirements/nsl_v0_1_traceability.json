@@ -12,7 +12,7 @@
     },
     {
       "decision_id": "RB-002",
-      "decision": "The mandatory quality gate is statement coverage >= 95% and branch coverage >= 90%."
+      "decision": "The mandatory repository quality gate is statement coverage >= 99% and branch coverage >= 98%; this strengthens the historical v0.1 SRS floor of 95% and 90%."
     },
     {
       "decision_id": "RB-003",

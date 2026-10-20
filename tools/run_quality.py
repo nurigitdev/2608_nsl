@@ -17,11 +17,14 @@ from requirements_traceability import (
     V0_2_SOURCE,
     validate_traceability,
 )
+from quality_policy import (
+    BRANCH_THRESHOLD,
+    STATEMENT_THRESHOLD,
+    failed_coverage_dimensions,
+)
 from v0_2_readiness import ReadinessError, validate_v0_2_readiness
 
 
-STATEMENT_THRESHOLD = 95.0
-BRANCH_THRESHOLD = 90.0
 COVERAGE_JSON = Path("test/coverage.json")
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -89,13 +92,10 @@ def main() -> int:
         f"statement={statement:.2f}% (required {STATEMENT_THRESHOLD:.2f}%), "
         f"branch={branch:.2f}% (required {BRANCH_THRESHOLD:.2f}%)"
     )
-    failed = False
-    if statement < STATEMENT_THRESHOLD:
-        print("statement coverage gate failed", file=sys.stderr)
-        failed = True
-    if branch < BRANCH_THRESHOLD:
-        print("branch coverage gate failed", file=sys.stderr)
-        failed = True
+    coverage_failures = failed_coverage_dimensions(statement, branch)
+    for dimension in coverage_failures:
+        print(f"{dimension} coverage gate failed", file=sys.stderr)
+    failed = bool(coverage_failures)
     if not failed:
         performance = subprocess.run(
             [sys.executable, "-m", "tools.performance_acceptance"],
