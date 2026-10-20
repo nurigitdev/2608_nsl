@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Vertical Integration slices:** 0061-0069<br>
-**Status:** PLANNED<br>
+**Status:** IN PROGRESS (Slice 0061 COMPLETE)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`<br>
 **Implementation readiness:** `requirements/nsl_v0_2_readiness.json`
@@ -88,7 +88,7 @@ traceability, commit, and synchronization unit.
 
 | Slice | Status | Title | Primary authority | Completion boundary |
 |---|---|---|---|---|
-| 0061 | PLANNED | Voucher Scenario Contract and READ Validation | `AC-W01` prefix, SRS sections 10, 13, and 26 | Canonical Voucher source, Tool contracts, profiles, and fixtures deterministically exercise account, project, period, amount, and partial-data validation without a WRITE call. |
+| 0061 | COMPLETE | Voucher Scenario Contract and READ Validation | `AC-W01` prefix, SRS sections 10, 13, and 26 | Canonical Voucher source, Tool contracts, profiles, and fixtures deterministically exercise account, project, period, amount, and partial-data validation without a WRITE call. |
 | 0062 | PLANNED | Voucher Approval Suspend and Resume | `AC-W01` Approval path | A passing Voucher validation requests approval, durably suspends, and resumes only from valid evidence; rejection, expiry, tampering, and duplicate resume produce zero WRITE calls. |
 | 0063 | PLANNED | Voucher Write Commit and Verification E2E | `AC-W01` | Trusted approval proceeds through idempotent WRITE, durable request evidence, commit outcome, `FINANCE.GET_VOUCHER` verification, Audit/Replay evidence, and structured `voucher_no` output. |
 | 0064 | PLANNED | Project Scenario Contract and Validation | `AC-W02` prefix, SRS section 26 | Canonical Project source, Tool contracts, profiles, and fixtures exercise duplicate, parent, period/date-range, team-authority, and partial-data validation without domain logic in Runtime. |
@@ -128,7 +128,22 @@ traceability, commit, and synchronization unit.
 - Prove that every success and failure case in this Slice invokes the WRITE
   provider zero times.
 
-**Planned verification:** `TEST-AC-W01-READ-VALIDATION`.
+**Verification:** `TEST-AC-W01-READ-VALIDATION`.<br>
+**Completion evidence:**
+`examples/voucher_draft_validation/voucher_draft_validation.ns`,
+`examples/voucher_draft_validation/tools.json`,
+`examples/voucher_draft_validation/profile.json`,
+`examples/voucher_draft_validation/scenarios.json`,
+`tests/test_v0_2_voucher_validation.py::test_ac_w01_v0_2_read_contract_compiles_deterministically`,
+`tests/test_v0_2_voucher_validation.py::test_ac_w01_invalid_reference_data_fails_only_its_check`,
+`tests/test_v0_2_voucher_validation.py::test_ac_w01_amount_boundary_zero_and_one`,
+`tests/test_v0_2_voucher_validation.py::test_ac_w01_incomplete_read_cannot_false_pass`,
+`tests/test_v0_2_voucher_validation.py::test_ac_w01_missing_malformed_and_dependency_data_fail_closed`,
+`tests/test_v0_2_voucher_validation.py::test_ac_w01_authorization_and_missing_input_stop_before_tools`,
+`tests/test_v0_2_voucher_validation.py::test_ac_w01_tenant_mismatch_and_dependency_crash_are_isolated`,
+`tests/test_v0_2_voucher_validation.py::test_ac_w01_direct_runtime_rejects_controlled_nodes_before_tool_call`,
+and
+`tests/test_v0_2_voucher_validation.py::test_ac_w01_cli_scenario_suite_is_deterministic_and_no_write`.
 
 ### 6.2 Slice 0062: Voucher Approval Suspend and Resume
 

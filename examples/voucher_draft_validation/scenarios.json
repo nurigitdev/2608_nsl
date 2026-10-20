@@ -1,0 +1,166 @@
+{
+  "schema_version": "1.0",
+  "profile": "profile.json",
+  "cases": [
+    {
+      "id": "valid-boundary-amount",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {
+          "ACCOUNT_VALID": "PASS",
+          "PROJECT_VALID": "PASS",
+          "PERIOD_OPEN": "PASS",
+          "AMOUNT_VALID": "PASS"
+        },
+        "outputs": [
+          {
+            "account_code": "EXPENSE-TRAVEL",
+            "project_code": "PROJECT-2608",
+            "accounting_period": "2026-10",
+            "amount": {"$type": "Money", "amount": "1", "currency": "KRW"},
+            "account_status": "PASS",
+            "project_status": "PASS",
+            "period_status": "PASS",
+            "amount_status": "PASS"
+          }
+        ],
+        "resources": {"tool_calls": 3, "loop_iterations": 0, "emitted_rows": 1, "max_collection_size_seen": 0}
+      }
+    },
+    {
+      "id": "invalid-account",
+      "fixture": "fixtures/invalid_account.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"ACCOUNT_VALID": "FAIL"},
+        "resources": {"tool_calls": 3}
+      }
+    },
+    {
+      "id": "invalid-project",
+      "fixture": "fixtures/invalid_project.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"PROJECT_VALID": "FAIL"},
+        "resources": {"tool_calls": 3}
+      }
+    },
+    {
+      "id": "closed-period",
+      "fixture": "fixtures/closed_period.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"PERIOD_OPEN": "FAIL"},
+        "resources": {"tool_calls": 3}
+      }
+    },
+    {
+      "id": "invalid-zero-amount",
+      "input": "input_zero_amount.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"AMOUNT_VALID": "FAIL"},
+        "resources": {"tool_calls": 3}
+      }
+    },
+    {
+      "id": "partial-account",
+      "fixture": "fixtures/partial_account.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "PARTIAL",
+        "checks": {"ACCOUNT_VALID": "UNKNOWN"},
+        "resources": {"tool_calls": 3}
+      }
+    },
+    {
+      "id": "unknown-account",
+      "fixture": "fixtures/unknown_account.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "UNKNOWN",
+        "checks": {"ACCOUNT_VALID": "UNKNOWN"},
+        "resources": {"tool_calls": 3}
+      }
+    },
+    {
+      "id": "missing-account-data",
+      "fixture": "fixtures/missing_account.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "TOOL_ERROR",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E4101",
+        "resources": {"tool_calls": 1}
+      }
+    },
+    {
+      "id": "malformed-account-data",
+      "fixture": "fixtures/malformed_account.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "TOOL_ERROR",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E4101",
+        "resources": {"tool_calls": 1}
+      }
+    },
+    {
+      "id": "dependency-fixture-missing",
+      "fixture": "fixtures/missing_tools.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "TOOL_ERROR",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E4101",
+        "resources": {"tool_calls": 1}
+      }
+    },
+    {
+      "id": "authorization-denied",
+      "principal": "principal_no_tool_scope.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "FAILED",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E5201",
+        "resources": {"tool_calls": 0}
+      }
+    },
+    {
+      "id": "missing-required-input",
+      "input": "input_missing_amount.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "FAILED",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E8001",
+        "resources": {"tool_calls": 0}
+      }
+    }
+  ]
+}

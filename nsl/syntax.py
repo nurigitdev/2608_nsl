@@ -806,7 +806,9 @@ class Parser:
         "Year": YEAR,
         "TeamId": domain("TeamId"),
         "EmployeeId": domain("EmployeeId"),
+        "AccountCode": domain("AccountCode"),
         "ProjectCode": domain("ProjectCode"),
+        "AccountingPeriod": domain("AccountingPeriod"),
         "OrganizationId": domain("OrganizationId"),
         "CheckStatus": CHECK_STATUS,
     }

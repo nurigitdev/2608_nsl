@@ -3,7 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from .core import DataClassification, TypeRef, decode_value
+from .core import (
+    Completeness,
+    DataClassification,
+    RiskLevel,
+    TypeRef,
+    decode_value,
+)
 from .data_protection import ensure_no_credential_material
 from .ir_schema import NsoSchemaError, load_nso_json, validate_type_document
 from .security import (
@@ -14,6 +20,7 @@ from .security import (
 from .tools import (
     FixtureHandler,
     IncompatibleToolVersionError,
+    MockToolResult,
     ToolContract,
     ToolContractCatalog,
     ToolExecutionError,
@@ -125,13 +132,30 @@ def _fixture_cases(
     cases: list[tuple[dict[str, Any], Any]] = []
     for index, value in enumerate(items):
         case_path = f"{path}[{index}]"
-        item = _object(value, case_path, {"arguments", "result"})
+        item = _object(
+            value,
+            case_path,
+            {"arguments", "result"},
+            {"completeness"},
+        )
         arguments = decode_value(item["arguments"])
         if type(arguments) is not dict:
             raise NsoSchemaError(f"{case_path}.arguments", "expected object")
         if any(expected == arguments for expected, _ in cases):
             raise NsoSchemaError(case_path, "duplicate fixture arguments")
-        cases.append((arguments, decode_value(item["result"])))
+        result: Any = decode_value(item["result"])
+        if "completeness" in item:
+            completeness_name = _string(
+                item["completeness"], f"{case_path}.completeness"
+            )
+            try:
+                completeness = Completeness(completeness_name)
+            except ValueError as error:
+                raise NsoSchemaError(
+                    f"{case_path}.completeness", "unknown completeness"
+                ) from error
+            result = MockToolResult(result, completeness)
+        cases.append((arguments, result))
     return tuple(cases)
 
 
@@ -164,7 +188,7 @@ def _tool_contract(value: Any, path: str) -> ToolContract:
             "required_scope",
             "output_classification",
         },
-        {"timeout_ms", "risk", "empty_is_valid"},
+        {"timeout_ms", "risk", "risk_level", "empty_is_valid"},
     )
     inputs = tuple(
         _tool_input(input_value, f"{path}.inputs[{index}]")
@@ -189,6 +213,16 @@ def _tool_contract(value: Any, path: str) -> ToolContract:
     if type(empty_is_valid) is not bool:
         raise NsoSchemaError(f"{path}.empty_is_valid", "expected boolean")
 
+    risk_level = None
+    if "risk_level" in item:
+        risk_level_name = _string(item["risk_level"], f"{path}.risk_level")
+        try:
+            risk_level = RiskLevel(risk_level_name)
+        except ValueError as error:
+            raise NsoSchemaError(
+                f"{path}.risk_level", "unknown risk level"
+            ) from error
+
     return ToolContract(
         tool_id=_string(item["tool_id"], f"{path}.tool_id"),
         version=_string(item["version"], f"{path}.version"),
@@ -199,6 +233,7 @@ def _tool_contract(value: Any, path: str) -> ToolContract:
         output_classification=classification,
         timeout_ms=timeout_ms,
         risk=_string(item.get("risk", "READ_ONLY"), f"{path}.risk"),
+        risk_level=risk_level,
         empty_is_valid=empty_is_valid,
     )
 

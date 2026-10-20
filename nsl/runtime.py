@@ -34,6 +34,7 @@ from .core import (
 from .diagnostics import DiagnosticCode
 from .data_protection import collect_sensitive_text, redact_text
 from .ir import (
+    ApprovalStatement,
     BinaryExpr,
     CallExpr,
     CheckStatement,
@@ -48,6 +49,7 @@ from .ir import (
     SkillObject,
     Statement,
     SymbolRefExpr,
+    WriteExpression,
 )
 from .runtime_models import (
     EmitRecord,
@@ -60,6 +62,7 @@ from .runtime_models import (
     RuntimeClock,
     RuntimeErrorInfo,
     SystemRuntimeClock,
+    ValidationSummary,
     ExecutionContext,
     highest_declared_classification,
     project_declared_context,
@@ -89,6 +92,62 @@ from .validation import CheckEvaluationError, StrictRuleEvaluator
 
 class RuntimeContractError(RuntimeError):
     """A controlled runtime validation error that is safe to return to callers."""
+
+
+_SUPPORTED_RUNTIME_PROFILES = {
+    ("1.0", "0.1"): "NSL-0.1-STRICT",
+    ("1.1", "0.2"): "NSL-0.2-STRICT",
+}
+
+
+def _contains_write_expression(expression: Expression) -> bool:
+    if isinstance(expression, WriteExpression):
+        return True
+    if isinstance(expression, (FieldExpr, ProjectionExpr)):
+        return _contains_write_expression(expression.source)
+    if isinstance(expression, CallExpr):
+        return any(_contains_write_expression(item) for item in expression.arguments)
+    if isinstance(expression, BinaryExpr):
+        return _contains_write_expression(
+            expression.left
+        ) or _contains_write_expression(expression.right)
+    if isinstance(expression, ReadExpr):
+        return any(
+            _contains_write_expression(value) for _, value in expression.arguments
+        )
+    if isinstance(expression, (LiteralExpr, SymbolRefExpr)):
+        return False
+    raise RuntimeContractError(
+        f"unsupported expression in runtime preflight: {type(expression).__name__}"
+    )
+
+
+def _contains_controlled_operation(statements: tuple[Statement, ...]) -> bool:
+    for statement in statements:
+        if isinstance(statement, ApprovalStatement):
+            return True
+        if isinstance(statement, LetStatement):
+            if _contains_write_expression(statement.value):
+                return True
+        elif isinstance(statement, ForeachStatement):
+            if _contains_write_expression(
+                statement.collection
+            ) or _contains_controlled_operation(statement.body):
+                return True
+        elif isinstance(statement, CheckStatement):
+            if _contains_write_expression(statement.condition):
+                return True
+        elif isinstance(statement, EmitStatement):
+            if any(
+                _contains_write_expression(value) for _, value in statement.fields
+            ):
+                return True
+        else:
+            raise RuntimeContractError(
+                f"unsupported statement in runtime preflight: "
+                f"{type(statement).__name__}"
+            )
+    return False
 
 
 class ExpressionEvaluationError(RuntimeContractError):
@@ -453,14 +512,21 @@ class RuntimeEngine:
             return
 
     def _preflight(self, skill: SkillObject) -> None:
-        if skill.ir_version != "1.0" or skill.language_version != "0.1":
+        expected_profile = _SUPPORTED_RUNTIME_PROFILES.get(
+            (skill.ir_version, skill.language_version)
+        )
+        if expected_profile is None:
             raise RuntimeContractError("unsupported IR or language version")
-        if skill.semantics_profile != "NSL-0.1-STRICT":
+        if skill.semantics_profile != expected_profile:
             raise RuntimeContractError("unsupported semantics profile")
         if skill.with_computed_hash().semantic_hash != skill.semantic_hash:
             raise RuntimeContractError("semantic hash mismatch")
         if not skill.analysis.bounded:
             raise RuntimeContractError("unbounded skill")
+        if _contains_controlled_operation(skill.body):
+            raise RuntimeContractError(
+                "Approval and WRITE require the controlled v0.2 execution pipeline"
+            )
         for required in skill.required_tools:
             try:
                 contract = self.tool_catalog.resolve(
@@ -1157,6 +1223,9 @@ class RuntimeEngine:
         status: ExecutionStatus,
         error: RuntimeErrorInfo | None = None,
     ) -> ExecutionResult:
+        validation = None
+        if (ctx.skill.ir_version, ctx.skill.language_version) == ("1.1", "0.2"):
+            validation = ValidationSummary.from_checks(tuple(ctx.checks))
         return ExecutionResult(
             execution_id=ctx.request.execution_id,
             skill_id=ctx.skill.skill_id,
@@ -1168,6 +1237,7 @@ class RuntimeEngine:
             outputs=tuple(ctx.outputs),
             resources=ctx.usage(),
             error=error,
+            validation=validation,
         )
 
     def _failed(

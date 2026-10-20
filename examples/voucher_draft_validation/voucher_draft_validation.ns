@@ -1,0 +1,88 @@
+language NSL "0.2";
+
+skill FINANCE.VOUCHER_DRAFT_VALIDATE {
+    version "1.0.0";
+    risk READ_VALIDATE;
+
+    requires {
+        tool ACCOUNT.GET_ACCOUNT version "1.0.0";
+        tool PROJECT.GET_PROJECT version "1.0.0";
+        tool FINANCE.GET_ACCOUNTING_PERIOD version "1.0.0";
+    }
+
+    limits {
+        tool_calls 3;
+        loop_iterations 1;
+        emitted_rows 1;
+        collection_size 1;
+    }
+
+    input {
+        account_code: AccountCode classification INTERNAL;
+        project_code: ProjectCode classification INTERNAL;
+        accounting_period: AccountingPeriod classification INTERNAL;
+        amount: Money<KRW> classification CONFIDENTIAL;
+    }
+
+    context {
+        minimum_voucher_amount: Money<KRW>
+            from "policy.minimum_voucher_amount"
+            classification INTERNAL;
+    }
+
+    output {
+        account_code: AccountCode classification INTERNAL;
+        project_code: ProjectCode classification INTERNAL;
+        accounting_period: AccountingPeriod classification INTERNAL;
+        amount: Money<KRW> classification CONFIDENTIAL;
+        account_status: CheckStatus classification INTERNAL;
+        project_status: CheckStatus classification INTERNAL;
+        period_status: CheckStatus classification INTERNAL;
+        amount_status: CheckStatus classification INTERNAL;
+    }
+
+    let account = read ACCOUNT.GET_ACCOUNT(account_code: account_code);
+    let project = read PROJECT.GET_PROJECT(project_code: project_code);
+    let period = read FINANCE.GET_ACCOUNTING_PERIOD(
+        accounting_period: accounting_period
+    );
+
+    check ACCOUNT_VALID {
+        assert account.status == "ACTIVE";
+        severity ERROR;
+        on_fail REPORT;
+        message "The voucher account must be active.";
+    }
+
+    check PROJECT_VALID {
+        assert project.status == "ACTIVE";
+        severity ERROR;
+        on_fail REPORT;
+        message "The voucher project must be active.";
+    }
+
+    check PERIOD_OPEN {
+        assert period.open == true;
+        severity ERROR;
+        on_fail REPORT;
+        message "The accounting period must be open.";
+    }
+
+    check AMOUNT_VALID {
+        assert amount >= minimum_voucher_amount;
+        severity ERROR;
+        on_fail REPORT;
+        message "The voucher amount must meet the minimum amount.";
+    }
+
+    emit {
+        account_code: account_code;
+        project_code: project_code;
+        accounting_period: accounting_period;
+        amount: amount;
+        account_status: ACCOUNT_VALID.status;
+        project_status: PROJECT_VALID.status;
+        period_status: PERIOD_OPEN.status;
+        amount_status: AMOUNT_VALID.status;
+    }
+}

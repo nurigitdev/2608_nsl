@@ -1,0 +1,9 @@
+{
+  "policy": {
+    "minimum_voucher_amount": {
+      "$type": "Money",
+      "amount": "1",
+      "currency": "KRW"
+    }
+  }
+}

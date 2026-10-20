@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "tool_id": "ACCOUNT.GET_ACCOUNT",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"account_code": "EXPENSE-TRAVEL"},
+          "result": {"account_code": "EXPENSE-TRAVEL", "status": "ACTIVE"}
+        }
+      ]
+    },
+    {
+      "tool_id": "PROJECT.GET_PROJECT",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"project_code": "PROJECT-2608"},
+          "result": {"project_code": "PROJECT-2608", "status": "ACTIVE"}
+        }
+      ]
+    },
+    {
+      "tool_id": "FINANCE.GET_ACCOUNTING_PERIOD",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"accounting_period": "2026-10"},
+          "result": {"accounting_period": "2026-10", "open": true}
+        }
+      ]
+    }
+  ]
+}

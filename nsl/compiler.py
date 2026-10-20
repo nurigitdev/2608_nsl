@@ -555,8 +555,8 @@ class _Lowerer:
                 required_scope=contract.required_scope,
                 output_classification=contract.output_classification,
                 risk_level=(
-                    contract.risk_level
-                    if contract.capability == ToolCapability.WRITE
+                    (contract.risk_level or RiskLevel.R1)
+                    if profile.ir_version == "1.1"
                     else None
                 ),
             )

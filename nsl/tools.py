@@ -677,6 +677,16 @@ async def execute_with_timeout(
 FixtureHandler = Callable[[Mapping[str, Any]], Any]
 
 
+@dataclass(frozen=True, slots=True)
+class MockToolResult:
+    value: Any
+    completeness: Completeness = Completeness.COMPLETE
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.completeness, Completeness):
+            raise TypeError("MockToolResult.completeness must be Completeness")
+
+
 class MockToolExecutor:
     def __init__(
         self,
@@ -704,7 +714,13 @@ class MockToolExecutor:
             name: envelope.value for name, envelope in request.arguments.items()
         }
         self.call_count += 1
-        value = self.handlers[request.tool_id](raw_arguments)
+        fixture_result = self.handlers[request.tool_id](raw_arguments)
+        if isinstance(fixture_result, MockToolResult):
+            value = fixture_result.value
+            completeness = fixture_result.completeness
+        else:
+            value = fixture_result
+            completeness = Completeness.COMPLETE
         self.validator.validate_result_value(value, contract)
         presence = Presence.EMPTY if value == [] or value is None else Presence.PRESENT
         result_hash = tool_result_hash(value)
@@ -715,7 +731,7 @@ class MockToolExecutor:
             value=value,
             type_info=contract.output_type,
             presence=presence,
-            completeness=Completeness.COMPLETE,
+            completeness=completeness,
             classification=contract.output_classification,
             result_hash=result_hash,
             snapshot_ref=None,
