@@ -334,6 +334,36 @@ class WriteSafetyAnalyzer:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class _LanguageLoweringProfile:
+    source_language_version: str
+    ir_version: str
+    semantics_profile: str
+    allowed_risks: frozenset[str]
+    features: frozenset[str]
+
+
+_BASE_FEATURES = frozenset(
+    {"READ", "FOREACH", "LET", "CHECK", "EMIT", "LIMITS"}
+)
+_LANGUAGE_LOWERING_PROFILES = {
+    "0.1": _LanguageLoweringProfile(
+        source_language_version="0.1",
+        ir_version="1.0",
+        semantics_profile="NSL-0.1-STRICT",
+        allowed_risks=frozenset({"READ_ONLY", "READ_VALIDATE"}),
+        features=_BASE_FEATURES,
+    ),
+    "0.2": _LanguageLoweringProfile(
+        source_language_version="0.2",
+        ir_version="1.1",
+        semantics_profile="NSL-0.2-STRICT",
+        allowed_risks=frozenset({"READ_ONLY", "READ_VALIDATE", "WRITE"}),
+        features=_BASE_FEATURES | {"APPROVAL", "WRITE"},
+    ),
+}
+
+
 class NslCompiler:
     def __init__(
         self,
@@ -460,16 +490,14 @@ class _Lowerer:
                 self.ast.span,
                 DiagnosticPhase.INCLUDE,
             )
-        if self.ast.language_version not in {"0.1", "0.2"}:
+        profile = _LANGUAGE_LOWERING_PROFILES.get(self.ast.language_version)
+        if profile is None:
             raise self.diagnostics.error(
                 DiagnosticCode.SEM_UNSUPPORTED_LANGUAGE_VERSION,
                 f"unsupported NSL version: {self.ast.language_version}",
                 self.ast.language_version_span,
             )
-        allowed_risks = {"READ_ONLY", "READ_VALIDATE"}
-        if self.ast.language_version == "0.2":
-            allowed_risks.add("WRITE")
-        if self.ast.risk not in allowed_risks:
+        if self.ast.risk not in profile.allowed_risks:
             raise self.diagnostics.error(
                 DiagnosticCode.SEM_UNSUPPORTED_RISK,
                 f"unsupported risk profile: {self.ast.risk}",
@@ -500,7 +528,7 @@ class _Lowerer:
                     f"incompatible tool version: {tool_id}@{version}",
                     declaration.span,
                 ) from error
-            if self.ast.language_version == "0.1" and (
+            if profile.source_language_version == "0.1" and (
                 contract.capability != ToolCapability.READ
             ):
                 raise self.diagnostics.error(
@@ -620,21 +648,15 @@ class _Lowerer:
                 self.ast.limits.span,
             )
 
-        is_v0_2 = self.ast.language_version == "0.2"
         return SkillObject(
-            ir_version="1.1" if is_v0_2 else "1.0",
+            ir_version=profile.ir_version,
             language_version=self.ast.language_version,
             skill_id=self.ast.skill_id,
             skill_version=self.ast.skill_version,
             risk=self.ast.risk,
-            semantics_profile=(
-                "NSL-0.2-STRICT" if is_v0_2 else "NSL-0.1-STRICT"
-            ),
+            semantics_profile=profile.semantics_profile,
             semantic_hash="",
-            features=frozenset(
-                {"READ", "FOREACH", "LET", "CHECK", "EMIT", "LIMITS"}
-                | ({"APPROVAL", "WRITE"} if is_v0_2 else set())
-            ),
+            features=profile.features,
             symbols=tuple(
                 SymbolSpec(
                     binding.symbol_id,

@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Compiler slices:** 0038-0042  
-**Status:** IN PROGRESS  
+**Status:** COMPLETE
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`  
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`
 
@@ -40,7 +40,7 @@ and synchronization unit.
 | 0039 | COMPLETE | Approval and Write Parser AST | `NSL-PAR-201..204` | - | Approval and WRITE Source forms produce immutable AST nodes whose complete token ranges are retained as `SourceSpan` values. |
 | 0040 | COMPLETE | Approval Symbol and Binding Semantics | `NSL-SEM-201..206`, `NSL-APR-001` | `RD-002` | Approval IDs have a dedicated namespace; references obey declaration order, dominance, exactly 1:1 binding, and no-unused-approval rules. |
 | 0041 | COMPLETE | Static Type and Write Safety Analysis | `NSL-TYP-201..204`, `NSL-WRT-002..004`, `NSL-RSK-002` | `RD-002` | WRITE payloads and tool contracts are statically typed; strict profile flow, count, loop, atomicity, and risk metadata rules are enforced without deciding user or tenant entitlement. |
-| 0042 | PLANNED | Compiler Lowering to IR 1.1 | `NSL-IR-206..207` | `RD-003` | Source Language 0.1 deterministically lowers to IR 1.0 and Source Language 0.2 to IR 1.1 without an override option or changes to 0.1 canonical output. |
+| 0042 | COMPLETE | Compiler Lowering to IR 1.1 | `NSL-IR-206..207` | `RD-003` | Source Language 0.1 deterministically lowers to IR 1.0 and Source Language 0.2 to IR 1.1 without an override option or changes to 0.1 canonical output. |
 
 `RD-002` and `RD-003` are FROZEN implementation decisions, not additional SRS
 requirements. They constrain implementation and verification evidence without
@@ -112,6 +112,22 @@ Slice 0040 completion evidence is maintained in
 
 Slice 0041 completion evidence is maintained in
 `tests/test_v0_2_static_write_safety.py`.
+
+### 4.5 Slice 0042
+
+- Select IR version, semantics profile, allowed Source risk profiles, and
+  feature declarations from one immutable Source-language lowering profile.
+- Lower Language 0.1 to IR 1.0 and Language 0.2, including write-less skills,
+  to IR 1.1.
+- Preserve deterministic approval and WRITE node allocation, canonical NSO
+  bytes, and semantic hashes across repeated compilation.
+- Freeze the existing v0.1 compiler output with semantic-hash and NSO-byte
+  golden evidence.
+- Keep the Source declaration authoritative by exposing no compiler or compile
+  call parameter that can override its language version.
+
+Slice 0042 completion evidence is maintained in
+`tests/test_v0_2_ir_lowering.py`.
 
 ## 5. Status and Evidence Rules
 
