@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Vertical Integration slices:** 0061-0069<br>
-**Status:** IN PROGRESS (Slice 0068 COMPLETE)<br>
+**Status:** COMPLETE (Slice 0069 COMPLETE)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`<br>
 **Implementation readiness:** `requirements/nsl_v0_2_readiness.json`
@@ -96,7 +96,7 @@ traceability, commit, and synchronization unit.
 | 0066 | COMPLETE | CLI v0.2 Run and Resume Workflow | SRS section 24 | CLI compile/run exposes suspension evidence and an explicit resume workflow while preserving existing v0.1 command behavior and prohibiting implicit Production approval. |
 | 0067 | COMPLETE | CLI Trust Inspection Mock and Diagnostics | SRS section 24 | CLI diagnoses Signed NSP trust, runs explicit Mock/Fake adapters, emits stable safe errors and exit codes, and preserves pretty deterministic JSON output. |
 | 0068 | COMPLETE | Architecture and Backward Compatibility Certification | `NSL-ARC-202..203`, SRS section 27 | Runtime dependency tests close `NSL-ARC-201` adoption evidence, implement `NSL-ARC-202..203`, and certify all v0.1 Source, IR, Context, Status, Result, and Replay compatibility paths. |
-| 0069 | PLANNED | Performance Negative Acceptance and SRS Certification | SRS section 25, `RD-011` | Performance and resource boundaries, the complete negative-acceptance matrix, 123-requirement evidence, and the 99/98 quality gate pass with no `PARTIAL` or `PLANNED` SRS requirement remaining. |
+| 0069 | COMPLETE | Performance Negative Acceptance and SRS Certification | SRS section 25, `RD-011` | Performance and resource boundaries, the complete negative-acceptance matrix, 123-requirement evidence, and the 99/98 quality gate pass with no `PARTIAL` or `PLANNED` SRS requirement remaining. |
 
 ## 6. Slice Boundaries
 
@@ -455,8 +455,20 @@ and
   fingerprint.
 
 **Governing decision:** `RD-011`.<br>
-**Planned verification:** `TEST-V02-PERFORMANCE-ACCEPTANCE`,
-`TEST-V02-NEGATIVE-ACCEPTANCE`, `TEST-V02-SRS-CERTIFICATION`.
+**Verification:** `TEST-V02-PERFORMANCE-ACCEPTANCE`,
+`TEST-V02-NEGATIVE-ACCEPTANCE`, `TEST-V02-SRS-CERTIFICATION`.<br>
+**Completion evidence:**
+`requirements/nsl_v0_2_acceptance.json`,
+`tools/performance_acceptance.py::run_performance_acceptance`,
+`tools/v0_2_certification.py::validate_acceptance_evidence`,
+`tools/v0_2_certification.py::certify_v0_2`,
+`tools/run_quality.py::main`,
+`tests/test_performance_reliability_certification.py::test_perf_005_bounded_1000_loop_boundary`,
+`tests/test_performance_reliability_certification.py::test_rel_002_runtime_crash_does_not_terminate_parent_process`,
+`tests/test_v0_2_final_certification.py::test_slice_0069_acceptance_baseline_matches_srs_and_repository_evidence`,
+`tests/test_v0_2_final_certification.py::test_slice_0069_final_certification_closes_requirements_and_rd_011`,
+and
+`tests/test_v0_2_final_certification.py::test_slice_0069_final_certification_fails_closed_on_release_report_drift`.
 
 ## 7. Acceptance Verification Model
 

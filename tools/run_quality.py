@@ -113,7 +113,13 @@ def main() -> int:
             failed = True
     if not failed:
         performance = subprocess.run(
-            [sys.executable, "-m", "tools.performance_acceptance"],
+            [
+                sys.executable,
+                "-m",
+                "tools.performance_acceptance",
+                "--output",
+                "test/performance_acceptance.json",
+            ],
             cwd=ROOT,
             check=False,
         )
@@ -134,6 +140,21 @@ def main() -> int:
         )
         if certification.returncode != 0:
             print("SRS certification gate failed", file=sys.stderr)
+            failed = True
+    if not failed:
+        v0_2_certification = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tools.v0_2_certification",
+                "--output",
+                "test/v0_2_certification.json",
+            ],
+            cwd=ROOT,
+            check=False,
+        )
+        if v0_2_certification.returncode != 0:
+            print("v0.2 certification gate failed", file=sys.stderr)
             failed = True
     return 1 if failed else 0
 
