@@ -16,6 +16,9 @@ class NsoSchemaError(ValueError):
 CLASSIFICATIONS = frozenset(
     {"PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"}
 )
+IR_VERSIONS = frozenset({"1.0", "1.1"})
+TOOL_CAPABILITIES = frozenset({"READ", "WRITE", "TRANSACTION"})
+RISK_LEVELS = frozenset({"R0", "R1", "R2", "R3", "R4", "R5"})
 
 
 def load_nso_json(data: bytes) -> Any:
@@ -34,6 +37,24 @@ def _object(value: Any, path: str, fields: frozenset[str]) -> dict[str, Any]:
     if missing:
         raise NsoSchemaError(path, f"missing fields: {sorted(missing)}")
     unexpected = actual - fields
+    if unexpected:
+        raise NsoSchemaError(path, f"unexpected fields: {sorted(unexpected)}")
+    return value
+
+
+def _object_with_optional(
+    value: Any,
+    path: str,
+    required: frozenset[str],
+    optional: frozenset[str],
+) -> dict[str, Any]:
+    if type(value) is not dict:
+        raise NsoSchemaError(path, "expected object")
+    actual = frozenset(value)
+    missing = required - actual
+    if missing:
+        raise NsoSchemaError(path, f"missing fields: {sorted(missing)}")
+    unexpected = actual - required - optional
     if unexpected:
         raise NsoSchemaError(path, f"unexpected fields: {sorted(unexpected)}")
     return value
@@ -177,7 +198,7 @@ def _validate_literal_value(value: Any, path: str) -> None:
     raise NsoSchemaError(path, "unknown encoded literal value")
 
 
-def _validate_expression(value: Any, path: str) -> None:
+def _validate_expression(value: Any, path: str, ir_version: str) -> None:
     if type(value) is not dict:
         raise NsoSchemaError(path, "expected expression object")
     kind = _string(value.get("kind"), f"{path}.kind")
@@ -191,6 +212,10 @@ def _validate_expression(value: Any, path: str) -> None:
         "binary": frozenset(common | {"operator", "left", "right"}),
         "read": frozenset(common | {"tool_ref", "arguments", "result_policy"}),
     }
+    if ir_version == "1.1":
+        fields_by_kind["write"] = frozenset(
+            common | {"tool_ref", "approval_ref", "arguments"}
+        )
     try:
         fields = fields_by_kind[kind]
     except KeyError as error:
@@ -205,20 +230,26 @@ def _validate_expression(value: Any, path: str) -> None:
     elif kind == "symbol_ref":
         _string(item["symbol_id"], f"{path}.symbol_id")
     elif kind in {"field", "project"}:
-        _validate_expression(item["source"], f"{path}.source")
+        _validate_expression(item["source"], f"{path}.source", ir_version)
         _string(item["field"], f"{path}.field")
     elif kind == "call":
         _string(item["function"], f"{path}.function")
         for index, argument in enumerate(
             _array(item["arguments"], f"{path}.arguments")
         ):
-            _validate_expression(argument, f"{path}.arguments[{index}]")
+            _validate_expression(
+                argument,
+                f"{path}.arguments[{index}]",
+                ir_version,
+            )
     elif kind == "binary":
         _string(item["operator"], f"{path}.operator")
-        _validate_expression(item["left"], f"{path}.left")
-        _validate_expression(item["right"], f"{path}.right")
-    else:
+        _validate_expression(item["left"], f"{path}.left", ir_version)
+        _validate_expression(item["right"], f"{path}.right", ir_version)
+    elif kind in {"read", "write"}:
         _string(item["tool_ref"], f"{path}.tool_ref")
+        if kind == "write":
+            _string(item["approval_ref"], f"{path}.approval_ref")
         for index, argument in enumerate(
             _array(item["arguments"], f"{path}.arguments")
         ):
@@ -227,7 +258,13 @@ def _validate_expression(value: Any, path: str) -> None:
                 argument, argument_path, frozenset({"name", "value"})
             )
             _string(argument["name"], f"{argument_path}.name")
-            _validate_expression(argument["value"], f"{argument_path}.value")
+            _validate_expression(
+                argument["value"],
+                f"{argument_path}.value",
+                ir_version,
+            )
+        if kind == "write":
+            return
         policy_path = f"{path}.result_policy"
         policy = _object(
             item["result_policy"],
@@ -238,7 +275,7 @@ def _validate_expression(value: Any, path: str) -> None:
             _boolean(policy[name], f"{policy_path}.{name}")
 
 
-def _validate_statement(value: Any, path: str) -> None:
+def _validate_statement(value: Any, path: str, ir_version: str) -> None:
     if type(value) is not dict:
         raise NsoSchemaError(path, "expected statement object")
     kind = _string(value.get("kind"), f"{path}.kind")
@@ -269,6 +306,10 @@ def _validate_statement(value: Any, path: str) -> None:
         ),
         "emit": frozenset({"node_id", "kind", "fields"}),
     }
+    if ir_version == "1.1":
+        fields_by_kind["approval"] = frozenset(
+            {"node_id", "kind", "approval_id", "message", "policy"}
+        )
     try:
         fields = fields_by_kind[kind]
     except KeyError as error:
@@ -279,13 +320,19 @@ def _validate_statement(value: Any, path: str) -> None:
     _string(item["node_id"], f"{path}.node_id")
     if kind == "let":
         _string(item["target_symbol_id"], f"{path}.target_symbol_id")
-        _validate_expression(item["value"], f"{path}.value")
+        _validate_expression(item["value"], f"{path}.value", ir_version)
     elif kind == "foreach":
         _string(item["iterator_symbol_id"], f"{path}.iterator_symbol_id")
-        _validate_expression(item["collection"], f"{path}.collection")
+        _validate_expression(
+            item["collection"], f"{path}.collection", ir_version
+        )
         _integer(item["max_iterations"], f"{path}.max_iterations", 1)
         for index, statement in enumerate(_array(item["body"], f"{path}.body")):
-            _validate_statement(statement, f"{path}.body[{index}]")
+            _validate_statement(
+                statement,
+                f"{path}.body[{index}]",
+                ir_version,
+            )
     elif kind == "check":
         for name in (
             "check_id",
@@ -295,7 +342,9 @@ def _validate_statement(value: Any, path: str) -> None:
         ):
             _string(item[name], f"{path}.{name}")
         _string(item["message"], f"{path}.message", allow_empty=True)
-        _validate_expression(item["condition"], f"{path}.condition")
+        _validate_expression(
+            item["condition"], f"{path}.condition", ir_version
+        )
         policy_path = f"{path}.data_policy"
         policy = _object(
             item["data_policy"],
@@ -305,12 +354,205 @@ def _validate_statement(value: Any, path: str) -> None:
         _boolean(policy["require_complete"], f"{policy_path}.require_complete")
         _constant(policy["on_partial"], "UNKNOWN", f"{policy_path}.on_partial")
         _constant(policy["on_unknown"], "UNKNOWN", f"{policy_path}.on_unknown")
-    else:
+    elif kind == "emit":
         for index, field in enumerate(_array(item["fields"], f"{path}.fields")):
             field_path = f"{path}.fields[{index}]"
             field = _object(field, field_path, frozenset({"name", "value"}))
             _string(field["name"], f"{field_path}.name")
-            _validate_expression(field["value"], f"{field_path}.value")
+            _validate_expression(
+                field["value"], f"{field_path}.value", ir_version
+            )
+    else:
+        _string(item["approval_id"], f"{path}.approval_id")
+        _string(item["message"], f"{path}.message", allow_empty=True)
+        policy_path = f"{path}.policy"
+        policy = _object_with_optional(
+            item["policy"],
+            policy_path,
+            frozenset({"required"}),
+            frozenset({"ttl_seconds"}),
+        )
+        _boolean(policy["required"], f"{policy_path}.required")
+        _constant(policy["required"], True, f"{policy_path}.required")
+        if "ttl_seconds" in policy:
+            _integer(policy["ttl_seconds"], f"{policy_path}.ttl_seconds", 1)
+
+
+def _collect_write_links(
+    expression: dict[str, Any],
+    path: str,
+    order: int,
+    inside_foreach: bool,
+    writes: list[tuple[str, str, str, int, bool]],
+) -> None:
+    kind = expression["kind"]
+    if kind == "write":
+        writes.append(
+            (
+                path,
+                expression["approval_ref"],
+                expression["tool_ref"],
+                order,
+                inside_foreach,
+            )
+        )
+    if kind in {"field", "project"}:
+        _collect_write_links(
+            expression["source"],
+            f"{path}.source",
+            order,
+            inside_foreach,
+            writes,
+        )
+    elif kind == "call":
+        for index, argument in enumerate(expression["arguments"]):
+            _collect_write_links(
+                argument,
+                f"{path}.arguments[{index}]",
+                order,
+                inside_foreach,
+                writes,
+            )
+    elif kind == "binary":
+        for name in ("left", "right"):
+            _collect_write_links(
+                expression[name],
+                f"{path}.{name}",
+                order,
+                inside_foreach,
+                writes,
+            )
+    elif kind in {"read", "write"}:
+        for index, argument in enumerate(expression["arguments"]):
+            _collect_write_links(
+                argument["value"],
+                f"{path}.arguments[{index}].value",
+                order,
+                inside_foreach,
+                writes,
+            )
+
+
+def _collect_ir_1_1_links(
+    statements: list[Any],
+    path: str,
+    counter: list[int],
+    approvals: dict[str, tuple[str, int]],
+    writes: list[tuple[str, str, str, int, bool]],
+    *,
+    inside_foreach: bool = False,
+) -> None:
+    for index, statement in enumerate(statements):
+        statement_path = f"{path}[{index}]"
+        counter[0] += 1
+        order = counter[0]
+        kind = statement["kind"]
+        if kind == "approval":
+            approval_id = statement["approval_id"]
+            if approval_id in approvals:
+                raise NsoSchemaError(
+                    f"{statement_path}.approval_id",
+                    "duplicate approval_id",
+                )
+            approvals[approval_id] = (statement_path, order)
+        elif kind == "let":
+            _collect_write_links(
+                statement["value"],
+                f"{statement_path}.value",
+                order,
+                inside_foreach,
+                writes,
+            )
+        elif kind == "foreach":
+            _collect_write_links(
+                statement["collection"],
+                f"{statement_path}.collection",
+                order,
+                inside_foreach,
+                writes,
+            )
+            _collect_ir_1_1_links(
+                statement["body"],
+                f"{statement_path}.body",
+                counter,
+                approvals,
+                writes,
+                inside_foreach=True,
+            )
+        elif kind == "check":
+            _collect_write_links(
+                statement["condition"],
+                f"{statement_path}.condition",
+                order,
+                inside_foreach,
+                writes,
+            )
+        elif kind == "emit":
+            for field_index, field in enumerate(statement["fields"]):
+                _collect_write_links(
+                    field["value"],
+                    f"{statement_path}.fields[{field_index}].value",
+                    order,
+                    inside_foreach,
+                    writes,
+                )
+
+
+def _validate_ir_1_1_links(root: dict[str, Any]) -> None:
+    tools: dict[str, tuple[str, str]] = {}
+    for index, required in enumerate(root["requires"]):
+        tool_ref = required["tool_ref"]
+        path = f"$.requires[{index}].tool_ref"
+        if tool_ref in tools:
+            raise NsoSchemaError(path, "duplicate tool_ref")
+        tools[tool_ref] = (required["capability"], path)
+
+    approvals: dict[str, tuple[str, int]] = {}
+    writes: list[tuple[str, str, str, int, bool]] = []
+    _collect_ir_1_1_links(
+        root["body"],
+        "$.body",
+        [0],
+        approvals,
+        writes,
+    )
+    if root["semantics_profile"] == "NSL-0.2-STRICT" and len(writes) > 1:
+        raise NsoSchemaError(writes[1][0], "strict profile allows at most one WRITE")
+
+    approval_use: dict[str, int] = {}
+    for path, approval_ref, tool_ref, order, inside_foreach in writes:
+        if inside_foreach:
+            raise NsoSchemaError(path, "WRITE must not be nested inside foreach")
+        approval = approvals.get(approval_ref)
+        if approval is None:
+            raise NsoSchemaError(
+                f"{path}.approval_ref",
+                "must reference a declared approval_id",
+            )
+        if approval[1] >= order:
+            raise NsoSchemaError(
+                f"{path}.approval_ref",
+                "approval must occur before WRITE",
+            )
+        tool = tools.get(tool_ref)
+        if tool is None:
+            raise NsoSchemaError(
+                f"{path}.tool_ref",
+                "must reference a required tool",
+            )
+        if tool[0] != "WRITE":
+            raise NsoSchemaError(
+                f"{path}.tool_ref",
+                "must reference a WRITE capability tool",
+            )
+        approval_use[approval_ref] = approval_use.get(approval_ref, 0) + 1
+
+    for approval_id, (path, _) in approvals.items():
+        if approval_use.get(approval_id, 0) != 1:
+            raise NsoSchemaError(
+                f"{path}.approval_id",
+                "approval must be linked to exactly one WRITE",
+            )
 
 
 def validate_nso_document(value: Any) -> None:
@@ -336,7 +578,7 @@ def validate_nso_document(value: Any) -> None:
     )
     root = _object(value, "$", root_fields)
     _constant(root["format"], "NSO", "$.format")
-    _string(root["ir_version"], "$.ir_version")
+    ir_version = _choice(root["ir_version"], "$.ir_version", IR_VERSIONS)
 
     language = _object(
         root["language"], "$.language", frozenset({"name", "version"})
@@ -369,29 +611,47 @@ def validate_nso_document(value: Any) -> None:
 
     for index, required in enumerate(_array(root["requires"], "$.requires")):
         path = f"$.requires[{index}]"
+        required_fields = frozenset(
+            {
+                "tool_ref",
+                "tool_id",
+                "version",
+                "capability",
+                "contract_hash",
+                "required_scope",
+                "output_classification",
+            }
+        )
+        if ir_version == "1.1":
+            required_fields |= frozenset({"risk_level"})
         required = _object(
             required,
             path,
-            frozenset(
-                {
-                    "tool_ref",
-                    "tool_id",
-                    "version",
-                    "capability",
-                    "contract_hash",
-                    "required_scope",
-                    "output_classification",
-                }
-            ),
+            required_fields,
         )
         for name in (
             "tool_ref",
             "tool_id",
             "version",
-            "capability",
             "required_scope",
         ):
             _string(required[name], f"{path}.{name}")
+        capability = _choice(
+            required["capability"],
+            f"{path}.capability",
+            TOOL_CAPABILITIES,
+        )
+        if ir_version == "1.0" and capability != "READ":
+            raise NsoSchemaError(
+                f"{path}.capability",
+                "IR 1.0 supports READ capability only",
+            )
+        if ir_version == "1.1":
+            _choice(
+                required["risk_level"],
+                f"{path}.risk_level",
+                RISK_LEVELS,
+            )
         _choice(
             required["output_classification"],
             f"{path}.output_classification",
@@ -466,7 +726,9 @@ def validate_nso_document(value: Any) -> None:
         _choice(output["classification"], f"{path}.classification", CLASSIFICATIONS)
 
     for index, statement in enumerate(_array(root["body"], "$.body")):
-        _validate_statement(statement, f"$.body[{index}]")
+        _validate_statement(statement, f"$.body[{index}]", ir_version)
+    if ir_version == "1.1":
+        _validate_ir_1_1_links(root)
 
     analysis = _object(
         root["analysis"],

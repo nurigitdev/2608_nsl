@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0036",
+  "current_slice": "0037",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -127,6 +127,8 @@
     "NSL-IR-202": {"status": "IMPLEMENTED", "target_slice": "0036", "verification": ["TEST-IR-202"], "evidence": ["tests/test_v0_2_ir_object_model.py::test_ir_202_approval_statement_is_immutable_static_semantics", "tests/test_v0_2_ir_object_model.py::test_ir_202_approval_policy_rejects_optional_or_implicit_bool", "tests/test_v0_2_ir_object_model.py::test_ir_202_approval_policy_rejects_invalid_ttl", "tests/test_v0_2_ir_object_model.py::test_ir_202_approval_statement_rejects_malformed_static_fields"]},
     "NSL-IR-203": {"status": "IMPLEMENTED", "target_slice": "0036", "verification": ["TEST-IR-203"], "evidence": ["tests/test_v0_2_ir_object_model.py::test_ir_203_write_expression_has_immutable_argument_graph", "tests/test_v0_2_ir_object_model.py::test_ir_203_write_expression_rejects_malformed_graph"]},
     "NSL-IR-204": {"status": "IMPLEMENTED", "target_slice": "0036", "verification": ["TEST-IR-204"], "evidence": ["tests/test_v0_2_ir_object_model.py::test_ir_204_write_expression_requires_exact_static_approval_ref"]},
-    "NSL-IR-205": {"status": "IMPLEMENTED", "target_slice": "0036", "verification": ["TEST-IR-205"], "evidence": ["tests/test_v0_2_ir_object_model.py::test_ir_205_required_write_tool_carries_static_contract_fingerprint", "tests/test_v0_2_ir_object_model.py::test_ir_205_required_write_tool_rejects_missing_or_invalid_risk", "tests/test_v0_2_ir_object_model.py::test_ir_205_legacy_read_required_tool_remains_additively_compatible", "tests/test_v0_2_ir_object_model.py::test_ir_object_model_excludes_runtime_identity_state_and_tool_objects"]}
+    "NSL-IR-205": {"status": "IMPLEMENTED", "target_slice": "0036", "verification": ["TEST-IR-205"], "evidence": ["tests/test_v0_2_ir_object_model.py::test_ir_205_required_write_tool_carries_static_contract_fingerprint", "tests/test_v0_2_ir_object_model.py::test_ir_205_required_write_tool_rejects_missing_or_invalid_risk", "tests/test_v0_2_ir_object_model.py::test_ir_205_legacy_read_required_tool_remains_additively_compatible", "tests/test_v0_2_ir_object_model.py::test_ir_object_model_excludes_runtime_identity_state_and_tool_objects"]},
+    "NSL-IR-201": {"status": "IMPLEMENTED", "target_slice": "0037", "verification": ["TEST-IR-201"], "evidence": ["tests/test_v0_2_ir_codec.py::test_ir_201_ir_1_1_codec_round_trips_deterministically", "tests/test_v0_2_ir_codec.py::test_ir_201_ir_1_1_canonical_shape_contains_only_static_write_semantics", "tests/test_v0_2_ir_codec.py::test_ir_201_write_less_ir_1_1_remains_a_supported_additive_shape", "tests/test_v0_2_ir_codec.py::test_ir_201_loader_rejects_unsupported_ir_versions", "tests/test_v0_2_ir_codec.py::test_ir_201_ir_1_1_rejects_missing_approval_link", "tests/test_v0_2_ir_codec.py::test_ir_201_ir_1_1_rejects_approval_after_write", "tests/test_v0_2_ir_codec.py::test_ir_201_ir_1_1_rejects_write_inside_foreach_and_multiple_writes"]},
+    "NSL-IR-208": {"status": "IMPLEMENTED", "target_slice": "0037", "verification": ["TEST-IR-208"], "evidence": ["tests/test_v0_2_ir_codec.py::test_ir_208_v1_0_artifact_bytes_hash_and_load_are_unchanged", "tests/test_v0_2_ir_codec.py::test_ir_208_ir_1_0_rejects_v1_1_additions_and_non_read_tools"]}
   }
 }

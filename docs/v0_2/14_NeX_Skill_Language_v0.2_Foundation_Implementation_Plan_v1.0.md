@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Foundation slices:** 0033-0037  
-**Status:** ACTIVE  
+**Status:** COMPLETE
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`  
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`
 
@@ -40,7 +40,7 @@ and synchronization unit.
 | 0034 | COMPLETE | Tool Contract v0.2 Static Model | `NSL-TOL-201..206`, `NSL-RSK-001` | WRITE capability, operation kind, idempotency requirement, atomicity, commit semantics, risk, and optional verification metadata are immutable and validated without breaking READ contracts. |
 | 0035 | COMPLETE | Tool Contract Canonical Identity | `NSL-TOL-207`, `NSL-RSK-004` | Canonical contract identity includes WRITE semantics and excludes endpoint, credential, tenant entitlement, MFA, and other environment policy values. |
 | 0036 | COMPLETE | IR 1.1 Object Model | `NSL-IR-202..205` | Immutable Approval, Write, and RequiredTool semantic nodes exist without Runtime invocation state or Tool Contract object ownership. |
-| 0037 | PLANNED | IR 1.1 Codec and IR 1.0 Compatibility | `NSL-IR-201`, `NSL-IR-208` | IR 1.1 validates and round-trips deterministically while IR 1.0 READ-only objects and their canonical hashes remain compatible. |
+| 0037 | COMPLETE | IR 1.1 Codec and IR 1.0 Compatibility | `NSL-IR-201`, `NSL-IR-208` | IR 1.1 validates and round-trips deterministically while IR 1.0 READ-only objects and their canonical hashes remain compatible. |
 
 `NSL-IR-206..207` belongs to version-aware Compiler lowering. `NSL-IR-209`
 is completed at the Signed NSP trust boundary. `NSL-RSK-002` belongs to Compiler

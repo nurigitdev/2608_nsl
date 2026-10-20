@@ -388,6 +388,17 @@ def _expr_to_data(expr: Expression) -> dict[str, Any]:
                 "empty_is_valid": expr.result_policy.empty_is_valid,
             },
         }
+    if isinstance(expr, WriteExpression):
+        return {
+            **base,
+            "kind": "write",
+            "tool_ref": expr.tool_ref,
+            "approval_ref": expr.approval_ref,
+            "arguments": [
+                {"name": name, "value": _expr_to_data(value)}
+                for name, value in expr.arguments
+            ],
+        }
     raise TypeError(f"unsupported expression: {type(expr)!r}")
 
 
@@ -433,6 +444,17 @@ def _statement_to_data(statement: Statement) -> dict[str, Any]:
                 for name, value in statement.fields
             ],
         }
+    if isinstance(statement, ApprovalStatement):
+        policy: dict[str, Any] = {"required": statement.policy.required}
+        if statement.policy.ttl_seconds is not None:
+            policy["ttl_seconds"] = statement.policy.ttl_seconds
+        return {
+            "node_id": statement.node_id,
+            "kind": "approval",
+            "approval_id": statement.approval_id,
+            "message": statement.message,
+            "policy": policy,
+        }
     raise TypeError(f"unsupported statement: {type(statement)!r}")
 
 
@@ -467,10 +489,19 @@ def skill_to_data(
                 "tool_ref": item.tool_ref,
                 "tool_id": item.tool_id,
                 "version": item.version,
-                "capability": item.capability,
+                "capability": (
+                    item.capability.value
+                    if isinstance(item.capability, ToolCapability)
+                    else item.capability
+                ),
                 "contract_hash": item.contract_hash,
                 "required_scope": item.required_scope,
                 "output_classification": item.output_classification.value,
+                **(
+                    {"risk_level": item.risk_level.value}
+                    if skill.ir_version == "1.1" and item.risk_level is not None
+                    else {}
+                ),
             }
             for item in skill.required_tools
         ],
@@ -587,6 +618,16 @@ def _expr_from_data(data: dict[str, Any]) -> Expression:
             result_policy=ResultPolicy(**policy),
             **common,
         )
+    if kind == "write":
+        return WriteExpression(
+            tool_ref=data["tool_ref"],
+            arguments=tuple(
+                (item["name"], _expr_from_data(item["value"]))
+                for item in data["arguments"]
+            ),
+            approval_ref=data["approval_ref"],
+            **common,
+        )
     raise ValueError(f"unknown expression kind: {kind}")
 
 
@@ -622,6 +663,13 @@ def _statement_from_data(data: dict[str, Any]) -> Statement:
                 for item in data["fields"]
             ),
         )
+    if kind == "approval":
+        return ApprovalStatement(
+            data["node_id"],
+            data["approval_id"],
+            data["message"],
+            ApprovalPolicy(**data["policy"]),
+        )
     raise ValueError(f"unknown statement kind: {kind}")
 
 
@@ -630,6 +678,7 @@ class NsoCodec:
     def encode(skill: SkillObject) -> bytes:
         payload = skill_to_data(skill)
         ensure_no_credential_material(payload, ".nso")
+        validate_nso_document(payload)
         return canonical_json(payload)
 
     @staticmethod
@@ -656,6 +705,9 @@ class NsoCodec:
                 item["contract_hash"],
                 item["required_scope"],
                 DataClassification(item["output_classification"]),
+                RiskLevel(item["risk_level"])
+                if "risk_level" in item
+                else None,
             )
             for item in raw["requires"]
         )
