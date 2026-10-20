@@ -110,12 +110,19 @@ def test_tol_002_tool_identity_is_unique_per_global_id_and_version() -> None:
 def test_tol_003_registry_manages_required_tool_capability(invalid) -> None:
     catalog = build_tool_catalog()
     contract = catalog.get("PROJECT.LIST_PARENT_PROJECTS", "1.0.0")
-    write_contract = replace(contract, version="1.0.1", capability="WRITE")
-    registry = ToolContractCatalog((contract, write_contract))
+    transaction_contract = replace(
+        contract,
+        version="1.0.1",
+        capability="TRANSACTION",
+    )
+    registry = ToolContractCatalog((contract, transaction_contract))
 
     assert registry.resolve(contract.tool_id, contract.version).capability == "READ"
-    assert registry.resolve(contract.tool_id, write_contract.version).capability == "WRITE"
-    assert write_contract.contract_hash != contract.contract_hash
+    assert (
+        registry.resolve(contract.tool_id, transaction_contract.version).capability
+        == "TRANSACTION"
+    )
+    assert transaction_contract.contract_hash != contract.contract_hash
     with pytest.raises(ValueError, match="capability"):
         replace(contract, capability=invalid)
 

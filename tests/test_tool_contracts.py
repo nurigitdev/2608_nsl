@@ -159,7 +159,9 @@ def test_req_004_tool_version_compatibility_is_exact(version: str) -> None:
     )
 
 
-@pytest.mark.parametrize("capability", ("WRITE", "APPROVAL", "EXECUTE"))
+@pytest.mark.parametrize(
+    "capability", ("TRANSACTION", "APPROVAL", "EXECUTE")
+)
 def test_req_005_v0_1_accepts_only_read_capability_tools(
     capability: str,
 ) -> None:

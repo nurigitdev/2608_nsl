@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from nsl.compiler import CompileError, NslCompiler
-from nsl.core import BOOL, INT, STRING, YEAR
+from nsl.core import BOOL, INT, STRING, YEAR, RiskLevel, ToolCapability
 from nsl.syntax import (
     AstBinary,
     AstCall,
@@ -18,12 +18,37 @@ from nsl.syntax import (
     Parser,
     TokenKind,
 )
-from nsl.tools import ToolContractCatalog
+from nsl.tools import (
+    Atomicity,
+    CommitConfirmation,
+    CommitSemantics,
+    IdempotencySemantics,
+    OperationKind,
+    ToolContractCatalog,
+    WriteSemantics,
+)
 from nsl.vertical_slice import build_tool_catalog
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = (ROOT / "examples" / "project_budget_check.ns").read_text(encoding="utf-8")
+
+
+def write_semantics() -> WriteSemantics:
+    return WriteSemantics(
+        side_effect=True,
+        atomicity=Atomicity.ATOMIC,
+        idempotency=IdempotencySemantics(
+            required=True,
+            scope="TOOL_AND_TENANT",
+            retention="PROVIDER_DEFINED",
+            duplicate_behavior="RETURN_ORIGINAL_RESULT",
+            payload_conflict_behavior="IDEMPOTENCY_CONFLICT",
+        ),
+        commit=CommitSemantics(CommitConfirmation.EXPLICIT),
+        approval_required=True,
+        preconditions_supported=True,
+    )
 
 
 def parse_expression(text: str):
@@ -159,7 +184,13 @@ def test_compiler_rejects_write_contract() -> None:
     contracts = []
     for contract in catalog._contracts.values():
         contracts.append(
-            replace(contract, capability="WRITE")
+            replace(
+                contract,
+                capability=ToolCapability.WRITE,
+                operation_kind=OperationKind.CREATE_DRAFT,
+                risk_level=RiskLevel.R3,
+                write_semantics=write_semantics(),
+            )
             if contract.tool_id == "PROJECT.LIST_CHILD_PROJECTS"
             else contract
         )

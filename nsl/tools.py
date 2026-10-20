@@ -13,6 +13,8 @@ from .core import (
     DataClassification,
     Money,
     Presence,
+    RiskLevel,
+    ToolCapability,
     TypeRef,
     ValueEnvelope,
     encode_value,
@@ -43,6 +45,166 @@ TOOL_VERSION_COMPATIBILITY_POLICY = "EXACT"
 MAX_TOOL_TIMEOUT_MS = 2_147_483_647
 
 
+class OperationKind(StrEnum):
+    CREATE = "CREATE"
+    CREATE_DRAFT = "CREATE_DRAFT"
+
+
+class Atomicity(StrEnum):
+    ATOMIC = "ATOMIC"
+
+
+class CommitConfirmation(StrEnum):
+    EXPLICIT = "EXPLICIT"
+
+
+def _coerce_enum(value: Any, enum_type: type[StrEnum], label: str) -> StrEnum:
+    if isinstance(value, enum_type):
+        return value
+    try:
+        return enum_type(value)
+    except (TypeError, ValueError) as error:
+        choices = ", ".join(member.value for member in enum_type)
+        raise ValueError(f"{label} must be one of: {choices}") from error
+
+
+def _require_non_empty(value: Any, label: str) -> None:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{label} must be a non-empty string")
+
+
+@dataclass(frozen=True, slots=True)
+class IdempotencySemantics:
+    required: bool
+    scope: str
+    retention: str
+    duplicate_behavior: str
+    payload_conflict_behavior: str
+
+    def __post_init__(self) -> None:
+        if self.required is not True:
+            raise ValueError("WRITE idempotency.required must be true")
+        for label, value in (
+            ("idempotency.scope", self.scope),
+            ("idempotency.retention", self.retention),
+            ("idempotency.duplicate_behavior", self.duplicate_behavior),
+            (
+                "idempotency.payload_conflict_behavior",
+                self.payload_conflict_behavior,
+            ),
+        ):
+            _require_non_empty(value, label)
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "required": self.required,
+            "scope": self.scope,
+            "retention": self.retention,
+            "duplicate_behavior": self.duplicate_behavior,
+            "payload_conflict_behavior": self.payload_conflict_behavior,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class CommitSemantics:
+    confirmation: CommitConfirmation
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "confirmation",
+            _coerce_enum(
+                self.confirmation,
+                CommitConfirmation,
+                "commit.confirmation",
+            ),
+        )
+
+    def to_data(self) -> dict[str, str]:
+        return {"confirmation": self.confirmation.value}
+
+
+@dataclass(frozen=True, slots=True)
+class PostWriteVerification:
+    tool_id: str | None = None
+    reference_schema: TypeRef | None = None
+    consistency_hint: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.tool_id is not None:
+            _require_non_empty(self.tool_id, "verification.tool_id")
+        if self.reference_schema is not None and not isinstance(
+            self.reference_schema, TypeRef
+        ):
+            raise ValueError("verification.reference_schema must be a TypeRef")
+        if self.consistency_hint is not None:
+            _require_non_empty(
+                self.consistency_hint,
+                "verification.consistency_hint",
+            )
+        if (
+            self.tool_id is None
+            and self.reference_schema is None
+            and self.consistency_hint is None
+        ):
+            raise ValueError("verification must declare at least one hint")
+
+    def to_data(self) -> dict[str, Any]:
+        value: dict[str, Any] = {}
+        if self.tool_id is not None:
+            value["tool_id"] = self.tool_id
+        if self.reference_schema is not None:
+            value["reference_schema"] = self.reference_schema.to_data()
+        if self.consistency_hint is not None:
+            value["consistency_hint"] = self.consistency_hint
+        return value
+
+
+@dataclass(frozen=True, slots=True)
+class WriteSemantics:
+    side_effect: bool
+    atomicity: Atomicity
+    idempotency: IdempotencySemantics
+    commit: CommitSemantics
+    approval_required: bool
+    preconditions_supported: bool
+    verification: PostWriteVerification | None = None
+
+    def __post_init__(self) -> None:
+        if self.side_effect is not True:
+            raise ValueError("WRITE side_effect must be true")
+        object.__setattr__(
+            self,
+            "atomicity",
+            _coerce_enum(self.atomicity, Atomicity, "WRITE atomicity"),
+        )
+        if not isinstance(self.idempotency, IdempotencySemantics):
+            raise ValueError("WRITE idempotency semantics must be declared")
+        if not isinstance(self.commit, CommitSemantics):
+            raise ValueError("WRITE commit semantics must be declared")
+        if self.approval_required is not True:
+            raise ValueError("WRITE approval.required must be true")
+        if self.preconditions_supported is not True:
+            raise ValueError("WRITE preconditions.supported must be true")
+        if self.verification is not None and not isinstance(
+            self.verification, PostWriteVerification
+        ):
+            raise ValueError("WRITE verification must use PostWriteVerification")
+
+    def to_data(self) -> dict[str, Any]:
+        value: dict[str, Any] = {
+            "side_effect": self.side_effect,
+            "atomicity": self.atomicity.value,
+            "idempotency": self.idempotency.to_data(),
+            "commit": self.commit.to_data(),
+            "approval": {"required": self.approval_required},
+            "preconditions": {"supported": self.preconditions_supported},
+        }
+        if self.verification is not None:
+            value["verification"] = self.verification.to_data()
+        return value
+
+
 @dataclass(frozen=True, slots=True)
 class ToolContract:
     """Canonical business contract without customer-specific binding data."""
@@ -57,6 +219,9 @@ class ToolContract:
     timeout_ms: int = 30_000
     risk: str = "READ_ONLY"
     empty_is_valid: bool = True
+    operation_kind: OperationKind | None = None
+    risk_level: RiskLevel | None = None
+    write_semantics: WriteSemantics | None = None
 
     def __post_init__(self) -> None:
         version_parts = (
@@ -72,6 +237,13 @@ class ToolContract:
             raise ValueError("tool version must use canonical major.minor.patch form")
         if not isinstance(self.capability, str) or not self.capability.strip():
             raise ValueError("tool capability must be a non-empty string")
+        _require_non_empty(self.risk, "tool risk")
+        try:
+            capability = ToolCapability(self.capability)
+        except ValueError:
+            capability = self.capability
+        else:
+            object.__setattr__(self, "capability", capability)
         names = tuple(name for name, _ in self.input_types)
         if not all(isinstance(name, str) and name.strip() for name in names):
             raise ValueError("tool input names must be non-empty strings")
@@ -88,6 +260,34 @@ class ToolContract:
         ):
             raise ValueError(
                 f"tool timeout_ms must be between 1 and {MAX_TOOL_TIMEOUT_MS}"
+            )
+        if self.risk_level is not None:
+            object.__setattr__(
+                self,
+                "risk_level",
+                _coerce_enum(self.risk_level, RiskLevel, "tool risk_level"),
+            )
+        if self.operation_kind is not None:
+            object.__setattr__(
+                self,
+                "operation_kind",
+                _coerce_enum(
+                    self.operation_kind,
+                    OperationKind,
+                    "WRITE operation_kind",
+                ),
+            )
+
+        if self.capability == ToolCapability.WRITE:
+            if self.operation_kind is None:
+                raise ValueError("WRITE tool must declare operation_kind")
+            if self.risk_level is None:
+                raise ValueError("WRITE tool must declare risk_level")
+            if not isinstance(self.write_semantics, WriteSemantics):
+                raise ValueError("WRITE tool must declare write_semantics")
+        elif self.operation_kind is not None or self.write_semantics is not None:
+            raise ValueError(
+                "operation_kind and write_semantics require capability=WRITE"
             )
 
     @property
@@ -107,6 +307,12 @@ class ToolContract:
             "timeout_ms": self.timeout_ms,
             "empty_is_valid": self.empty_is_valid,
         }
+        if self.operation_kind is not None:
+            payload["operation_kind"] = self.operation_kind.value
+        if self.risk_level is not None:
+            payload["risk_level"] = self.risk_level.value
+        if self.write_semantics is not None:
+            payload["write_semantics"] = self.write_semantics.to_data()
         return "sha256:" + sha256(canonical_json(payload)).hexdigest()
 
     def input_type(self, name: str) -> TypeRef:

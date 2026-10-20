@@ -34,13 +34,13 @@ and synchronization unit.
 
 ## 3. Foundation Slices
 
-| Slice | Title | Primary requirements | Completion boundary |
-|---|---|---|---|
-| 0033 | Shared Core v0.2 Semantic Kernel | `NSL-ARC-201` | Shared identity, capability, risk, approval, write, commit, and verification semantic types have one dependency-safe definition. Compiler and Runtime adoption remains `PARTIAL` until later Slices use the definitions. |
-| 0034 | Tool Contract v0.2 Static Model | `NSL-TOL-201..206`, `NSL-RSK-001` | WRITE capability, operation kind, idempotency requirement, atomicity, commit semantics, risk, and optional verification metadata are immutable and validated without breaking READ contracts. |
-| 0035 | Tool Contract Canonical Identity | `NSL-TOL-207`, `NSL-RSK-004` | Canonical contract identity includes WRITE semantics and excludes endpoint, credential, tenant entitlement, MFA, and other environment policy values. |
-| 0036 | IR 1.1 Object Model | `NSL-IR-202..205` | Immutable Approval, Write, and RequiredTool semantic nodes exist without Runtime invocation state or Tool Contract object ownership. |
-| 0037 | IR 1.1 Codec and IR 1.0 Compatibility | `NSL-IR-201`, `NSL-IR-208` | IR 1.1 validates and round-trips deterministically while IR 1.0 READ-only objects and their canonical hashes remain compatible. |
+| Slice | Status | Title | Primary requirements | Completion boundary |
+|---|---|---|---|---|
+| 0033 | COMPLETE | Shared Core v0.2 Semantic Kernel | `NSL-ARC-201` | Shared identity, capability, risk, approval, write, commit, and verification semantic types have one dependency-safe definition. Compiler and Runtime adoption remains `PARTIAL` until later Slices use the definitions. |
+| 0034 | COMPLETE | Tool Contract v0.2 Static Model | `NSL-TOL-201..206`, `NSL-RSK-001` | WRITE capability, operation kind, idempotency requirement, atomicity, commit semantics, risk, and optional verification metadata are immutable and validated without breaking READ contracts. |
+| 0035 | PLANNED | Tool Contract Canonical Identity | `NSL-TOL-207`, `NSL-RSK-004` | Canonical contract identity includes WRITE semantics and excludes endpoint, credential, tenant entitlement, MFA, and other environment policy values. |
+| 0036 | PLANNED | IR 1.1 Object Model | `NSL-IR-202..205` | Immutable Approval, Write, and RequiredTool semantic nodes exist without Runtime invocation state or Tool Contract object ownership. |
+| 0037 | PLANNED | IR 1.1 Codec and IR 1.0 Compatibility | `NSL-IR-201`, `NSL-IR-208` | IR 1.1 validates and round-trips deterministically while IR 1.0 READ-only objects and their canonical hashes remain compatible. |
 
 `NSL-IR-206..207` belongs to version-aware Compiler lowering. `NSL-IR-209`
 is completed at the Signed NSP trust boundary. `NSL-RSK-002` belongs to Compiler

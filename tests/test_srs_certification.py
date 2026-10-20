@@ -10,10 +10,27 @@ import pytest
 
 from nsl.audit import InMemoryAuditSink
 from nsl.compiler import NslCompiler
-from nsl.core import CheckStatus, Completeness, ExecutionStatus, Money, MoneyError
+from nsl.core import (
+    CheckStatus,
+    Completeness,
+    ExecutionStatus,
+    Money,
+    MoneyError,
+    RiskLevel,
+    ToolCapability,
+)
 from nsl.diagnostics import CompileError, DiagnosticCode
 from nsl.runtime import ExecutionRequest, RuntimeEngine
-from nsl.tools import ToolCallRequest, ToolExecutionError
+from nsl.tools import (
+    Atomicity,
+    CommitConfirmation,
+    CommitSemantics,
+    IdempotencySemantics,
+    OperationKind,
+    ToolCallRequest,
+    ToolExecutionError,
+    WriteSemantics,
+)
 from nsl.vertical_slice import (
     build_mock_executor,
     build_principal,
@@ -34,6 +51,23 @@ from tools.srs_certification import (
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = (ROOT / "examples" / "project_budget_check.ns").read_text(encoding="utf-8")
+
+
+def write_semantics() -> WriteSemantics:
+    return WriteSemantics(
+        side_effect=True,
+        atomicity=Atomicity.ATOMIC,
+        idempotency=IdempotencySemantics(
+            required=True,
+            scope="TOOL_AND_TENANT",
+            retention="PROVIDER_DEFINED",
+            duplicate_behavior="RETURN_ORIGINAL_RESULT",
+            payload_conflict_behavior="IDEMPOTENCY_CONFLICT",
+        ),
+        commit=CommitSemantics(CommitConfirmation.EXPLICIT),
+        approval_required=True,
+        preconditions_supported=True,
+    )
 
 
 def execution_request(execution_id: str) -> ExecutionRequest:
@@ -75,7 +109,13 @@ def test_ac_n02_undeclared_tool_is_a_compile_error() -> None:
 def test_ac_n03_write_tool_is_a_compile_error() -> None:
     catalog = build_tool_catalog()
     write_contracts = tuple(
-        replace(contract, capability="WRITE")
+        replace(
+            contract,
+            capability=ToolCapability.WRITE,
+            operation_kind=OperationKind.CREATE_DRAFT,
+            risk_level=RiskLevel.R3,
+            write_semantics=write_semantics(),
+        )
         if contract.tool_id == "PROJECT.LIST_CHILD_PROJECTS"
         else contract
         for contract in catalog._contracts.values()
