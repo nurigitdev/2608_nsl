@@ -44,9 +44,9 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
     assert report.requirement_count == 123
     assert report.priority_counts == {"MUST": 121, "SHOULD": 2}
     assert report.status_counts == {
-        "IMPLEMENTED": 58,
+        "IMPLEMENTED": 64,
         "PARTIAL": 1,
-        "PLANNED": 64,
+        "PLANNED": 58,
     }
     assert report.target_slice_counts == {
         "0033": 1,
@@ -110,6 +110,9 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
     assert records["NSL-STS-205"]["status"] == "IMPLEMENTED"
     assert records["NSL-RSL-201"]["status"] == "IMPLEMENTED"
     assert records["NSL-RSL-203"]["status"] == "IMPLEMENTED"
+    assert records["NSL-WEL-001"]["status"] == "IMPLEMENTED"
+    assert records["NSL-WEL-005"]["status"] == "IMPLEMENTED"
+    assert records["NSL-WRT-005"]["status"] == "IMPLEMENTED"
     assert all(
         record["status"] == "PLANNED"
         for requirement_id, record in records.items()
@@ -174,6 +177,12 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
             "NSL-RSL-201",
             "NSL-RSL-202",
             "NSL-RSL-203",
+            "NSL-WEL-001",
+            "NSL-WEL-002",
+            "NSL-WEL-003",
+            "NSL-WEL-004",
+            "NSL-WEL-005",
+            "NSL-WRT-005",
         }
     )
 

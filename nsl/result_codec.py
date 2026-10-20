@@ -80,6 +80,9 @@ def execution_result_to_data(result: ExecutionResult) -> dict[str, Any]:
         "error": _error_to_data(result.error),
     }
     extensions = {
+        "validation": (
+            result.validation.to_data() if result.validation is not None else None
+        ),
         "pre_write_eligibility": (
             result.pre_write_eligibility.value
             if result.pre_write_eligibility is not None
@@ -139,6 +142,7 @@ def semantic_result_view(result: ExecutionResult) -> dict[str, Any]:
             {
                 name: serialized[name]
                 for name in (
+                    "validation",
                     "pre_write_eligibility",
                     "approval",
                     "write",

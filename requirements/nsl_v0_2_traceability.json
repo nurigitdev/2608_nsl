@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0045",
+  "current_slice": "0046",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -172,6 +172,12 @@
     "NSL-STS-205": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-STS-205"], "evidence": ["tests/test_v0_2_status_and_result.py::test_sts_205_unknown_commit_can_produce_reconciliation_result"]},
     "NSL-RSL-201": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-RSL-201"], "evidence": ["tests/test_v0_2_status_and_result.py::test_rsl_201_v01_result_data_and_json_are_byte_compatible", "tests/test_emit_and_structured_result.py::test_emt_006_execution_result_has_lossless_deterministic_json"]},
     "NSL-RSL-202": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-RSL-202"], "evidence": ["tests/test_v0_2_status_and_result.py::test_rsl_202_serializes_all_v02_optional_summary_fields_additively", "tests/test_v0_2_status_and_result.py::test_rsl_202_each_optional_field_is_independently_serializable"]},
-    "NSL-RSL-203": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-RSL-203"], "evidence": ["tests/test_v0_2_status_and_result.py::test_rsl_203_read_only_result_does_not_invent_write_semantics", "tests/test_v0_2_status_and_result.py::test_rsl_203_ir_1_0_runtime_execution_keeps_v01_result_contract"]}
+    "NSL-RSL-203": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-RSL-203"], "evidence": ["tests/test_v0_2_status_and_result.py::test_rsl_203_read_only_result_does_not_invent_write_semantics", "tests/test_v0_2_status_and_result.py::test_rsl_203_ir_1_0_runtime_execution_keeps_v01_result_contract"]},
+    "NSL-WEL-001": {"status": "IMPLEMENTED", "target_slice": "0046", "verification": ["TEST-WEL-001"], "evidence": ["tests/test_v0_2_prewrite_eligibility.py::test_wel_001_required_check_fail_is_blocked_even_when_approved"]},
+    "NSL-WEL-002": {"status": "IMPLEMENTED", "target_slice": "0046", "verification": ["TEST-WEL-002"], "evidence": ["tests/test_v0_2_prewrite_eligibility.py::test_wel_002_required_unknown_is_blocked", "tests/test_v0_2_prewrite_eligibility.py::test_validation_summary_has_canonical_statuses"]},
+    "NSL-WEL-003": {"status": "IMPLEMENTED", "target_slice": "0046", "verification": ["TEST-WEL-003"], "evidence": ["tests/test_v0_2_prewrite_eligibility.py::test_wel_003_missing_pending_or_expired_approval_requires_approval"]},
+    "NSL-WEL-004": {"status": "IMPLEMENTED", "target_slice": "0046", "verification": ["TEST-WEL-004"], "evidence": ["tests/test_v0_2_prewrite_eligibility.py::test_wel_004_each_current_control_failure_prevents_allowed", "tests/test_v0_2_prewrite_eligibility.py::test_wel_004_invalid_approval_evidence_prevents_allowed", "tests/test_v0_2_prewrite_eligibility.py::test_all_required_evidence_produces_allowed"]},
+    "NSL-WEL-005": {"status": "IMPLEMENTED", "target_slice": "0046", "verification": ["TEST-WEL-005"], "evidence": ["tests/test_v0_2_prewrite_eligibility.py::test_wel_005_reconciliation_is_not_prewrite_eligibility"]},
+    "NSL-WRT-005": {"status": "IMPLEMENTED", "target_slice": "0046", "verification": ["TEST-WRT-005"], "evidence": ["tests/test_v0_2_prewrite_eligibility.py::test_wrt_005_write_entry_rejects_every_non_allowed_decision", "tests/test_v0_2_prewrite_eligibility.py::test_wrt_005_write_entry_accepts_only_allowed"]}
   }
 }

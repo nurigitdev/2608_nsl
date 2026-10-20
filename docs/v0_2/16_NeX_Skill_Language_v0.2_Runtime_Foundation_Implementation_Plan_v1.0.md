@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Runtime Foundation slices:** 0043-0046  
-**Status:** IN PROGRESS  
+**Status:** COMPLETE<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`  
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`
 
@@ -40,7 +40,7 @@ traceability, commit, and synchronization unit.
 | 0043 | COMPLETE | Execution Identity and Context v0.2 | `NSL-CTX-201..206`, `NSL-CTX-210`, `NSL-ARC-211` | `CHG-003`, `CHG-009`, `CHG-027` | Execution identity and preserved Principal/DataPolicy are explicit; Approval, Write Journal, Idempotency, and Checkpoint state are isolated per execution; side-effecting external services are absent from `ExecutionContext`. |
 | 0044 | COMPLETE | Checkpoint State and Restore | `NSL-CTX-207..209` | `CHG-018` | A versioned immutable checkpoint is deterministically serialized, integrity-bound, and validated against semantic, security, and business identities before state restoration. |
 | 0045 | COMPLETE | Execution Status and Structured Result | `NSL-STS-201..205`, `NSL-RSL-201..203` | `CHG-008`, `CHG-022`, `CHG-030` | Durable suspend and reconciliation statuses plus additive v0.2 result summaries preserve every v0.1 result field and meaning. |
-| 0046 | PLANNED | Validation Summary and PreWriteEligibility | `NSL-WEL-001..005`, `NSL-WRT-005` | `CHG-007` | Deterministic validation aggregation produces typed pre-write eligibility, and WRITE entry rejects every result other than `ALLOWED`. |
+| 0046 | COMPLETE | Validation Summary and PreWriteEligibility | `NSL-WEL-001..005`, `NSL-WRT-005` | `CHG-007` | Deterministic validation aggregation produces typed pre-write eligibility, and WRITE entry rejects every result other than `ALLOWED`. |
 
 `RD-004` and `RD-008` are FROZEN implementation decisions, not additional SRS
 requirements. They constrain implementation and evidence without changing the
@@ -119,6 +119,12 @@ reconciliation outcomes.
 - Exclude post-write reconciliation from pre-write eligibility.
 - Guard the Runtime WRITE entry so only `ALLOWED` can proceed; actual provider
   invocation remains assigned to the Write execution Slices.
+
+Slice 0046 completion evidence is maintained in
+`tests/test_v0_2_prewrite_eligibility.py`, including deterministic CHECK
+aggregation, fail-closed approval and control evidence, each independently
+failing policy/precondition/binding/idempotency/durability/trust axis,
+forbidden reconciliation values, and the ALLOWED-only WRITE entry gate.
 
 ## 5. Status and Evidence Rules
 

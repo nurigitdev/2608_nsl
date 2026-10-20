@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import StrEnum
 from time import monotonic_ns
 from types import MappingProxyType
 from typing import Any, Mapping, Protocol
@@ -175,6 +176,135 @@ class CheckResult:
     completeness: Completeness
     provenance_refs: tuple[str, ...]
     reason_code: str | None
+
+
+class ValidationSummaryStatus(StrEnum):
+    ALL_PASS = "ALL_PASS"
+    HAS_FAIL = "HAS_FAIL"
+    HAS_UNKNOWN = "HAS_UNKNOWN"
+    HAS_FAIL_AND_UNKNOWN = "HAS_FAIL_AND_UNKNOWN"
+    NO_CHECK = "NO_CHECK"
+
+
+def _summary_status(
+    total_count: int,
+    fail_count: int,
+    unknown_count: int,
+) -> ValidationSummaryStatus:
+    if total_count == 0:
+        return ValidationSummaryStatus.NO_CHECK
+    if fail_count and unknown_count:
+        return ValidationSummaryStatus.HAS_FAIL_AND_UNKNOWN
+    if fail_count:
+        return ValidationSummaryStatus.HAS_FAIL
+    if unknown_count:
+        return ValidationSummaryStatus.HAS_UNKNOWN
+    return ValidationSummaryStatus.ALL_PASS
+
+
+@dataclass(frozen=True, slots=True)
+class ValidationSummary:
+    status: ValidationSummaryStatus
+    total_count: int
+    pass_count: int
+    fail_count: int
+    unknown_count: int
+    failed_check_ids: tuple[str, ...] = ()
+    unknown_check_ids: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.status, ValidationSummaryStatus):
+            raise TypeError(
+                "ValidationSummary.status must be a ValidationSummaryStatus"
+            )
+        counts = (
+            self.total_count,
+            self.pass_count,
+            self.fail_count,
+            self.unknown_count,
+        )
+        if any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0
+            for value in counts
+        ):
+            raise ValueError("ValidationSummary counts must be non-negative integers")
+        if self.total_count != sum(counts[1:]):
+            raise ValueError("ValidationSummary counts do not add up")
+        if self.status is not _summary_status(
+            self.total_count,
+            self.fail_count,
+            self.unknown_count,
+        ):
+            raise ValueError("ValidationSummary status does not match counts")
+        for name, check_ids, expected_count in (
+            ("failed_check_ids", self.failed_check_ids, self.fail_count),
+            ("unknown_check_ids", self.unknown_check_ids, self.unknown_count),
+        ):
+            if (
+                not isinstance(check_ids, tuple)
+                or len(check_ids) != expected_count
+                or tuple(sorted(check_ids)) != check_ids
+                or len(set(check_ids)) != len(check_ids)
+                or not all(
+                    isinstance(check_id, str) and bool(check_id.strip())
+                    for check_id in check_ids
+                )
+            ):
+                raise ValueError(f"ValidationSummary.{name} is invalid")
+        if set(self.failed_check_ids) & set(self.unknown_check_ids):
+            raise ValueError("ValidationSummary check outcomes overlap")
+
+    @classmethod
+    def from_checks(cls, checks: tuple[CheckResult, ...]) -> ValidationSummary:
+        if not isinstance(checks, tuple) or not all(
+            isinstance(check, CheckResult) for check in checks
+        ):
+            raise TypeError("checks must be a tuple of CheckResult values")
+        check_ids = tuple(check.check_id for check in checks)
+        if any(
+            not isinstance(check_id, str) or not check_id.strip()
+            for check_id in check_ids
+        ) or len(set(check_ids)) != len(check_ids):
+            raise ValueError("check IDs must be unique non-empty strings")
+        if not all(isinstance(check.status, CheckStatus) for check in checks):
+            raise TypeError("check status must be a CheckStatus")
+        failed = tuple(
+            sorted(
+                check.check_id
+                for check in checks
+                if check.status is CheckStatus.FAIL
+            )
+        )
+        unknown = tuple(
+            sorted(
+                check.check_id
+                for check in checks
+                if check.status is CheckStatus.UNKNOWN
+            )
+        )
+        pass_count = sum(
+            check.status is CheckStatus.PASS for check in checks
+        )
+        return cls(
+            status=_summary_status(len(checks), len(failed), len(unknown)),
+            total_count=len(checks),
+            pass_count=pass_count,
+            fail_count=len(failed),
+            unknown_count=len(unknown),
+            failed_check_ids=failed,
+            unknown_check_ids=unknown,
+        )
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "status": self.status.value,
+            "total_count": self.total_count,
+            "pass_count": self.pass_count,
+            "fail_count": self.fail_count,
+            "unknown_count": self.unknown_count,
+            "failed_check_ids": list(self.failed_check_ids),
+            "unknown_check_ids": list(self.unknown_check_ids),
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -357,6 +487,7 @@ class ExecutionResult:
     outputs: tuple[EmitRecord, ...]
     resources: ResourceUsage
     error: RuntimeErrorInfo | None = None
+    validation: ValidationSummary | None = None
     pre_write_eligibility: PreWriteEligibility | None = None
     approval: ApprovalSummary | None = None
     write: WriteSummary | None = None
@@ -365,6 +496,7 @@ class ExecutionResult:
 
     def __post_init__(self) -> None:
         optional_values = (
+            ("validation", self.validation, ValidationSummary),
             (
                 "pre_write_eligibility",
                 self.pre_write_eligibility,
