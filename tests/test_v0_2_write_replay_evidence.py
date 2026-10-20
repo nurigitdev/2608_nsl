@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 from copy import deepcopy
 from dataclasses import FrozenInstanceError, replace
 from datetime import UTC, datetime
+from decimal import Decimal
 
 import pytest
 
@@ -16,7 +18,9 @@ from nsl.core import (
     DataClassification,
     IdempotencyKey,
     PayloadHash,
+    ValueEnvelope,
     VerificationStatus,
+    domain,
 )
 from nsl.protected_snapshots import (
     ProtectedSnapshotBlob,
@@ -24,12 +28,18 @@ from nsl.protected_snapshots import (
     SnapshotProtectionError,
 )
 from nsl.verification import VerificationResult
+from nsl.validation import (
+    BusinessPreconditionEvidence,
+    BusinessPreconditionMechanism,
+)
 from nsl.vertical_slice import build_principal
 from nsl.write_execution import (
     WriteAttemptRecord,
+    WriteCallRequest,
     WriteOutcomeIdentity,
     WriteOutcomeRecord,
 )
+from nsl.write_intent import compute_payload_hash, compute_write_intent_hash
 from nsl.write_replay import (
     MAX_WRITE_REPLAY_RECORDS,
     WRITE_REPLAY_SCHEMA_VERSION,
@@ -41,6 +51,18 @@ from nsl.write_replay import (
     WriteReplayIdentity,
     WriteReplaySnapshotRecord,
     _validate_domain_value,
+)
+from nsl.write_replay_execution import (
+    MAX_REPLAY_WRITE_CALLS,
+    MockWriteExecutor,
+    RecordedWriteExchange,
+    RecordedWriteReplayExecutor,
+    ReplayControlEvidenceProvider,
+    ReplaySideEffectError,
+    ReplayWriteDecision,
+    ReplayWriteSession,
+    ReplayWriteSource,
+    _StrictRecordedWriteExecutor,
 )
 
 
@@ -656,3 +678,457 @@ def test_snapshot_kind_rejects_wrong_domain_value_type(kind, message) -> None:
 
     with pytest.raises(TypeError, match="unsupported"):
         _validate_domain_value("UNKNOWN", object(), _identity())  # type: ignore[arg-type]
+
+
+def _call_request(
+    invocation_id: str = "invoke-0060",
+    *,
+    idempotency_key: IdempotencyKey | None = None,
+) -> WriteCallRequest:
+    arguments = {
+        "detail": ValueEnvelope.complete(
+            {"description": "KTX", "amount": Decimal("84000")},
+            domain("DraftPayload"),
+            DataClassification.CONFIDENTIAL,
+        )
+    }
+    payload_hash = compute_payload_hash(arguments)
+    intent_hash = compute_write_intent_hash(
+        skill_semantic_hash=SEMANTIC_HASH,
+        write_node_id="write0001",
+        tool_id="FINANCE.CREATE_DRAFT",
+        payload_hash=payload_hash,
+    )
+    contract_hash = "sha256:" + "6" * 64
+    precondition = BusinessPreconditionEvidence(
+        evidence_id="precondition-0060",
+        tenant_id="tenant-a",
+        business_operation_id=BusinessOperationId("business-0060"),
+        write_node_id="write0001",
+        tool_id="FINANCE.CREATE_DRAFT",
+        contract_hash=contract_hash,
+        payload_hash=payload_hash,
+        write_intent_hash=intent_hash,
+        mechanism=BusinessPreconditionMechanism.ETAG,
+        evidence_ref="etag:opaque:0060",
+        observed_at=NOW,
+        expires_at=datetime(2026, 10, 20, 10, 0, tzinfo=UTC),
+        provider_atomic_enforcement=True,
+    )
+    return WriteCallRequest(
+        tenant_id="tenant-a",
+        execution_id="exec-0060",
+        business_operation_id=BusinessOperationId("business-0060"),
+        invocation_id=invocation_id,
+        node_id="write0001",
+        tool_ref="write_tool",
+        tool_id="FINANCE.CREATE_DRAFT",
+        contract_hash=contract_hash,
+        arguments=arguments,
+        idempotency_key=(
+            idempotency_key
+            or IdempotencyKey("idem:sha256:" + "7" * 64)
+        ),
+        payload_hash=payload_hash,
+        approval_id="APPROVE_DRAFT",
+        approval_request_id=ApprovalRequestId("approval-request-0060"),
+        write_intent_hash=intent_hash,
+        business_preconditions=precondition,
+        trace_refs=("trace:0060",),
+    )
+
+
+def _exchange(
+    request: WriteCallRequest | None = None,
+    *,
+    state: CommitState = CommitState.COMMITTED,
+    reason_code: str | None = None,
+) -> RecordedWriteExchange:
+    selected = request or _call_request()
+    attempt = WriteAttemptRecord.from_request(selected, NOW)
+    outcome = WriteOutcomeRecord(
+        requested_record_hash=attempt.record_hash,
+        identity=WriteOutcomeIdentity.from_request(selected),
+        commit_state=state,
+        reason_code=(
+            reason_code
+            if reason_code is not None
+            else (
+                None
+                if state is CommitState.COMMITTED
+                else "PROVIDER_REJECTED"
+            )
+        ),
+        provider_transaction_id="provider-tx-0060",
+        business_reference=(
+            "DRAFT-0060" if state is CommitState.COMMITTED else None
+        ),
+        evidence_refs=("commit:evidence:0060",),
+        recorded_at=NOW,
+    )
+    return RecordedWriteExchange(attempt, outcome)
+
+
+def _scenario_bundle(
+    *,
+    approval_decision: ApprovalDecision = ApprovalDecision.APPROVED,
+    commit_state: CommitState = CommitState.COMMITTED,
+    verification_status: VerificationStatus = VerificationStatus.VERIFIED,
+    verification_reason: str | None = None,
+):
+    request = _call_request()
+    exchange = _exchange(request, state=commit_state)
+    outcome_identity = exchange.outcome.identity
+    identity = WriteReplayIdentity(
+        tenant_id=request.tenant_id,
+        execution_id=request.execution_id,
+        business_operation_id=request.business_operation_id,
+        skill_semantic_hash=SEMANTIC_HASH,
+        node_id=request.node_id,
+        approval_request_id=request.approval_request_id,
+        payload_hash=request.payload_hash,
+        write_intent_hash=request.write_intent_hash,
+        idempotency_key=(
+            None
+            if approval_decision is ApprovalDecision.REJECTED
+            else request.idempotency_key
+        ),
+    )
+    approval = ApprovalEvidence(
+        tenant_id=request.tenant_id,
+        execution_id=request.execution_id,
+        business_operation_id=request.business_operation_id,
+        approval_id=request.approval_id,
+        approval_request_id=request.approval_request_id,
+        skill_semantic_hash=SEMANTIC_HASH,
+        decision=approval_decision,
+        approver_id="manager-0060",
+        decided_at=NOW,
+        expires_at=None,
+        payload_hash=request.payload_hash,
+        write_intent_hash=request.write_intent_hash,
+        evidence_integrity="approval:evidence:0060",
+    )
+    protector = VaultProtector()
+    snapshots = ProtectedSnapshotStore(protector, lambda: NOW)
+    composer = WriteReplayEvidenceComposer(snapshots, retention_days=30)
+    if approval_decision is ApprovalDecision.REJECTED:
+        bundle = composer.compose(identity, approval=approval)
+    else:
+        verification = None
+        if commit_state is CommitState.COMMITTED:
+            verification = VerificationResult(
+                identity=outcome_identity,
+                commit_state=CommitState.COMMITTED,
+                status=verification_status,
+                business_reference="DRAFT-0060",
+                verification_tool_id=(
+                    None
+                    if verification_status is VerificationStatus.NOT_REQUESTED
+                    else "FINANCE.GET_DRAFT"
+                ),
+                reason_code=verification_reason,
+                evidence_ref=(
+                    "verification:evidence:0060"
+                    if verification_status
+                    in {VerificationStatus.VERIFIED, VerificationStatus.FAILED}
+                    else None
+                ),
+                observed_at=(
+                    NOW
+                    if verification_status
+                    in {VerificationStatus.VERIFIED, VerificationStatus.FAILED}
+                    else None
+                ),
+            )
+        bundle = composer.compose(
+            identity,
+            approval=approval,
+            write_request=exchange.request,
+            commit_outcome=exchange.outcome,
+            verification_outcome=verification,
+        )
+    return (
+        request,
+        bundle,
+        WriteReplayEvidenceLoader(snapshots),
+        protector,
+    )
+
+
+@pytest.mark.parametrize(
+    (
+        "approval_decision",
+        "commit_state",
+        "verification_status",
+        "verification_reason",
+    ),
+    [
+        (
+            ApprovalDecision.APPROVED,
+            CommitState.COMMITTED,
+            VerificationStatus.VERIFIED,
+            None,
+        ),
+        (
+            ApprovalDecision.REJECTED,
+            CommitState.NOT_COMMITTED,
+            VerificationStatus.NOT_REQUESTED,
+            None,
+        ),
+        (
+            ApprovalDecision.APPROVED,
+            CommitState.NOT_COMMITTED,
+            VerificationStatus.NOT_REQUESTED,
+            None,
+        ),
+        (
+            ApprovalDecision.APPROVED,
+            CommitState.UNKNOWN_COMMIT_STATE,
+            VerificationStatus.NOT_REQUESTED,
+            None,
+        ),
+        (
+            ApprovalDecision.APPROVED,
+            CommitState.COMMITTED,
+            VerificationStatus.FAILED,
+            "VALUE_MISMATCH",
+        ),
+        (
+            ApprovalDecision.APPROVED,
+            CommitState.COMMITTED,
+            VerificationStatus.UNKNOWN,
+            "PARTIAL_DATA",
+        ),
+        (
+            ApprovalDecision.APPROVED,
+            CommitState.COMMITTED,
+            VerificationStatus.UNKNOWN,
+            "VERIFICATION_DEPENDENCY_FAILURE",
+        ),
+    ],
+)
+def test_rpl_201_203_repeated_replay_has_zero_live_write_calls(
+    approval_decision,
+    commit_state,
+    verification_status,
+    verification_reason,
+) -> None:
+    class InstrumentedLiveWriteProvider:
+        def __init__(self) -> None:
+            self.call_count = 0
+
+        async def execute(self, request) -> object:
+            self.call_count += 1
+            raise AssertionError("Live WRITE must never be called")
+
+    live_provider = InstrumentedLiveWriteProvider()
+    request, bundle, loader, _ = _scenario_bundle(
+        approval_decision=approval_decision,
+        commit_state=commit_state,
+        verification_status=verification_status,
+        verification_reason=verification_reason,
+    )
+    decisions = []
+    for _ in range(2):
+        session = ReplayWriteSession.open(
+            bundle,
+            loader,
+            build_principal(tenant_id="tenant-a"),
+        )
+        assert session.approval().decision is approval_decision
+        if approval_decision is ApprovalDecision.APPROVED:
+            decision = asyncio.run(session.execute_write(request))
+            decisions.append(decision)
+            assert decision.outcome.commit_state is commit_state
+            assert decision.outcome.identity.idempotency_key == request.idempotency_key
+            assert decision.automatic_retry_allowed is False
+            assert decision.side_effect_performed is False
+            assert decision.reconciliation_required is (
+                commit_state is CommitState.UNKNOWN_COMMIT_STATE
+            )
+            verification = session.verification()
+            if commit_state is CommitState.COMMITTED:
+                assert verification is not None
+                assert verification.status is verification_status
+            else:
+                assert verification is None
+        else:
+            assert session.verification() is None
+        session.assert_complete()
+
+    assert live_provider.call_count == 0
+    assert not decisions or decisions[0] == decisions[-1]
+
+
+def test_replay_session_cannot_receive_or_retain_a_live_write_provider() -> None:
+    request, bundle, loader, _ = _scenario_bundle()
+    evidence = loader.load(bundle, build_principal(tenant_id="tenant-a"))
+
+    class LiveWriteProvider:
+        async def execute(self, request):
+            raise AssertionError
+
+    live = LiveWriteProvider()
+    with pytest.raises(TypeError):
+        ReplayWriteSession(evidence, live)  # type: ignore[call-arg]
+    with pytest.raises(TypeError, match="RehydratedWriteReplayEvidence"):
+        RecordedWriteReplayExecutor(live)  # type: ignore[arg-type]
+    session = ReplayWriteSession(evidence)
+    assert not hasattr(session, "delegate")
+    assert not hasattr(session, "write_port")
+    assert session.write_call_count == 0
+    assert asyncio.run(session.execute_write(request)).source is ReplayWriteSource.RECORDED
+    assert session.write_call_count == 1
+
+
+def test_mock_executor_requires_exact_order_and_fails_closed_after_mismatch() -> None:
+    first_request = _call_request("invoke-0060-a")
+    second_request = _call_request("invoke-0060-b")
+    first = _exchange(first_request)
+    second = _exchange(second_request)
+
+    executor = MockWriteExecutor((first, second))
+    with pytest.raises(ReplaySideEffectError, match="invocation order"):
+        asyncio.run(executor.execute(second_request))
+    with pytest.raises(ReplaySideEffectError, match="failed closed"):
+        asyncio.run(executor.execute(first_request))
+    with pytest.raises(ReplaySideEffectError, match="failed closed"):
+        executor.assert_consumed()
+
+
+def test_mock_executor_detects_missing_extra_and_changed_idempotency_calls() -> None:
+    request = _call_request()
+    exchange = _exchange(request)
+
+    missing = MockWriteExecutor((exchange,))
+    with pytest.raises(ReplaySideEffectError, match="did not consume"):
+        missing.assert_consumed()
+
+    complete = MockWriteExecutor((exchange,))
+    decision = asyncio.run(complete.execute(request))
+    assert decision.source is ReplayWriteSource.MOCK
+    assert complete.call_count == 1
+    complete.assert_consumed()
+    with pytest.raises(ReplaySideEffectError, match="more WRITE calls"):
+        asyncio.run(complete.execute(request))
+
+    changed_key = _call_request(
+        idempotency_key=IdempotencyKey("idem:sha256:" + "8" * 64)
+    )
+    mismatched = MockWriteExecutor((exchange,))
+    with pytest.raises(ReplaySideEffectError, match="invocation order"):
+        asyncio.run(mismatched.execute(changed_key))
+
+
+def test_mock_executor_supports_zero_one_max_and_rejects_max_plus_one() -> None:
+    empty = MockWriteExecutor(())
+    empty.assert_consumed()
+
+    requests = tuple(
+        _call_request(f"invoke-0060-{index:03d}")
+        for index in range(MAX_REPLAY_WRITE_CALLS)
+    )
+    exchanges = tuple(_exchange(request) for request in requests)
+    maximum = MockWriteExecutor(exchanges)
+    for request in requests:
+        asyncio.run(maximum.execute(request))
+    assert maximum.call_count == MAX_REPLAY_WRITE_CALLS
+    maximum.assert_consumed()
+
+    with pytest.raises(ReplaySideEffectError, match="cannot exceed"):
+        MockWriteExecutor(exchanges + (exchanges[-1],))
+
+
+def test_mock_executor_rejects_duplicate_and_malformed_exchange_sets() -> None:
+    exchange = _exchange()
+    with pytest.raises(ReplaySideEffectError, match="unique"):
+        MockWriteExecutor((exchange, exchange))
+    with pytest.raises(TypeError, match="tuple"):
+        MockWriteExecutor([exchange])  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="RecordedWriteExchange"):
+        MockWriteExecutor((object(),))  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="ReplayWriteSource"):
+        _StrictRecordedWriteExecutor((), "MOCK")  # type: ignore[arg-type]
+
+
+def test_recorded_exchange_and_decision_reject_inconsistent_evidence() -> None:
+    exchange = _exchange()
+    with pytest.raises(TypeError, match="WriteAttemptRecord"):
+        RecordedWriteExchange(object(), exchange.outcome)  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="WriteOutcomeRecord"):
+        RecordedWriteExchange(exchange.request, object())  # type: ignore[arg-type]
+    with pytest.raises(ReplaySideEffectError, match="does not bind"):
+        RecordedWriteExchange(
+            exchange.request,
+            replace(
+                exchange.outcome,
+                requested_record_hash="sha256:" + "9" * 64,
+            ),
+        )
+    with pytest.raises(ReplaySideEffectError, match="identities differ"):
+        RecordedWriteExchange(
+            exchange.request,
+            replace(
+                exchange.outcome,
+                identity=replace(
+                    exchange.outcome.identity,
+                    invocation_id="invoke-other",
+                ),
+            ),
+        )
+    with pytest.raises(TypeError, match="WriteCallRequest"):
+        exchange.matches(object())  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError, match="WriteOutcomeRecord"):
+        ReplayWriteDecision(object(), ReplayWriteSource.MOCK)  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="ReplayWriteSource"):
+        ReplayWriteDecision(exchange.outcome, "MOCK")  # type: ignore[arg-type]
+    with pytest.raises(ReplaySideEffectError, match="automatic"):
+        ReplayWriteDecision(
+            exchange.outcome,
+            ReplayWriteSource.MOCK,
+            automatic_retry_allowed=True,
+        )
+    with pytest.raises(ReplaySideEffectError, match="side effect"):
+        ReplayWriteDecision(
+            exchange.outcome,
+            ReplayWriteSource.MOCK,
+            side_effect_performed=True,
+        )
+
+
+def test_recorded_executor_and_control_provider_reject_partial_or_wrong_input() -> None:
+    _, bundle, loader, _ = _scenario_bundle()
+    evidence = loader.load(bundle, build_principal(tenant_id="tenant-a"))
+    controls = ReplayControlEvidenceProvider(evidence)
+    assert controls.approval() == evidence.approval
+    assert controls.verification() == evidence.verification_outcome
+
+    partial = replace(evidence, commit_outcome=None)
+    with pytest.raises(ReplaySideEffectError, match="partial"):
+        RecordedWriteReplayExecutor(partial)
+    for factory in (
+        RecordedWriteReplayExecutor,
+        ReplayControlEvidenceProvider,
+        ReplayWriteSession,
+    ):
+        with pytest.raises(TypeError, match="RehydratedWriteReplayEvidence"):
+            factory(object())  # type: ignore[arg-type]
+
+
+def test_replay_session_validates_loader_and_write_request_types() -> None:
+    request, bundle, loader, _ = _scenario_bundle()
+    with pytest.raises(TypeError, match="WriteReplayEvidenceLoader"):
+        ReplayWriteSession.open(  # type: ignore[arg-type]
+            bundle,
+            object(),
+            build_principal(tenant_id="tenant-a"),
+        )
+    session = ReplayWriteSession.open(
+        bundle,
+        loader,
+        build_principal(tenant_id="tenant-a"),
+    )
+    with pytest.raises(TypeError, match="WriteCallRequest"):
+        asyncio.run(session.execute_write(object()))  # type: ignore[arg-type]

@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Trust and Evidence slices:** 0055-0060<br>
-**Status:** IN PROGRESS (Slices 0055-0059 complete)<br>
+**Status:** COMPLETE (Slices 0055-0060)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`
 
@@ -96,7 +96,7 @@ traceability, commit, and synchronization unit.
 | 0057 | COMPLETE | Post-write Verification Core | `NSL-VFY-001..003`, `NSL-VFY-005` | `CHG-029` | A committed WRITE can invoke a declared read-only verification method and return an independent typed verification outcome without changing CommitState. |
 | 0058 | COMPLETE | Verification Result and Persistent Audit Evidence | `NSL-VFY-004`, SRS section 23 | `CHG-029`, `CHG-030` | Verification appears in structured Result and persistent hash-chained Audit together with the complete v0.2 event taxonomy and protected identity references. |
 | 0059 | COMPLETE | Protected Replay Evidence Composition | `NSL-RPL-202` | `CHG-025` | Approval, Write, Commit, and Verification evidence can be assembled into a deterministic tenant-bound protected Replay bundle. |
-| 0060 | PLANNED | Replay and Mock No-live-write Safety | `NSL-RPL-201`, `NSL-RPL-203`, `NSL-ARC-207` | `CHG-025` | Replay accepts only recorded or mock outcomes, cannot access a Live WRITE provider, and cannot repeat the original business side effect. |
+| 0060 | COMPLETE | Replay and Mock No-live-write Safety | `NSL-RPL-201`, `NSL-RPL-203`, `NSL-ARC-207` | `CHG-025` | Replay accepts only recorded or mock outcomes, cannot access a Live WRITE provider, and cannot repeat the original business side effect. |
 
 ## 6. Slice Boundaries
 
@@ -307,6 +307,17 @@ cross-tenant, wrong-type, unsupported-version, and tampered evidence.
 - Prove that repeated Replay runs cannot create or mutate a business side
   effect and cannot mint a new idempotency key.
 - Keep business reconciliation decisions in the Agent/Platform Control Plane.
+
+**Completion evidence:** `ReplayWriteSession` opens only through verified
+protected bundle evidence and owns no field or constructor parameter for a
+Live `WriteExecutionPort`. `RecordedWriteReplayExecutor` and
+`MockWriteExecutor` consume immutable request/outcome exchanges in exact order,
+never create idempotency keys, never retry, and permanently fail closed after
+missing, extra, reordered, or mismatched calls. Repeated acceptance scenarios
+cover committed, approval/provider rejected, unknown commit, failed
+verification, partial-data, and dependency-failure outcomes while an
+instrumented Live provider remains at zero calls. The `0/1/MAX/MAX+1` mock
+call boundary and reconciliation preservation are independently verified.
 
 ## 7. Cross-slice Safety Invariants
 
