@@ -47,14 +47,17 @@ from .cli_scenarios import (
     execute_scenario_suite,
     load_scenario_suite,
 )
+from .cli_trust import verify_nsp_for_cli
 from .compiler import CompilationResult, NslCompiler
 from .core import BusinessOperationId, ExecutionStatus, encode_value
 from .diagnostics import CompileError
 from .ir import ApprovalStatement, NsoCodec, skill_to_data
 from .performance import SystemBenchmarkClock
+from .nsp_verification import NspVerificationError
 from .runtime import RuntimeContractError, RuntimeEngine
 from .runtime_models import LimitExceeded
 from .security import AuthorizationError
+from .security import RuntimeEnvironment
 from .source import SourceFile
 from .syntax import Lexer, Parser
 from .tools import ToolContractCatalog
@@ -121,6 +124,14 @@ def build_parser() -> argparse.ArgumentParser:
     inspect_command = commands.add_parser("inspect")
     inspect_command.add_argument("artifact", type=Path)
     inspect_command.set_defaults(handler=_handle_inspect)
+
+    verify_command = commands.add_parser("verify")
+    _add_nsp_trust_arguments(verify_command)
+    verify_command.set_defaults(handler=_handle_verify)
+
+    signature_command = commands.add_parser("inspect-signature")
+    _add_nsp_trust_arguments(signature_command)
+    signature_command.set_defaults(handler=_handle_inspect_signature)
 
     run_command = commands.add_parser("run")
     run_command.add_argument("program", type=Path, nargs="?")
@@ -201,6 +212,9 @@ def main(
     except OSError as error:
         _write_error(error_output, "CLI_IO_ERROR", _safe_os_message(error))
         return int(CLIExitCode.IO_ERROR)
+    except NspVerificationError as error:
+        _write_error(error_output, error.code.value, str(error))
+        return int(CLIExitCode.VALIDATION_ERROR)
     except (CompileError, ValueError) as error:
         code = error.code if isinstance(error, CompileError) else "CLI_VALIDATION_ERROR"
         _write_error(error_output, code, str(error))
@@ -291,6 +305,28 @@ def _handle_inspect(arguments: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def _handle_verify(arguments: argparse.Namespace) -> dict[str, Any]:
+    return _handle_nsp_trust(arguments, "verify")
+
+
+def _handle_inspect_signature(arguments: argparse.Namespace) -> dict[str, Any]:
+    return _handle_nsp_trust(arguments, "inspect-signature")
+
+
+def _handle_nsp_trust(
+    arguments: argparse.Namespace, command: str
+) -> dict[str, Any]:
+    result = verify_nsp_for_cli(
+        arguments.package,
+        environment=RuntimeEnvironment(arguments.environment),
+        allow_unsigned_development=arguments.allow_unsigned_development,
+        trust_store_path=arguments.trust_store,
+        publisher_id=arguments.publisher_id,
+        trust_policy_id=arguments.trust_policy_id,
+    )
+    return {"command": command, **result}
+
+
 def _handle_run(arguments: argparse.Namespace) -> dict[str, Any]:
     configuration = _resolve_configuration(arguments)
     program = _required_path(configuration.program, "program or --profile is required")
@@ -301,6 +337,7 @@ def _handle_run(arguments: argparse.Namespace) -> dict[str, Any]:
     program_clock = SystemBenchmarkClock()
     program_started_ns = program_clock.monotonic_ns()
     skill = _load_program(program, catalog)
+    _require_explicit_controlled_adapters(skill, configuration)
     program_duration_ns = max(
         0, program_clock.monotonic_ns() - program_started_ns
     )
@@ -531,6 +568,7 @@ def _handle_resume(arguments: argparse.Namespace) -> dict[str, Any]:
     skill = _load_program(program, catalog)
     if not _is_controlled_skill(skill):
         raise ValueError("resume requires an NSL 0.2 controlled WRITE Skill")
+    _require_explicit_controlled_adapters(skill, configuration)
     principal = load_principal(principal_path)
     inputs = (
         None
@@ -642,6 +680,30 @@ def _is_controlled_skill(skill) -> bool:
     return skill.ir_version == "1.1" and any(
         isinstance(statement, ApprovalStatement) for statement in skill.body
     )
+
+
+def _require_explicit_controlled_adapters(skill, configuration) -> None:
+    if (
+        _is_controlled_skill(skill)
+        and configuration.fixture is not None
+        and configuration.environment is not RuntimeEnvironment.DEVELOPMENT
+    ):
+        raise CLIExecutionError(
+            "controlled Mock Tool fixtures require an explicit DEVELOPMENT profile"
+        )
+
+
+def _add_nsp_trust_arguments(command: argparse.ArgumentParser) -> None:
+    command.add_argument("package", type=Path)
+    command.add_argument(
+        "--environment",
+        choices=tuple(item.value for item in RuntimeEnvironment),
+        default=RuntimeEnvironment.PRODUCTION.value,
+    )
+    command.add_argument("--allow-unsigned-development", action="store_true")
+    command.add_argument("--trust-store", type=Path)
+    command.add_argument("--publisher-id", required=True)
+    command.add_argument("--trust-policy-id", required=True)
 
 
 def _handle_replay(arguments: argparse.Namespace) -> dict[str, Any]:

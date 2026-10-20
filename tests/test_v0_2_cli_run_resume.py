@@ -237,8 +237,6 @@ def test_cli_0066_production_never_auto_approves(tmp_path) -> None:
         str(EXAMPLE / "input.json"),
         "--context",
         str(EXAMPLE / "context.json"),
-        "--fixture",
-        str(EXAMPLE / "fixtures" / "success.json"),
         "--execution-id",
         EXECUTION_ID,
         "--business-operation-id",

@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Vertical Integration slices:** 0061-0069<br>
-**Status:** IN PROGRESS (Slice 0066 COMPLETE)<br>
+**Status:** IN PROGRESS (Slice 0067 COMPLETE)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`<br>
 **Implementation readiness:** `requirements/nsl_v0_2_readiness.json`
@@ -94,7 +94,7 @@ traceability, commit, and synchronization unit.
 | 0064 | COMPLETE | Project Scenario Contract and Validation | `AC-W02` prefix, SRS section 26 | Canonical Project source, Tool contracts, profiles, and fixtures exercise duplicate, parent, period/date-range, team-authority, and partial-data validation without domain logic in Runtime. |
 | 0065 | COMPLETE | Project Draft Generalization E2E | `AC-W02` | The same public Runtime pipeline performs approval, idempotent Project WRITE, verification, Audit/Replay evidence, and structured `project_code` output without a Project-specific Runtime branch. |
 | 0066 | COMPLETE | CLI v0.2 Run and Resume Workflow | SRS section 24 | CLI compile/run exposes suspension evidence and an explicit resume workflow while preserving existing v0.1 command behavior and prohibiting implicit Production approval. |
-| 0067 | PLANNED | CLI Trust Inspection Mock and Diagnostics | SRS section 24 | CLI diagnoses Signed NSP trust, runs explicit Mock/Fake adapters, emits stable safe errors and exit codes, and preserves pretty deterministic JSON output. |
+| 0067 | COMPLETE | CLI Trust Inspection Mock and Diagnostics | SRS section 24 | CLI diagnoses Signed NSP trust, runs explicit Mock/Fake adapters, emits stable safe errors and exit codes, and preserves pretty deterministic JSON output. |
 | 0068 | PLANNED | Architecture and Backward Compatibility Certification | `NSL-ARC-202..203`, SRS section 27 | Runtime dependency tests close `NSL-ARC-201` adoption evidence, implement `NSL-ARC-202..203`, and certify all v0.1 Source, IR, Context, Status, Result, and Replay compatibility paths. |
 | 0069 | PLANNED | Performance Negative Acceptance and SRS Certification | SRS section 25, `RD-011` | Performance and resource boundaries, the complete negative-acceptance matrix, 123-requirement evidence, and the 99/98 quality gate pass with no `PARTIAL` or `PLANNED` SRS requirement remaining. |
 
@@ -369,7 +369,19 @@ and
   checkpoint/evidence, authorization failure, timeout, and dependency failure
   without exposing credentials, raw protected payloads, or tracebacks.
 
-**Planned verification:** `TEST-V02-CLI-TRUST-DIAGNOSTICS`.
+**Verification:** `TEST-V02-CLI-TRUST-DIAGNOSTICS`.<br>
+**Completion evidence:**
+`nsl/cli_trust.py::load_ed25519_trust_store`,
+`nsl/cli_trust.py::verify_nsp_for_cli`,
+`nsl/cli.py::_handle_verify`,
+`nsl/cli.py::_handle_inspect_signature`,
+`nsl/cli.py::_require_explicit_controlled_adapters`,
+`tests/test_v0_2_cli_trust_diagnostics.py::test_cli_0067_verify_and_inspect_use_signed_nsp_trust_identity`,
+`tests/test_v0_2_cli_trust_diagnostics.py::test_cli_0067_unsigned_development_and_production_policies_are_explicit`,
+`tests/test_v0_2_cli_trust_diagnostics.py::test_cli_0067_trust_store_boundaries_and_bad_signature_are_safe`,
+`tests/test_v0_2_cli_trust_diagnostics.py::test_cli_0067_missing_malformed_and_tampered_packages_use_stable_errors`,
+and
+`tests/test_v0_2_cli_trust_diagnostics.py::test_cli_0067_production_controlled_mock_is_rejected_before_evidence`.
 
 ### 6.8 Slice 0068: Architecture and Backward Compatibility Certification
 
