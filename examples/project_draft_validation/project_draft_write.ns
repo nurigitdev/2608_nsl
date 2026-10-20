@@ -1,0 +1,112 @@
+language NSL "0.2";
+
+skill PROJECT.PROJECT_DRAFT_CREATE {
+    version "1.0.0";
+    risk WRITE;
+
+    requires {
+        tool PROJECT.GET_PROJECT version "1.0.0";
+        tool PROJECT.CHECK_DUPLICATE version "1.0.0";
+        tool PROJECT.CREATE_PROJECT_DRAFT version "1.0.0";
+    }
+
+    limits {
+        tool_calls 3;
+        loop_iterations 1;
+        emitted_rows 1;
+        collection_size 100;
+    }
+
+    input {
+        project_code: ProjectCode classification INTERNAL;
+        project_name: String classification INTERNAL;
+        parent_project_code: ProjectCode classification INTERNAL;
+        start_day: Int classification INTERNAL;
+        end_day: Int classification INTERNAL;
+        team_id: TeamId classification INTERNAL;
+    }
+
+    context {
+        period_start_day: Int
+            from "policy.project_period_start_day"
+            classification INTERNAL;
+        period_end_day: Int
+            from "policy.project_period_end_day"
+            classification INTERNAL;
+        actor_team_id: TeamId
+            from "user.team_id"
+            classification INTERNAL;
+    }
+
+    output {
+        project_code: ProjectCode classification INTERNAL;
+    }
+
+    let parent = read PROJECT.GET_PROJECT(
+        project_code: parent_project_code
+    );
+    let duplicates = read PROJECT.CHECK_DUPLICATE(
+        project_code: project_code,
+        project_name: project_name,
+        parent_project_code: parent_project_code
+    );
+
+    check PARENT_ACTIVE {
+        assert parent.status == "ACTIVE";
+        severity ERROR;
+        on_fail REPORT;
+        message "The parent project must be active.";
+    }
+
+    check DUPLICATE_ABSENT {
+        assert count(duplicates) == 0;
+        severity ERROR;
+        on_fail REPORT;
+        message "The proposed project must not duplicate an existing project.";
+    }
+
+    check START_IN_PERIOD {
+        assert start_day >= period_start_day;
+        severity ERROR;
+        on_fail REPORT;
+        message "The project start must be within the allowed period.";
+    }
+
+    check END_IN_PERIOD {
+        assert end_day <= period_end_day;
+        severity ERROR;
+        on_fail REPORT;
+        message "The project end must be within the allowed period.";
+    }
+
+    check DATE_RANGE_VALID {
+        assert start_day <= end_day;
+        severity ERROR;
+        on_fail REPORT;
+        message "The project start must not be after the project end.";
+    }
+
+    check TEAM_AUTHORIZED {
+        assert team_id == actor_team_id;
+        severity ERROR;
+        on_fail REPORT;
+        message "The actor must be authorized for the project team.";
+    }
+
+    approve CREATE_PROJECT_DRAFT {
+        message "Create the validated project draft?";
+    }
+
+    let project = write PROJECT.CREATE_PROJECT_DRAFT(
+        project_code = project_code,
+        project_name = project_name,
+        parent_project_code = parent_project_code,
+        start_day = start_day,
+        end_day = end_day,
+        team_id = team_id
+    ) approved_by CREATE_PROJECT_DRAFT;
+
+    emit {
+        project_code: project.project_code;
+    }
+}

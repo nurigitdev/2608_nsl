@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "tool_id": "PROJECT.GET_PROJECT",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"project_code": "PROJECT-PARENT-001"},
+          "result": null
+        }
+      ]
+    },
+    {
+      "tool_id": "PROJECT.CHECK_DUPLICATE",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {
+            "project_code": "PROJECT-NEX-0064",
+            "project_name": "NeX Platform v0.2",
+            "parent_project_code": "PROJECT-PARENT-001"
+          },
+          "result": []
+        }
+      ]
+    }
+  ]
+}

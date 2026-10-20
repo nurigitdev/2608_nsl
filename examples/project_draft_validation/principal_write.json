@@ -1,0 +1,13 @@
+{
+  "tenant_id": "tenant-project",
+  "subject_id": "user-project-owner",
+  "actor_type": "USER",
+  "roles": ["PROJECT_OWNER"],
+  "scopes": [
+    "nsl:skill:execute",
+    "project:draft:validate",
+    "project:draft:write"
+  ],
+  "auth_context_ref": "auth-project-write-001",
+  "verification": "VERIFIED"
+}

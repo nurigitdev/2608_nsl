@@ -1,0 +1,9 @@
+{
+  "tenant_id": "tenant-project",
+  "subject_id": "user-project-observer",
+  "actor_type": "USER",
+  "roles": ["PROJECT_OBSERVER"],
+  "scopes": ["nsl:skill:execute"],
+  "auth_context_ref": "auth-project-denied-001",
+  "verification": "VERIFIED"
+}

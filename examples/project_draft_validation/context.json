@@ -1,0 +1,9 @@
+{
+  "policy": {
+    "project_period_start_day": 20758,
+    "project_period_end_day": 21122
+  },
+  "user": {
+    "team_id": "TEAM-DEVELOPMENT"
+  }
+}

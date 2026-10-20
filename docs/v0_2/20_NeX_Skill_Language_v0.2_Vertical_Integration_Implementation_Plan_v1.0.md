@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Vertical Integration slices:** 0061-0069<br>
-**Status:** IN PROGRESS (Slice 0063 COMPLETE)<br>
+**Status:** IN PROGRESS (Slice 0064 COMPLETE)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`<br>
 **Implementation readiness:** `requirements/nsl_v0_2_readiness.json`
@@ -91,7 +91,7 @@ traceability, commit, and synchronization unit.
 | 0061 | COMPLETE | Voucher Scenario Contract and READ Validation | `AC-W01` prefix, SRS sections 10, 13, and 26 | Canonical Voucher source, Tool contracts, profiles, and fixtures deterministically exercise account, project, period, amount, and partial-data validation without a WRITE call. |
 | 0062 | COMPLETE | Voucher Approval Suspend and Resume | `AC-W01` Approval path | A passing Voucher validation requests approval, durably suspends, and resumes only from valid evidence; rejection, expiry, tampering, and duplicate resume produce zero WRITE calls. |
 | 0063 | COMPLETE | Voucher Write Commit and Verification E2E | `AC-W01` | Trusted approval proceeds through idempotent WRITE, durable request evidence, commit outcome, `FINANCE.GET_VOUCHER` verification, Audit/Replay evidence, and structured `voucher_no` output. |
-| 0064 | PLANNED | Project Scenario Contract and Validation | `AC-W02` prefix, SRS section 26 | Canonical Project source, Tool contracts, profiles, and fixtures exercise duplicate, parent, period/date-range, team-authority, and partial-data validation without domain logic in Runtime. |
+| 0064 | COMPLETE | Project Scenario Contract and Validation | `AC-W02` prefix, SRS section 26 | Canonical Project source, Tool contracts, profiles, and fixtures exercise duplicate, parent, period/date-range, team-authority, and partial-data validation without domain logic in Runtime. |
 | 0065 | PLANNED | Project Draft Generalization E2E | `AC-W02` | The same public Runtime pipeline performs approval, idempotent Project WRITE, verification, Audit/Replay evidence, and structured `project_code` output without a Project-specific Runtime branch. |
 | 0066 | PLANNED | CLI v0.2 Run and Resume Workflow | SRS section 24 | CLI compile/run exposes suspension evidence and an explicit resume workflow while preserving existing v0.1 command behavior and prohibiting implicit Production approval. |
 | 0067 | PLANNED | CLI Trust Inspection Mock and Diagnostics | SRS section 24 | CLI diagnoses Signed NSP trust, runs explicit Mock/Fake adapters, emits stable safe errors and exit codes, and preserves pretty deterministic JSON output. |
@@ -251,7 +251,25 @@ and
 - Compile and execute the validation prefix deterministically.
 - Prove that all validation scenarios invoke the WRITE provider zero times.
 
-**Planned verification:** `TEST-AC-W02-VALIDATION`.
+**Verification:** `TEST-AC-W02-VALIDATION`.<br>
+**Completion evidence:**
+`examples/project_draft_validation/project_draft_validation.ns`,
+`examples/project_draft_validation/project_draft_write.ns`,
+`examples/project_draft_validation/tools.json`,
+`examples/project_draft_validation/profile.json`,
+`examples/project_draft_validation/scenarios.json`,
+`tests/test_v0_2_project_validation.py::test_ac_w02_sources_and_write_contract_are_deterministic`,
+`tests/test_v0_2_project_validation.py::test_ac_w02_valid_controlled_prefix_is_deterministic_and_never_writes`,
+`tests/test_v0_2_project_validation.py::test_ac_w02_each_business_rule_fails_closed_without_write`,
+`tests/test_v0_2_project_validation.py::test_ac_w02_duplicate_collection_zero_one_max_and_over_limit`,
+`tests/test_v0_2_project_validation.py::test_ac_w02_partial_and_unknown_evidence_cannot_false_pass`,
+`tests/test_v0_2_project_validation.py::test_ac_w02_missing_malformed_and_dependency_data_fail_closed`,
+`tests/test_v0_2_project_validation.py::test_ac_w02_authorization_and_missing_input_stop_before_tools`,
+`tests/test_v0_2_project_validation.py::test_ac_w02_tenant_mismatch_and_dependency_crash_are_isolated`,
+`tests/test_v0_2_project_validation.py::test_ac_w02_direct_runtime_rejects_controlled_source_without_tool_calls`,
+`tests/test_v0_2_project_validation.py::test_ac_w02_project_rules_do_not_enter_common_runtime`,
+and
+`tests/test_v0_2_project_validation.py::test_ac_w02_cli_scenario_suite_is_deterministic_and_no_write`.
 
 ### 6.5 Slice 0065: Project Draft Generalization E2E
 

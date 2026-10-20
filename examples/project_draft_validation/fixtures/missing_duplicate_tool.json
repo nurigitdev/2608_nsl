@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "tool_id": "PROJECT.GET_PROJECT",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"project_code": "PROJECT-PARENT-001"},
+          "result": {"project_code": "PROJECT-PARENT-001", "status": "ACTIVE"}
+        }
+      ]
+    }
+  ]
+}

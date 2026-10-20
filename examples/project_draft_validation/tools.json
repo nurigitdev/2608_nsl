@@ -1,0 +1,40 @@
+{
+  "tools": [
+    {
+      "tool_id": "PROJECT.GET_PROJECT",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "Project",
+        "fields": [
+          {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+          {"name": "status", "type": {"kind": "primitive", "name": "String"}}
+        ]
+      },
+      "required_scope": "project:draft:validate",
+      "risk_level": "R1",
+      "output_classification": "INTERNAL"
+    },
+    {
+      "tool_id": "PROJECT.CHECK_DUPLICATE",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+        {"name": "project_name", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "parent_project_code", "type": {"kind": "domain", "name": "ProjectCode"}}
+      ],
+      "output": {
+        "kind": "list",
+        "item": {"kind": "domain", "name": "ProjectCode"}
+      },
+      "required_scope": "project:draft:validate",
+      "risk_level": "R1",
+      "output_classification": "INTERNAL"
+    }
+  ]
+}

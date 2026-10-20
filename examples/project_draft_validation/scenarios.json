@@ -1,0 +1,224 @@
+{
+  "schema_version": "1.0",
+  "profile": "profile.json",
+  "cases": [
+    {
+      "id": "valid-empty-duplicates",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {
+          "PARENT_ACTIVE": "PASS",
+          "DUPLICATE_ABSENT": "PASS",
+          "START_IN_PERIOD": "PASS",
+          "END_IN_PERIOD": "PASS",
+          "DATE_RANGE_VALID": "PASS",
+          "TEAM_AUTHORIZED": "PASS"
+        },
+        "outputs": [
+          {
+            "project_code": "PROJECT-NEX-0064",
+            "parent_status": "PASS",
+            "duplicate_status": "PASS",
+            "period_start_status": "PASS",
+            "period_end_status": "PASS",
+            "date_range_status": "PASS",
+            "team_status": "PASS"
+          }
+        ],
+        "resources": {
+          "tool_calls": 2,
+          "loop_iterations": 0,
+          "emitted_rows": 1,
+          "max_collection_size_seen": 0
+        }
+      }
+    },
+    {
+      "id": "duplicate-single",
+      "fixture": "fixtures/duplicate_single.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"DUPLICATE_ABSENT": "FAIL"},
+        "resources": {"tool_calls": 2, "max_collection_size_seen": 1}
+      }
+    },
+    {
+      "id": "duplicate-maximum",
+      "fixture": "fixtures/duplicate_max.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"DUPLICATE_ABSENT": "FAIL"},
+        "resources": {"tool_calls": 2, "max_collection_size_seen": 100}
+      }
+    },
+    {
+      "id": "duplicate-over-limit",
+      "fixture": "fixtures/duplicate_over_limit.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "LIMIT_EXCEEDED",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E6001",
+        "resources": {
+          "tool_calls": 2,
+          "emitted_rows": 0,
+          "max_collection_size_seen": 101
+        }
+      }
+    },
+    {
+      "id": "inactive-parent",
+      "fixture": "fixtures/inactive_parent.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"PARENT_ACTIVE": "FAIL"},
+        "resources": {"tool_calls": 2}
+      }
+    },
+    {
+      "id": "start-before-period",
+      "input": "input_start_before_period.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"START_IN_PERIOD": "FAIL"},
+        "resources": {"tool_calls": 2}
+      }
+    },
+    {
+      "id": "end-after-period",
+      "input": "input_end_after_period.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"END_IN_PERIOD": "FAIL"},
+        "resources": {"tool_calls": 2}
+      }
+    },
+    {
+      "id": "reversed-date-range",
+      "input": "input_reversed_range.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"DATE_RANGE_VALID": "FAIL"},
+        "resources": {"tool_calls": 2}
+      }
+    },
+    {
+      "id": "unauthorized-team",
+      "input": "input_unauthorized_team.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "COMPLETE",
+        "checks": {"TEAM_AUTHORIZED": "FAIL"},
+        "resources": {"tool_calls": 2}
+      }
+    },
+    {
+      "id": "partial-duplicates",
+      "fixture": "fixtures/partial_duplicates.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "PARTIAL",
+        "checks": {"DUPLICATE_ABSENT": "UNKNOWN"},
+        "resources": {"tool_calls": 2}
+      }
+    },
+    {
+      "id": "unknown-parent",
+      "fixture": "fixtures/unknown_parent.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 0,
+        "status": "COMPLETED",
+        "completeness": "UNKNOWN",
+        "checks": {"PARENT_ACTIVE": "UNKNOWN"},
+        "resources": {"tool_calls": 2}
+      }
+    },
+    {
+      "id": "missing-parent-data",
+      "fixture": "fixtures/missing_parent.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "TOOL_ERROR",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E4101",
+        "resources": {"tool_calls": 1}
+      }
+    },
+    {
+      "id": "malformed-parent-data",
+      "fixture": "fixtures/malformed_parent.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "TOOL_ERROR",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E4101",
+        "resources": {"tool_calls": 1}
+      }
+    },
+    {
+      "id": "missing-duplicate-fixture",
+      "fixture": "fixtures/missing_duplicate_tool.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "TOOL_ERROR",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E4101",
+        "resources": {"tool_calls": 2}
+      }
+    },
+    {
+      "id": "authorization-denied",
+      "principal": "principal_no_tool_scope.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "FAILED",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E5201",
+        "resources": {"tool_calls": 0}
+      }
+    },
+    {
+      "id": "missing-required-input",
+      "input": "input_missing_name.json",
+      "isolate": false,
+      "expect": {
+        "exit_code": 5,
+        "status": "FAILED",
+        "completeness": "UNKNOWN",
+        "error_code": "NSL-E8001",
+        "resources": {"tool_calls": 0}
+      }
+    }
+  ]
+}
