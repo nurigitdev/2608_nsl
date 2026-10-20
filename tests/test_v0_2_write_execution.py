@@ -11,7 +11,9 @@ from nsl.compiler import NslCompiler
 from nsl.core import (
     ApprovalRequestId,
     BusinessOperationId,
+    CommitState,
     DataClassification,
+    ExecutionStatus,
     IdempotencyKey,
     PayloadHash,
     PreWriteEligibility,
@@ -25,7 +27,7 @@ from nsl.idempotency import (
     IdempotencyEvidenceRecord,
     IdempotencyReservation,
 )
-from nsl.runtime_models import ExecutionContext, ExecutionRequest
+from nsl.runtime_models import ExecutionContext, ExecutionRequest, WriteSummary
 from nsl.security import DataHandlingPolicy
 from nsl.tools import (
     Atomicity,
@@ -45,12 +47,25 @@ from nsl.validation import (
 )
 from nsl.vertical_slice import build_principal, build_tool_catalog
 from nsl.write_execution import (
+    CommitAwareWriteExecutor,
+    ProviderInvocationUncertainError,
     WriteAttemptRecord,
     WriteCallRequest,
     WriteCallRequestBuilder,
+    WriteCommitDecision,
+    WriteCommitUnknown,
+    WriteCommitted,
     WriteEvidenceError,
     WriteExecutionCoordinator,
     WriteExecutionError,
+    WriteJournalEntry,
+    WriteNotCommitted,
+    WriteOutcomeCoordinator,
+    WriteOutcomeIdentity,
+    WriteOutcomeReceipt,
+    WriteOutcomeRecord,
+    WriteOutcomeError,
+    WriteResultEnvelope,
     WriteRequestedReceipt,
 )
 from nsl.write_intent import (
@@ -404,9 +419,11 @@ def test_provider_failure_occurs_only_after_durable_request_evidence() -> None:
         _EvidencePort(events),
     )
 
-    with pytest.raises(TimeoutError, match="acknowledgement lost"):
+    with pytest.raises(ProviderInvocationUncertainError) as captured:
         _execute(coordinator, context=context)
 
+    assert isinstance(captured.value.cause, TimeoutError)
+    assert captured.value.reason_code == "PROVIDER_TIMEOUT"
     assert events == ["WRITE_REQUESTED", "PROVIDER_WRITE"]
     assert context.checkpoint.write_request_durable is True
 
@@ -662,3 +679,559 @@ def test_builder_and_coordinator_reject_wrong_types() -> None:
         malformed[field] = object()
         with pytest.raises(TypeError, match=field):
             asyncio.run(coordinator.execute(**malformed))  # type: ignore[arg-type]
+
+
+class _OutcomePort:
+    def __init__(self, events: list[str], mode: str = "valid") -> None:
+        self.events = events
+        self.mode = mode
+        self.records: list[WriteOutcomeRecord] = []
+
+    async def record_outcome(self, record: WriteOutcomeRecord):
+        self.events.append("WRITE_OUTCOME")
+        self.records.append(record)
+        if self.mode == "raise":
+            raise OSError("outcome storage unavailable")
+        if self.mode == "wrong_type":
+            return object()
+        receipt = WriteOutcomeReceipt(
+            record.record_hash,
+            "write-outcome:0054",
+            record.recorded_at,
+        )
+        if self.mode == "mismatch":
+            return replace(receipt, record_hash="sha256:" + "f" * 64)
+        if self.mode == "predates":
+            return replace(
+                receipt,
+                persisted_at=record.recorded_at - timedelta(microseconds=1),
+            )
+        return receipt
+
+
+class _ExceptionalWritePort:
+    def __init__(self, events: list[str], error: BaseException) -> None:
+        self.events = events
+        self.error = error
+        self.calls = 0
+
+    async def execute(self, request: WriteCallRequest):
+        self.events.append("PROVIDER_WRITE")
+        self.calls += 1
+        raise self.error
+
+
+def _outcome_identity(request: WriteCallRequest) -> WriteOutcomeIdentity:
+    return WriteOutcomeIdentity.from_request(request)
+
+
+def _committed(request: WriteCallRequest) -> WriteCommitted:
+    return WriteCommitted(
+        WriteResultEnvelope(
+            identity=_outcome_identity(request),
+            value=ValueEnvelope.complete(
+                {"draft_id": "DRAFT-0054"},
+                domain("DraftRecord"),
+                DataClassification.CONFIDENTIAL,
+            ),
+            business_reference="DRAFT-0054",
+            provider_transaction_id="tx-0054",
+            committed_at=NOW + timedelta(seconds=1),
+            evidence_refs=("provider:commit:0054",),
+        )
+    )
+
+
+def _not_committed(request: WriteCallRequest) -> WriteNotCommitted:
+    return WriteNotCommitted(
+        identity=_outcome_identity(request),
+        reason_code="BUSINESS_PRECONDITION_REJECTED",
+        message="provider confirmed no side effect",
+        provider_transaction_id="tx-rejected-0054",
+        evidence_refs=("provider:rejection:0054",),
+    )
+
+
+def _unknown(request: WriteCallRequest) -> WriteCommitUnknown:
+    return WriteCommitUnknown(
+        identity=_outcome_identity(request),
+        reason_code="PROVIDER_ACKNOWLEDGEMENT_LOST",
+        message="provider outcome is uncertain; reconciliation is required",
+        provider_transaction_id="tx-unknown-0054",
+        evidence_refs=("transport:unknown:0054",),
+    )
+
+
+def _seed_idempotency(context: ExecutionContext, request: WriteCallRequest) -> None:
+    context.idempotency.keys_by_write_node[request.node_id] = request.idempotency_key
+    context.idempotency.payload_hashes_by_write_node[request.node_id] = (
+        request.payload_hash
+    )
+
+
+def _commit_aware_execute(
+    raw_outcome: object,
+    *,
+    write_port=None,
+    outcome_port: _OutcomePort | None = None,
+) -> tuple[WriteCommitDecision, ExecutionContext, list[str], _OutcomePort]:
+    events: list[str] = []
+    context = _context()
+    request = _request(context=context)
+    _seed_idempotency(context, request)
+    selected_outcome_port = outcome_port or _OutcomePort(events)
+    if outcome_port is not None:
+        outcome_port.events = events
+    if write_port is not None:
+        write_port.events = events
+    invocation = WriteExecutionCoordinator(
+        write_port or _WritePort(events, result=raw_outcome),
+        _EvidencePort(events),
+    )
+    executor = CommitAwareWriteExecutor(
+        invocation,
+        WriteOutcomeCoordinator(selected_outcome_port),
+    )
+    decision = asyncio.run(
+        executor.execute(
+            request=request,
+            decision=WriteGuardDecision(PreWriteEligibility.ALLOWED),
+            context=context,
+            requested_at=NOW,
+            recorded_at=NOW + timedelta(seconds=2),
+        )
+    )
+    return decision, context, events, selected_outcome_port
+
+
+def test_wrt_007_cmt_001_committed_result_preserves_commit_state() -> None:
+    context = _context()
+    request = _request(context=context)
+    _seed_idempotency(context, request)
+    events: list[str] = []
+    outcome_port = _OutcomePort(events)
+    executor = CommitAwareWriteExecutor(
+        WriteExecutionCoordinator(
+            _WritePort(events, result=_committed(request)),
+            _EvidencePort(events),
+        ),
+        WriteOutcomeCoordinator(outcome_port),
+    )
+
+    decision = asyncio.run(
+        executor.execute(
+            request=request,
+            decision=WriteGuardDecision(PreWriteEligibility.ALLOWED),
+            context=context,
+            requested_at=NOW,
+            recorded_at=NOW + timedelta(seconds=2),
+        )
+    )
+
+    assert decision.execution_status is ExecutionStatus.COMPLETED
+    assert decision.write_summary.commit_state is CommitState.COMMITTED
+    assert decision.outcome.result.commit_state is CommitState.COMMITTED
+    assert decision.write_summary.business_reference == "DRAFT-0054"
+    assert decision.write_summary.provider_transaction_id == "tx-0054"
+    assert decision.automatic_retry_allowed is False
+    assert decision.reconciliation_required is False
+    assert events == ["WRITE_REQUESTED", "PROVIDER_WRITE", "WRITE_OUTCOME"]
+    assert outcome_port.records[0].commit_state is CommitState.COMMITTED
+    assert isinstance(context.writes.entries[0], WriteJournalEntry)
+
+
+def test_wrt_007_cmt_001_confirmed_rejection_is_not_committed() -> None:
+    context = _context()
+    request = _request(context=context)
+    _seed_idempotency(context, request)
+    events: list[str] = []
+    executor = CommitAwareWriteExecutor(
+        WriteExecutionCoordinator(
+            _WritePort(events, result=_not_committed(request)),
+            _EvidencePort(events),
+        ),
+        WriteOutcomeCoordinator(_OutcomePort(events)),
+    )
+
+    decision = asyncio.run(
+        executor.execute(
+            request=request,
+            decision=WriteGuardDecision(PreWriteEligibility.ALLOWED),
+            context=context,
+            requested_at=NOW,
+            recorded_at=NOW + timedelta(seconds=2),
+        )
+    )
+
+    assert decision.execution_status is ExecutionStatus.FAILED
+    assert decision.write_summary.commit_state is CommitState.NOT_COMMITTED
+    assert decision.outcome.reason_code == "BUSINESS_PRECONDITION_REJECTED"
+    assert decision.reconciliation_required is False
+    assert decision.automatic_retry_allowed is False
+
+
+def test_cmt_002_003_unknown_is_not_failure_and_requires_reconciliation() -> None:
+    context = _context()
+    request = _request(context=context)
+    _seed_idempotency(context, request)
+    events: list[str] = []
+    executor = CommitAwareWriteExecutor(
+        WriteExecutionCoordinator(
+            _WritePort(events, result=_unknown(request)),
+            _EvidencePort(events),
+        ),
+        WriteOutcomeCoordinator(_OutcomePort(events)),
+    )
+
+    decision = asyncio.run(
+        executor.execute(
+            request=request,
+            decision=WriteGuardDecision(PreWriteEligibility.ALLOWED),
+            context=context,
+            requested_at=NOW,
+            recorded_at=NOW + timedelta(seconds=2),
+        )
+    )
+
+    assert decision.execution_status is ExecutionStatus.RECONCILIATION_REQUIRED
+    assert decision.write_summary.commit_state is CommitState.UNKNOWN_COMMIT_STATE
+    assert decision.reconciliation_required is True
+    assert decision.automatic_retry_allowed is False
+    assert decision.execution_status is not ExecutionStatus.FAILED
+
+
+@pytest.mark.parametrize(
+    ("error", "reason"),
+    [
+        (TimeoutError("timeout"), "PROVIDER_TIMEOUT"),
+        (ConnectionError("connection lost"), "PROVIDER_CONNECTION_LOST"),
+        (asyncio.CancelledError(), "PROVIDER_CANCELLED"),
+        (RuntimeError("provider exploded"), "PROVIDER_EXCEPTION"),
+    ],
+)
+def test_wrt_008_uncertain_provider_exception_is_never_retried(error, reason) -> None:
+    events: list[str] = []
+    port = _ExceptionalWritePort(events, error)
+    decision, context, scenario_events, outcome_port = _commit_aware_execute(
+        object(),
+        write_port=port,
+    )
+
+    assert port.calls == 1
+    assert scenario_events == [
+        "WRITE_REQUESTED",
+        "PROVIDER_WRITE",
+        "WRITE_OUTCOME",
+    ]
+    assert decision.execution_status is ExecutionStatus.RECONCILIATION_REQUIRED
+    assert decision.write_summary.commit_state is CommitState.UNKNOWN_COMMIT_STATE
+    assert decision.outcome.reason_code == reason
+    assert decision.automatic_retry_allowed is False
+    assert len(context.writes.entries) == 1
+    assert outcome_port.records[0].commit_state is CommitState.UNKNOWN_COMMIT_STATE
+
+
+def test_pre_provider_persistence_failure_is_not_commit_unknown() -> None:
+    events: list[str] = []
+    context = _context()
+    request = _request(context=context)
+    _seed_idempotency(context, request)
+    outcome_port = _OutcomePort(events)
+    executor = CommitAwareWriteExecutor(
+        WriteExecutionCoordinator(
+            _WritePort(events, result=_committed(request)),
+            _EvidencePort(events, "raise"),
+        ),
+        WriteOutcomeCoordinator(outcome_port),
+    )
+
+    with pytest.raises(OSError, match="durable storage unavailable"):
+        asyncio.run(
+            executor.execute(
+                request=request,
+                decision=WriteGuardDecision(PreWriteEligibility.ALLOWED),
+                context=context,
+                requested_at=NOW,
+                recorded_at=NOW + timedelta(seconds=2),
+            )
+        )
+
+    assert events == ["WRITE_REQUESTED"]
+    assert outcome_port.records == []
+    assert context.writes.entries == []
+    assert context.checkpoint.write_request_durable is False
+
+
+def test_malformed_provider_acknowledgement_is_commit_unknown() -> None:
+    decision, _, events, _ = _commit_aware_execute({"status": "ok"})
+
+    assert events == ["WRITE_REQUESTED", "PROVIDER_WRITE", "WRITE_OUTCOME"]
+    assert decision.execution_status is ExecutionStatus.RECONCILIATION_REQUIRED
+    assert decision.outcome.reason_code == "PROVIDER_ACKNOWLEDGEMENT_MALFORMED"
+
+
+def test_cmt_004_unknown_commit_preserves_key_and_blocks_new_key_retry() -> None:
+    context = _context()
+    request = _request(context=context)
+    _seed_idempotency(context, request)
+    original_keys = dict(context.idempotency.keys_by_write_node)
+    events: list[str] = []
+    executor = CommitAwareWriteExecutor(
+        WriteExecutionCoordinator(
+            _WritePort(events, result=_unknown(request)),
+            _EvidencePort(events),
+        ),
+        WriteOutcomeCoordinator(_OutcomePort(events)),
+    )
+
+    decision = asyncio.run(
+        executor.execute(
+            request=request,
+            decision=WriteGuardDecision(PreWriteEligibility.ALLOWED),
+            context=context,
+            requested_at=NOW,
+            recorded_at=NOW + timedelta(seconds=2),
+        )
+    )
+
+    assert context.idempotency.keys_by_write_node == original_keys
+    assert decision.automatic_retry_allowed is False
+    assert len([event for event in events if event == "PROVIDER_WRITE"]) == 1
+
+
+@pytest.mark.parametrize(
+    ("mode", "error"),
+    [
+        ("raise", OSError),
+        ("wrong_type", WriteOutcomeError),
+        ("mismatch", WriteOutcomeError),
+        ("predates", WriteOutcomeError),
+    ],
+)
+def test_outcome_persistence_failure_prevents_journal_mutation(mode, error) -> None:
+    events: list[str] = []
+    context = _context()
+    request = _request(context=context)
+    _seed_idempotency(context, request)
+    executor = CommitAwareWriteExecutor(
+        WriteExecutionCoordinator(
+            _WritePort(events, result=_committed(request)),
+            _EvidencePort(events),
+        ),
+        WriteOutcomeCoordinator(_OutcomePort(events, mode)),
+    )
+
+    with pytest.raises(error):
+        asyncio.run(
+            executor.execute(
+                request=request,
+                decision=WriteGuardDecision(PreWriteEligibility.ALLOWED),
+                context=context,
+                requested_at=NOW,
+                recorded_at=NOW + timedelta(seconds=2),
+            )
+        )
+
+    assert context.writes.entries == []
+
+
+def test_outcome_identity_and_context_mismatch_fail_before_persistence() -> None:
+    request = _request()
+    wrong_identity = replace(
+        _outcome_identity(request),
+        business_operation_id=BusinessOperationId("business-other"),
+    )
+    outcome = WriteCommitUnknown(
+        wrong_identity,
+        "UNKNOWN",
+        "provider outcome is uncertain",
+    )
+    port = _OutcomePort([])
+    coordinator = WriteOutcomeCoordinator(port)
+    context = _context()
+    _seed_idempotency(context, request)
+
+    with pytest.raises(WriteOutcomeError, match="identity mismatch"):
+        asyncio.run(
+            coordinator.finalize(
+                request=request,
+                context=context,
+                requested_record_hash=WriteAttemptRecord.from_request(
+                    request,
+                    NOW,
+                ).record_hash,
+                outcome=outcome,
+                recorded_at=NOW + timedelta(seconds=2),
+            )
+        )
+    assert port.records == []
+
+
+@pytest.mark.parametrize(
+    ("context", "message"),
+    [
+        (_context(execution_id="exec-other"), "execution"),
+        (_context(tenant_id="tenant-other"), "tenant"),
+        (_context(business_operation_id="business-other"), "business operation"),
+    ],
+)
+def test_outcome_context_identity_mismatch_fails_closed(context, message) -> None:
+    request = _request()
+    _seed_idempotency(context, request)
+    coordinator = WriteOutcomeCoordinator(_OutcomePort([]))
+
+    with pytest.raises(WriteOutcomeError, match=message):
+        asyncio.run(
+            coordinator.finalize(
+                request=request,
+                context=context,
+                requested_record_hash=WriteAttemptRecord.from_request(
+                    request,
+                    NOW,
+                ).record_hash,
+                outcome=_unknown(request),
+                recorded_at=NOW + timedelta(seconds=2),
+            )
+        )
+
+
+def test_outcome_requires_exact_existing_idempotency_state() -> None:
+    request = _request()
+    context = _context()
+    coordinator = WriteOutcomeCoordinator(_OutcomePort([]))
+
+    with pytest.raises(WriteOutcomeError, match="idempotency state"):
+        asyncio.run(
+            coordinator.finalize(
+                request=request,
+                context=context,
+                requested_record_hash=WriteAttemptRecord.from_request(
+                    request,
+                    NOW,
+                ).record_hash,
+                outcome=_unknown(request),
+                recorded_at=NOW + timedelta(seconds=2),
+            )
+        )
+
+
+def test_commit_decision_rejects_inconsistent_states_and_retry() -> None:
+    request = _request()
+    outcome = _unknown(request)
+    summary = WriteSummary(
+        CommitState.UNKNOWN_COMMIT_STATE,
+        request.tool_id,
+        request.node_id,
+        request.idempotency_key,
+        request.payload_hash,
+    )
+    valid = WriteCommitDecision(
+        ExecutionStatus.RECONCILIATION_REQUIRED,
+        outcome,
+        summary,
+        False,
+        True,
+    )
+
+    with pytest.raises(WriteOutcomeError, match="retry"):
+        replace(valid, automatic_retry_allowed=True)
+    with pytest.raises(WriteOutcomeError, match="reconciliation"):
+        replace(valid, reconciliation_required=False)
+    with pytest.raises(WriteOutcomeError, match="commit states"):
+        replace(
+            valid,
+            write_summary=replace(summary, commit_state=CommitState.COMMITTED),
+            reconciliation_required=False,
+        )
+    with pytest.raises(WriteOutcomeError, match="execution status"):
+        replace(valid, execution_status=ExecutionStatus.FAILED)
+    with pytest.raises(TypeError, match="ExecutionStatus"):
+        replace(valid, execution_status="RECONCILIATION_REQUIRED")
+    with pytest.raises(TypeError, match="WriteExecutionOutcome"):
+        replace(valid, outcome=object())
+    with pytest.raises(TypeError, match="WriteSummary"):
+        replace(valid, write_summary=object())
+    with pytest.raises(TypeError, match="automatic_retry_allowed"):
+        replace(valid, automatic_retry_allowed=1)
+    with pytest.raises(TypeError, match="reconciliation_required"):
+        replace(valid, reconciliation_required=1)
+
+
+def test_outcome_models_reject_malformed_values() -> None:
+    request = _request()
+    identity = _outcome_identity(request)
+    committed = _committed(request)
+    unknown = _unknown(request)
+    record = WriteOutcomeRecord(
+        requested_record_hash=WriteAttemptRecord.from_request(request, NOW).record_hash,
+        identity=identity,
+        commit_state=CommitState.UNKNOWN_COMMIT_STATE,
+        reason_code=unknown.reason_code,
+        provider_transaction_id=unknown.provider_transaction_id,
+        business_reference=None,
+        evidence_refs=unknown.evidence_refs,
+        recorded_at=NOW + timedelta(seconds=2),
+    )
+    receipt = WriteOutcomeReceipt(
+        record.record_hash,
+        "write-outcome:0054",
+        NOW + timedelta(seconds=2),
+    )
+
+    with pytest.raises(TypeError, match="request"):
+        WriteOutcomeIdentity.from_request(object())  # type: ignore[arg-type]
+    with pytest.raises(WriteOutcomeError, match="idempotency_key"):
+        replace(identity, idempotency_key=IdempotencyKey("bad"))
+    with pytest.raises(TypeError, match="result"):
+        WriteCommitted(object())  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="identity"):
+        replace(unknown, identity=object())
+    with pytest.raises(WriteExecutionError, match="non-empty"):
+        replace(unknown, reason_code="")
+    with pytest.raises(TypeError, match="evidence_refs"):
+        replace(unknown, evidence_refs=["bad"])
+    with pytest.raises(ValueError, match="credential"):
+        replace(unknown, evidence_refs=("api_key=secret",))
+    with pytest.raises(TypeError, match="value"):
+        replace(committed.result, value=object())
+    with pytest.raises(TypeError, match="identity"):
+        replace(committed.result, identity=object())
+    with pytest.raises(TypeError, match="identity"):
+        replace(_not_committed(request), identity=object())
+    with pytest.raises(TypeError, match="identity"):
+        replace(record, identity=object())
+    with pytest.raises(TypeError, match="CommitState"):
+        replace(record, commit_state="UNKNOWN_COMMIT_STATE")
+    with pytest.raises(WriteExecutionError, match="SHA-256"):
+        replace(receipt, record_hash="bad")
+    with pytest.raises(TypeError, match="record"):
+        WriteJournalEntry(object(), "ref")  # type: ignore[arg-type]
+
+
+def test_outcome_coordinators_reject_wrong_types() -> None:
+    with pytest.raises(TypeError, match="record_outcome"):
+        WriteOutcomeCoordinator(object())  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="invocation"):
+        CommitAwareWriteExecutor(object(), WriteOutcomeCoordinator(_OutcomePort([])))  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="outcomes"):
+        CommitAwareWriteExecutor(
+            WriteExecutionCoordinator(_WritePort([]), _EvidencePort([])),
+            object(),  # type: ignore[arg-type]
+        )
+
+    request = _request()
+    context = _context()
+    _seed_idempotency(context, request)
+    coordinator = WriteOutcomeCoordinator(_OutcomePort([]))
+    values = {
+        "request": request,
+        "context": context,
+        "requested_record_hash": WriteAttemptRecord.from_request(request, NOW).record_hash,
+        "outcome": _unknown(request),
+        "recorded_at": NOW + timedelta(seconds=2),
+    }
+    for field in ("request", "context", "outcome"):
+        malformed = dict(values)
+        malformed[field] = object()
+        with pytest.raises(TypeError, match=field):
+            asyncio.run(coordinator.finalize(**malformed))  # type: ignore[arg-type]

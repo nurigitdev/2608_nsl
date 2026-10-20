@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Write Execution slices:** 0050-0054<br>
-**Status:** IN PROGRESS<br>
+**Status:** COMPLETE<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`
 
@@ -67,7 +67,7 @@ synchronization unit.
 | 0051 | COMPLETE | Idempotency Contract and Evidence | `NSL-IDM-001..008` | `RD-009` | Every WRITE has a stable tenant/business-operation/write-node key, separate payload hash, durable collision evidence, resume reuse, and verified provider retention guarantee. |
 | 0052 | COMPLETE | WriteGuard and Runtime Preflight | `NSL-WRT-009`, `NSL-WRT-011`, `NSL-RSK-003`, `NSL-RSK-005` | `RD-007` | Runtime revalidates current policy and precondition evidence immediately before invocation while requiring the provider to enforce the actual business condition atomically with WRITE. |
 | 0053 | COMPLETE | WriteExecutionPort and Durable Request Evidence | `NSL-WRT-001`, `NSL-ARC-204..205` | `CHG-018`, `CHG-021` | Runtime durably records `WRITE_REQUESTED` before invoking one declared Canonical Business Tool exclusively through an injected side-effect Port. |
-| 0054 | PLANNED | Commit Outcomes and Reconciliation | `NSL-WRT-007..008`, `NSL-CMT-001..004` | `RD-008` | Provider outcomes map to explicit commit states; uncertain commit becomes `RECONCILIATION_REQUIRED`, is never treated as ordinary failure, and is never automatically retried or re-keyed. |
+| 0054 | COMPLETE | Commit Outcomes and Reconciliation | `NSL-WRT-007..008`, `NSL-CMT-001..004` | `RD-008` | Provider outcomes map to explicit commit states; uncertain commit becomes `RECONCILIATION_REQUIRED`, is never treated as ordinary failure, and is never automatically retried or re-keyed. |
 
 `RD-001`, `RD-007`, `RD-008`, and `RD-009` are FROZEN implementation
 decisions, not additional SRS requirements. They constrain implementation and
@@ -256,6 +256,19 @@ commit state; that responsibility remains exclusively in Slice 0054.
 Slice 0054 completion requires crash-window, timeout/cancellation,
 acknowledgement-loss, malformed response, duplicate result, and
 reconciliation-lockout tests.
+
+Slice 0054 completion evidence is maintained in
+`tests/test_v0_2_write_execution.py` and
+`tests/test_v0_2_status_and_result.py`. The Runtime normalizes provider
+results into immutable `COMMITTED`, `NOT_COMMITTED`, and
+`UNKNOWN_COMMIT_STATE` outcomes, durably binds each outcome to its original
+`WRITE_REQUESTED` evidence before journal mutation, and maps uncertainty to
+`RECONCILIATION_REQUIRED` rather than ordinary failure. Timeout,
+cancellation, connection loss, provider exceptions, and malformed
+acknowledgements cannot trigger an automatic retry or a new idempotency key.
+The provider-call boundary distinguishes those uncertain post-invocation
+failures from guard or evidence failures that occur before invocation.
+Reconciliation policy remains outside Runtime ownership.
 
 ## 6. Cross-slice Safety Invariants
 
