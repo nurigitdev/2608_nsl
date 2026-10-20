@@ -45,6 +45,10 @@
     {
       "decision_id": "RB2-010",
       "decision": "At Slice 0033, the eight coarse ownership groups were reallocated to independently verifiable Slices 0033 through 0062 without changing requirement text, priority, membership, or fingerprint."
+    },
+    {
+      "decision_id": "RB2-011",
+      "decision": "At Slice 0060, the remaining Vertical Integration roadmap was reallocated from four coarse Slices 0061 through 0064 to independently verifiable Slices 0061 through 0069 without changing requirement text, priority, membership, or fingerprint."
     }
   ],
   "extension_requirement_exceptions": [],
@@ -78,14 +82,19 @@
     "0058": {"scope": "SRS", "title": "Verification Result and Persistent Audit Evidence"},
     "0059": {"scope": "SRS", "title": "Protected Replay Evidence Composition"},
     "0060": {"scope": "SRS", "title": "Replay and Mock No-live-write Safety"},
-    "0061": {"scope": "SRS", "title": "Voucher Draft Vertical Slice"},
-    "0062": {"scope": "SRS", "title": "Project Draft Vertical Slice"},
-    "0063": {"scope": "SRS", "title": "CLI v0.2 Developer Experience"},
-    "0064": {"scope": "SRS", "title": "Architecture Compatibility and SRS Certification"}
+    "0061": {"scope": "SRS", "title": "Voucher Scenario Contract and READ Validation"},
+    "0062": {"scope": "SRS", "title": "Voucher Approval Suspend and Resume"},
+    "0063": {"scope": "SRS", "title": "Voucher Write Commit and Verification E2E"},
+    "0064": {"scope": "SRS", "title": "Project Scenario Contract and Validation"},
+    "0065": {"scope": "SRS", "title": "Project Draft Generalization E2E"},
+    "0066": {"scope": "SRS", "title": "CLI v0.2 Run and Resume Workflow"},
+    "0067": {"scope": "SRS", "title": "CLI Trust Inspection Mock and Diagnostics"},
+    "0068": {"scope": "SRS", "title": "Architecture and Backward Compatibility Certification"},
+    "0069": {"scope": "SRS", "title": "Performance Negative Acceptance and SRS Certification"}
   },
   "assignments": [
     {"selectors": ["NSL-ARC-201"], "status": "PARTIAL", "target_slice": "0033", "verification": ["TEST-V02-CORE-SEMANTIC-KERNEL"], "evidence": ["tests/test_v0_2_core_semantics.py::test_arc_201_shared_semantic_types_have_single_core_owner", "tests/test_architecture.py::test_module_dependency_boundaries"]},
-    {"selectors": ["NSL-ARC-202..203"], "status": "PLANNED", "target_slice": "0064", "verification": ["TEST-V02-ARCHITECTURE-CERTIFICATION"], "evidence": []},
+    {"selectors": ["NSL-ARC-202..203"], "status": "PLANNED", "target_slice": "0068", "verification": ["TEST-V02-ARCHITECTURE-CERTIFICATION"], "evidence": []},
     {"selectors": ["NSL-ARC-204..205"], "status": "PLANNED", "target_slice": "0053", "verification": ["TEST-V02-WRITE-PORT-BOUNDARY"], "evidence": []},
     {"selectors": ["NSL-ARC-206", "NSL-ARC-208..209"], "status": "PLANNED", "target_slice": "0048", "verification": ["TEST-V02-APPROVAL-PLATFORM-BOUNDARY"], "evidence": []},
     {"selectors": ["NSL-ARC-207"], "status": "PLANNED", "target_slice": "0060", "verification": ["TEST-V02-REPLAY-NO-LIVE-WRITE"], "evidence": []},

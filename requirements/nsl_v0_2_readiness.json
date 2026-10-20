@@ -90,6 +90,6 @@
     {"decision_id": "RD-008", "status": "FROZEN", "target_slice": "0054", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-008"},
     {"decision_id": "RD-009", "status": "FROZEN", "target_slice": "0051", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-009"},
     {"decision_id": "RD-010", "status": "FROZEN", "target_slice": "0055", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-010"},
-    {"decision_id": "RD-011", "status": "FROZEN", "target_slice": "0062", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-011"}
+    {"decision_id": "RD-011", "status": "FROZEN", "target_slice": "0069", "evidence": "docs/v0_2/13_NeX_Skill_Language_v0.2_Requirement_Baseline_and_Implementation_Readiness_v1.0.md::RD-011"}
   ]
 }

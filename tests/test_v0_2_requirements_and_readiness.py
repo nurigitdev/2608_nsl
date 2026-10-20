@@ -77,11 +77,41 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
         "0058": 1,
         "0059": 1,
         "0060": 3,
-        "0064": 2,
+        "0068": 2,
     }
+    baseline = json.loads(V0_2_BASELINE.read_text(encoding="utf-8"))
+    assert baseline["current_slice"] == "0060"
+    assert {
+        slice_id: baseline["slices"][slice_id]["title"]
+        for slice_id in (
+            "0061",
+            "0062",
+            "0063",
+            "0064",
+            "0065",
+            "0066",
+            "0067",
+            "0068",
+            "0069",
+        )
+    } == {
+        "0061": "Voucher Scenario Contract and READ Validation",
+        "0062": "Voucher Approval Suspend and Resume",
+        "0063": "Voucher Write Commit and Verification E2E",
+        "0064": "Project Scenario Contract and Validation",
+        "0065": "Project Draft Generalization E2E",
+        "0066": "CLI v0.2 Run and Resume Workflow",
+        "0067": "CLI Trust Inspection Mock and Diagnostics",
+        "0068": "Architecture and Backward Compatibility Certification",
+        "0069": "Performance Negative Acceptance and SRS Certification",
+    }
+    assert baseline["scope_decisions"][-1]["decision_id"] == "RB2-011"
     assert tuple(records)[0] == "NSL-ARC-201"
     assert tuple(records)[-1] == "NSL-RPL-203"
     assert records["NSL-ARC-201"]["status"] == "PARTIAL"
+    assert records["NSL-ARC-201"]["target_slice"] == "0033"
+    assert records["NSL-ARC-202"]["target_slice"] == "0068"
+    assert records["NSL-ARC-203"]["target_slice"] == "0068"
     assert records["NSL-TOL-201"]["status"] == "IMPLEMENTED"
     assert records["NSL-TOL-207"]["status"] == "IMPLEMENTED"
     assert records["NSL-RSK-004"]["status"] == "IMPLEMENTED"
@@ -287,6 +317,7 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
 
 def test_repository_v0_2_readiness_baseline_is_complete(capsys) -> None:
     report = validate_v0_2_readiness()
+    readiness = _baseline()
 
     assert report.readiness_id == "NSL-V0.2-IMPLEMENTATION-READINESS-RB1"
     assert report.authority_document_count == 5
@@ -295,6 +326,11 @@ def test_repository_v0_2_readiness_baseline_is_complete(capsys) -> None:
     assert report.change_priority_counts == {"P0": 22, "P1": 10}
     assert report.decision_count == 11
     assert report.to_data()["change_count"] == 32
+    assert next(
+        decision
+        for decision in readiness["readiness_decisions"]
+        if decision["decision_id"] == "RD-011"
+    )["target_slice"] == "0069"
 
     assert main(["--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
