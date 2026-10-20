@@ -68,6 +68,13 @@ from ..outcome_records import (
 from ..runtime import RuntimeEngine
 from ..runtime_models import ExecutionRequest, ExecutionResult
 from ..tools import ToolExecutionPort
+from ..trust import (
+    PackageTrustError,
+    PackageTrustEvidence,
+    TrustStatus,
+    VerifiedSkillArtifact,
+    package_id_for,
+)
 from ..validation import (
     BusinessPreconditionEvidence,
     BusinessPreconditionMechanism,
@@ -170,6 +177,8 @@ __all__ = [
     "LlmExplanationRecord",
     "LlmExplanationStore",
     "NullProgressSink",
+    "PackageTrustError",
+    "PackageTrustEvidence",
     "PolicyDecision",
     "PolicyEffect",
     "ProgressEvent",
@@ -196,6 +205,8 @@ __all__ = [
     "StructuredInputs",
     "StructuredRuntimeContext",
     "ToolExecutionPort",
+    "TrustStatus",
+    "VerifiedSkillArtifact",
     "VerifiedPackageSkillResolver",
     "VerifiedPrincipalContext",
     "WorkerBoundaryCode",
@@ -235,5 +246,6 @@ __all__ = [
     "compute_payload_hash",
     "compute_write_intent_hash",
     "idempotency_identity",
+    "package_id_for",
     "write_policy_request",
 ]

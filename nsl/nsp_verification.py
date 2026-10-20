@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from hashlib import sha256
 from io import BytesIO
 from enum import StrEnum
@@ -23,6 +24,7 @@ from .nsp_signatures import (
     signature_message,
 )
 from .security import RuntimeEnvironment
+from .trust import PackageTrustError, PackageTrustEvidence, VerifiedSkillArtifact
 
 
 class NspVerificationCode(StrEnum):
@@ -105,6 +107,50 @@ class VerifiedNspPackage:
     @property
     def package_hash(self) -> str:
         return self.manifest.package_sha256
+
+    def trust_evidence(
+        self,
+        *,
+        publisher_id: str,
+        trust_policy_id: str,
+        verified_at: datetime,
+    ) -> PackageTrustEvidence:
+        if self.signature is None:
+            raise PackageTrustError(
+                "unsigned NSP package cannot issue verified trust evidence"
+            )
+        if self.signature.package_sha256 != self.package_hash:
+            raise PackageTrustError(
+                "signature package hash does not match the verified package"
+            )
+        return PackageTrustEvidence.verified(
+            package_hash=self.package_hash,
+            publisher_id=publisher_id,
+            signing_key_id=self.signature.key_id,
+            verified_at=verified_at,
+            trust_policy_id=trust_policy_id,
+        )
+
+    def trusted_artifacts(
+        self,
+        *,
+        publisher_id: str,
+        trust_policy_id: str,
+        verified_at: datetime,
+    ) -> tuple[VerifiedSkillArtifact, ...]:
+        trust = self.trust_evidence(
+            publisher_id=publisher_id,
+            trust_policy_id=trust_policy_id,
+            verified_at=verified_at,
+        )
+        return tuple(
+            VerifiedSkillArtifact(
+                skill=verified.skill,
+                artifact_hash=verified.manifest.artifact_sha256,
+                trust=trust,
+            )
+            for verified in self.skills
+        )
 
 
 class NspVerifier:

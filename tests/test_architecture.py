@@ -33,6 +33,7 @@ RUNTIME_KERNEL_MODULES = {
     "runtime.py",
     "runtime_models.py",
     "security.py",
+    "trust.py",
     "validation.py",
     "write_intent.py",
 }
@@ -191,6 +192,7 @@ def called_attributes(path: Path) -> set[str]:
         ("result_codec", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
         ("validation", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
         ("write_intent", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
+        ("trust", {"syntax", "compiler", "runtime", "tools", "audit", "replay", "nsp_verification"}),
     ],
 )
 def test_module_dependency_boundaries(module_name, forbidden) -> None:

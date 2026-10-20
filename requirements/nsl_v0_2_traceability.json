@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0054",
+  "current_slice": "0055",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -222,6 +222,11 @@
     "NSL-APR-010": {"status": "IMPLEMENTED", "target_slice": "0049", "verification": ["TEST-APR-010"], "evidence": ["tests/test_v0_2_approval_resume_validation.py::test_apr_010_current_intent_recalculation_mismatch_blocks", "tests/test_v0_2_approval_resume_validation.py::test_apr_009_010_011_all_current_bindings_fail_closed"]},
     "NSL-APR-011": {"status": "IMPLEMENTED", "target_slice": "0049", "verification": ["TEST-APR-011"], "evidence": ["tests/test_v0_2_approval_resume_validation.py::test_apr_011_current_canonical_payload_mismatch_blocks", "tests/test_v0_2_approval_resume_validation.py::test_apr_009_010_011_all_current_bindings_fail_closed"]},
     "NSL-APR-012": {"status": "IMPLEMENTED", "target_slice": "0049", "verification": ["TEST-APR-012"], "evidence": ["tests/test_v0_2_approval_resume_validation.py::test_apr_012_rejected_decision_is_consumed_without_write_permission"]},
-    "NSL-APR-013": {"status": "IMPLEMENTED", "target_slice": "0049", "verification": ["TEST-APR-013"], "evidence": ["tests/test_v0_2_approval_resume_validation.py::test_apr_013_expiry_boundary_requires_reapproval", "tests/test_v0_2_approval_resume_validation.py::test_rd_005_before_expiry_and_no_expiry_are_valid"]}
+    "NSL-APR-013": {"status": "IMPLEMENTED", "target_slice": "0049", "verification": ["TEST-APR-013"], "evidence": ["tests/test_v0_2_approval_resume_validation.py::test_apr_013_expiry_boundary_requires_reapproval", "tests/test_v0_2_approval_resume_validation.py::test_rd_005_before_expiry_and_no_expiry_are_valid"]},
+    "NSL-IR-209": {"status": "IMPLEMENTED", "target_slice": "0055", "verification": ["TEST-IR-209"], "evidence": ["tests/test_v0_2_package_trust.py::test_ir_209_trust_is_package_evidence_not_an_ir_signature_path", "tests/test_architecture.py::test_module_dependency_boundaries"]},
+    "NSL-SIG-002": {"status": "IMPLEMENTED", "target_slice": "0055", "verification": ["TEST-SIG-002"], "evidence": ["tests/test_v0_2_package_trust.py::test_sig_002_003_verified_signed_package_issues_bound_trust_evidence", "tests/test_package_verification_and_signature.py::test_pkg_006_signature_metadata_is_canonical_and_binds_package_hash"]},
+    "NSL-SIG-003": {"status": "IMPLEMENTED", "target_slice": "0055", "verification": ["TEST-SIG-003"], "evidence": ["tests/test_v0_2_package_trust.py::test_sig_002_003_verified_signed_package_issues_bound_trust_evidence", "tests/test_package_verification_and_signature.py::test_sec_011_unknown_wrong_and_tampered_ed25519_signatures_are_rejected"]},
+    "NSL-SIG-004": {"status": "IMPLEMENTED", "target_slice": "0055", "verification": ["TEST-SIG-004"], "evidence": ["tests/test_v0_2_package_trust.py::test_sig_004_trusted_artifact_binds_package_artifact_and_semantic_hashes", "tests/test_v0_2_package_trust.py::test_sig_004_integrity_change_invalidates_prior_evidence_binding"]},
+    "NSL-SIG-006": {"status": "IMPLEMENTED", "target_slice": "0055", "verification": ["TEST-SIG-006"], "evidence": ["tests/test_v0_2_package_trust.py::test_sig_006_unsigned_v0_1_development_package_remains_compatible", "tests/test_package_verification_and_signature.py::test_pkg_007_development_unsigned_package_requires_explicit_opt_in"]}
   }
 }

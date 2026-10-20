@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Trust and Evidence slices:** 0055-0060<br>
-**Status:** PLANNED<br>
+**Status:** IN PROGRESS (Slice 0055 complete)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`
 
@@ -91,7 +91,7 @@ traceability, commit, and synchronization unit.
 
 | Slice | Status | Title | Primary requirements | Governing decision | Completion boundary |
 |---|---|---|---|---|---|
-| 0055 | PLANNED | Signed NSP Trust Evidence and Compatibility | `NSL-IR-209`, `NSL-SIG-002..004`, `NSL-SIG-006` | `RD-010`, `CHG-010`, `CHG-031` | Canonical NSP integrity and trusted publisher signature verification produce immutable package/skill trust evidence compatible with the v0.1 trust boundary. |
+| 0055 | COMPLETE | Signed NSP Trust Evidence and Compatibility | `NSL-IR-209`, `NSL-SIG-002..004`, `NSL-SIG-006` | `RD-010`, `CHG-010`, `CHG-031` | Canonical NSP integrity and trusted publisher signature verification produce immutable package/skill trust evidence compatible with the v0.1 trust boundary. |
 | 0056 | PLANNED | Production WRITE Trust Preflight | `NSL-SIG-001`, `NSL-SIG-005`, `NSL-ARC-210` | `RD-010`, `CHG-010` | Production WRITE fails closed before provider invocation unless current verified package and skill trust evidence matches the exact executable artifact and trust policy. |
 | 0057 | PLANNED | Post-write Verification Core | `NSL-VFY-001..003`, `NSL-VFY-005` | `CHG-029` | A committed WRITE can invoke a declared read-only verification method and return an independent typed verification outcome without changing CommitState. |
 | 0058 | PLANNED | Verification Result and Persistent Audit Evidence | `NSL-VFY-004`, SRS section 23 | `CHG-029`, `CHG-030` | Verification appears in structured Result and persistent hash-chained Audit together with the complete v0.2 event taxonomy and protected identity references. |
@@ -127,6 +127,14 @@ traceability, commit, and synchronization unit.
 - Prove that any package or artifact integrity change invalidates prior trust
   evidence.
 - Preserve v0.1 Signed NSP loading and verification behavior.
+
+**Completion evidence:** `PackageTrustEvidence` and `VerifiedSkillArtifact`
+provide immutable Runtime-facing identities without carrying signature bytes or
+trust-store services into IR. The existing canonical NSP verifier remains the
+sole cryptographic boundary, and verified artifacts are bound to package,
+artifact, and semantic hashes. Automated tests cover trusted Ed25519 keys,
+tampering, artifact substitution, malformed evidence, deterministic identity,
+and explicitly permitted unsigned v0.1 development packages.
 
 ### 6.2 Slice 0056: Production WRITE Trust Preflight
 

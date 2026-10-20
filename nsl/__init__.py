@@ -40,6 +40,13 @@ from .nsp_verification import (
 from .runtime import ExecutionRequest, ExecutionResult, RuntimeEngine
 from .source import SourceFile, SourceId, SourcePosition, SourceSpan
 from .syntax import ParseMode
+from .trust import (
+    PackageTrustError,
+    PackageTrustEvidence,
+    TrustStatus,
+    VerifiedSkillArtifact,
+    package_id_for,
+)
 
 __all__ = [
     "CompileError",
@@ -69,6 +76,8 @@ __all__ = [
     "NspVerificationPolicy",
     "NspVerifier",
     "ParseMode",
+    "PackageTrustError",
+    "PackageTrustEvidence",
     "RuntimeEngine",
     "SourceFile",
     "SourceId",
@@ -76,6 +85,9 @@ __all__ = [
     "SourceManifestEntry",
     "SourcePosition",
     "SourceSpan",
+    "TrustStatus",
     "VerifiedNspPackage",
     "VerifiedNspSkill",
+    "VerifiedSkillArtifact",
+    "package_id_for",
 ]
