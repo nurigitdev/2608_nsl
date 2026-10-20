@@ -64,7 +64,7 @@ synchronization unit.
 | Slice | Status | Title | Primary requirements | Governing decision | Completion boundary |
 |---|---|---|---|---|---|
 | 0050 | COMPLETE | Write Intent and Canonical Payload Hash | `NSL-WRT-006`, `NSL-WRT-010` | `RD-001` | Runtime produces immutable Write Intent and Payload identities from strict typed canonical encoding, and any semantic payload change rejects prior Approval evidence with a new-Approval requirement. |
-| 0051 | PLANNED | Idempotency Contract and Evidence | `NSL-IDM-001..008` | `RD-009` | Every WRITE has a stable tenant/business-operation/write-node key, separate payload hash, durable collision evidence, resume reuse, and verified provider retention guarantee. |
+| 0051 | COMPLETE | Idempotency Contract and Evidence | `NSL-IDM-001..008` | `RD-009` | Every WRITE has a stable tenant/business-operation/write-node key, separate payload hash, durable collision evidence, resume reuse, and verified provider retention guarantee. |
 | 0052 | PLANNED | WriteGuard and Runtime Preflight | `NSL-WRT-009`, `NSL-WRT-011`, `NSL-RSK-003`, `NSL-RSK-005` | `RD-007` | Runtime revalidates current policy and precondition evidence immediately before invocation while requiring the provider to enforce the actual business condition atomically with WRITE. |
 | 0053 | PLANNED | WriteExecutionPort and Durable Request Evidence | `NSL-WRT-001`, `NSL-ARC-204..205` | `CHG-018`, `CHG-021` | Runtime durably records `WRITE_REQUESTED` before invoking one declared Canonical Business Tool exclusively through an injected side-effect Port. |
 | 0054 | PLANNED | Commit Outcomes and Reconciliation | `NSL-WRT-007..008`, `NSL-CMT-001..004` | `RD-008` | Provider outcomes map to explicit commit states; uncertain commit becomes `RECONCILIATION_REQUIRED`, is never treated as ordinary failure, and is never automatically retried or re-keyed. |
@@ -138,6 +138,18 @@ idempotency key, invoke a provider, or interpret a commit outcome.
 Slice 0051 completion requires boundary tests for first use, same-key reuse,
 payload conflict, concurrent duplicate attempts, expired/insufficient
 retention, restored checkpoint reuse, and cross-tenant isolation.
+
+Slice 0051 completion evidence is maintained in
+`tests/test_v0_2_idempotency.py`. Runtime derives a domain-separated key from
+tenant, business operation, and WRITE node identity; keeps the canonical
+payload hash separate; verifies exact Tool Contract duplicate and collision
+semantics plus the provider retention horizon; and reserves durable evidence
+through an injected atomic Port before updating execution-local state. The
+tests cover first use, exact result reuse, conflicting payloads, restored
+state, tenant isolation, ten concurrent reservations, malformed or mismatched
+Port responses, unavailable persistence, and retention boundaries. No
+production in-memory cache, provider client, network, SQL, or filesystem
+implementation is introduced.
 
 ### 5.3 Slice 0052
 
