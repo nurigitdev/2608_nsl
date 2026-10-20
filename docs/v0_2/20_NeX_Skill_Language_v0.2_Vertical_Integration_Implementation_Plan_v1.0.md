@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Vertical Integration slices:** 0061-0069<br>
-**Status:** IN PROGRESS (Slice 0065 COMPLETE)<br>
+**Status:** IN PROGRESS (Slice 0066 COMPLETE)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`<br>
 **Implementation readiness:** `requirements/nsl_v0_2_readiness.json`
@@ -93,7 +93,7 @@ traceability, commit, and synchronization unit.
 | 0063 | COMPLETE | Voucher Write Commit and Verification E2E | `AC-W01` | Trusted approval proceeds through idempotent WRITE, durable request evidence, commit outcome, `FINANCE.GET_VOUCHER` verification, Audit/Replay evidence, and structured `voucher_no` output. |
 | 0064 | COMPLETE | Project Scenario Contract and Validation | `AC-W02` prefix, SRS section 26 | Canonical Project source, Tool contracts, profiles, and fixtures exercise duplicate, parent, period/date-range, team-authority, and partial-data validation without domain logic in Runtime. |
 | 0065 | COMPLETE | Project Draft Generalization E2E | `AC-W02` | The same public Runtime pipeline performs approval, idempotent Project WRITE, verification, Audit/Replay evidence, and structured `project_code` output without a Project-specific Runtime branch. |
-| 0066 | PLANNED | CLI v0.2 Run and Resume Workflow | SRS section 24 | CLI compile/run exposes suspension evidence and an explicit resume workflow while preserving existing v0.1 command behavior and prohibiting implicit Production approval. |
+| 0066 | COMPLETE | CLI v0.2 Run and Resume Workflow | SRS section 24 | CLI compile/run exposes suspension evidence and an explicit resume workflow while preserving existing v0.1 command behavior and prohibiting implicit Production approval. |
 | 0067 | PLANNED | CLI Trust Inspection Mock and Diagnostics | SRS section 24 | CLI diagnoses Signed NSP trust, runs explicit Mock/Fake adapters, emits stable safe errors and exit codes, and preserves pretty deterministic JSON output. |
 | 0068 | PLANNED | Architecture and Backward Compatibility Certification | `NSL-ARC-202..203`, SRS section 27 | Runtime dependency tests close `NSL-ARC-201` adoption evidence, implement `NSL-ARC-202..203`, and certify all v0.1 Source, IR, Context, Status, Result, and Replay compatibility paths. |
 | 0069 | PLANNED | Performance Negative Acceptance and SRS Certification | SRS section 25, `RD-011` | Performance and resource boundaries, the complete negative-acceptance matrix, 123-requirement evidence, and the 99/98 quality gate pass with no `PARTIAL` or `PLANNED` SRS requirement remaining. |
@@ -331,7 +331,20 @@ and
 - Permit fake approval only through an explicit development or test profile
   and make that profile visible in structured output and Audit evidence.
 
-**Planned verification:** `TEST-V02-CLI-RUN-RESUME`.
+**Verification:** `TEST-V02-CLI-RUN-RESUME`.<br>
+**Completion evidence:**
+`nsl/cli_controlled.py::FileControlledStatePort`,
+`nsl/cli_controlled.py::start_controlled_run`,
+`nsl/cli_controlled.py::resume_controlled_run`,
+`nsl/runtime.py::RuntimeEngine.validate_controlled_execution_request`,
+`examples/voucher_draft_validation/controlled.profile.json`,
+`examples/voucher_draft_validation/tools_write.json`,
+`tests/test_v0_2_cli_run_resume.py::test_cli_0066_preserves_commands_and_compiler_version_mapping`,
+`tests/test_v0_2_cli_run_resume.py::test_cli_0066_controlled_run_suspends_with_durable_protected_references`,
+`tests/test_v0_2_cli_run_resume.py::test_cli_0066_explicit_fake_resume_is_durable_single_consume_and_no_write`,
+`tests/test_v0_2_cli_run_resume.py::test_cli_0066_production_never_auto_approves`,
+and
+`tests/test_v0_2_cli_run_resume.py::test_cli_0066_rejects_tampering_binding_errors_and_incomplete_options`.
 
 ### 6.7 Slice 0067: CLI Trust Inspection Mock and Diagnostics
 

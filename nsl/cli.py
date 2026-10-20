@@ -18,6 +18,15 @@ from .cli_config import (
     load_tool_catalog,
     load_value_object,
 )
+from .cli_controlled import (
+    FileControlledStatePort,
+    create_fake_approval_evidence,
+    load_approval_evidence,
+    load_approval_request,
+    resume_controlled_run,
+    start_controlled_run,
+    write_approval_evidence,
+)
 from .cli_evidence import write_audit_jsonl, write_result_document
 from .cli_isolation import (
     CLIIsolationError,
@@ -39,9 +48,9 @@ from .cli_scenarios import (
     load_scenario_suite,
 )
 from .compiler import CompilationResult, NslCompiler
-from .core import ExecutionStatus, encode_value
+from .core import BusinessOperationId, ExecutionStatus, encode_value
 from .diagnostics import CompileError
-from .ir import NsoCodec, skill_to_data
+from .ir import ApprovalStatement, NsoCodec, skill_to_data
 from .performance import SystemBenchmarkClock
 from .runtime import RuntimeContractError, RuntimeEngine
 from .runtime_models import LimitExceeded
@@ -132,7 +141,32 @@ def build_parser() -> argparse.ArgumentParser:
     run_command.add_argument("--timeout-ms", type=int)
     run_command.add_argument("--replay-out", type=Path)
     run_command.add_argument("--execution-id", default="cli-execution")
+    run_command.add_argument("--business-operation-id")
+    run_command.add_argument("--checkpoint-out", type=Path)
+    run_command.add_argument("--approval-request-out", type=Path)
     run_command.set_defaults(handler=_handle_run)
+
+    resume_command = commands.add_parser("resume")
+    resume_command.add_argument("program", type=Path, nargs="?")
+    resume_command.add_argument("--profile", type=Path)
+    resume_command.add_argument("--principal", type=Path)
+    resume_command.add_argument("--tool-contracts", type=Path)
+    resume_command.add_argument("--input", type=Path)
+    resume_command.add_argument("--context", type=Path)
+    resume_command.add_argument("--fixture", type=Path)
+    resume_command.add_argument("--execution-id", required=True)
+    resume_command.add_argument("--business-operation-id", required=True)
+    resume_command.add_argument("--checkpoint", type=Path, required=True)
+    resume_command.add_argument("--approval-request", type=Path, required=True)
+    evidence = resume_command.add_mutually_exclusive_group(required=True)
+    evidence.add_argument("--approval-evidence", type=Path)
+    evidence.add_argument("--fake-approval", action="store_true")
+    resume_command.add_argument("--approval-evidence-out", type=Path)
+    resume_command.add_argument("--approver-id", default="nsl-cli-test-approver")
+    resume_command.add_argument("--claim-id", default="nsl-cli-resume-claim")
+    resume_command.add_argument("--audit-out", type=Path)
+    resume_command.add_argument("--result-out", type=Path)
+    resume_command.set_defaults(handler=_handle_resume)
 
     replay_command = commands.add_parser("replay")
     replay_command.add_argument("program", type=Path)
@@ -299,7 +333,11 @@ def _handle_run(arguments: argparse.Namespace) -> dict[str, Any]:
             runtime_context=runtime_context,
         )
         try:
-            RuntimeEngine(catalog).validate_execution_request(skill, request)
+            engine = RuntimeEngine(catalog, environment=configuration.environment)
+            if _is_controlled_skill(skill):
+                engine.validate_controlled_execution_request(skill, request)
+            else:
+                engine.validate_execution_request(skill, request)
         except AuthorizationError as error:
             raise CLIExecutionError(str(error)) from error
         except (RuntimeContractError, LimitExceeded) as error:
@@ -311,6 +349,18 @@ def _handle_run(arguments: argparse.Namespace) -> dict[str, Any]:
             response["result_output"] = str(arguments.result_out)
             write_result_document(arguments.result_out, response)
         return response
+    if _is_controlled_skill(skill):
+        return _handle_controlled_run(
+            arguments,
+            configuration,
+            program,
+            skill,
+            catalog,
+            principal,
+            inputs,
+            runtime_context,
+            handlers,
+        )
     if arguments.replay_out is not None:
         if configuration.isolate:
             raise CLIUsageError("--isolate cannot be combined with --replay-out")
@@ -402,6 +452,196 @@ def _handle_run(arguments: argparse.Namespace) -> dict[str, Any]:
         response["result_output"] = str(arguments.result_out)
         write_result_document(arguments.result_out, response)
     return response
+
+
+def _handle_controlled_run(
+    arguments: argparse.Namespace,
+    configuration,
+    program: Path,
+    skill,
+    catalog: ToolContractCatalog,
+    principal,
+    inputs,
+    runtime_context,
+    handlers,
+) -> dict[str, Any]:
+    if configuration.isolate:
+        raise CLIUsageError("controlled run does not support --isolate")
+    if arguments.replay_out is not None:
+        raise CLIUsageError("controlled run does not support --replay-out")
+    if arguments.business_operation_id is None:
+        raise CLIUsageError("controlled run requires --business-operation-id")
+    if arguments.checkpoint_out is None or arguments.approval_request_out is None:
+        raise CLIUsageError(
+            "controlled run requires --checkpoint-out and --approval-request-out"
+        )
+    request = build_execution_request(
+        principal,
+        arguments.execution_id,
+        inputs=inputs,
+        runtime_context=runtime_context,
+        business_operation_id=BusinessOperationId(arguments.business_operation_id),
+    )
+    state = FileControlledStatePort(
+        arguments.checkpoint_out, arguments.approval_request_out
+    )
+    session = asyncio.run(
+        start_controlled_run(
+            skill=skill,
+            catalog=catalog,
+            request=request,
+            handlers=handlers,
+            state_port=state,
+            environment=configuration.environment,
+            fake_approval_enabled=configuration.fake_approval,
+        )
+    )
+    if arguments.audit_out is not None:
+        write_audit_jsonl(arguments.audit_out, session.audit_events)
+    response: dict[str, Any] = {
+        "command": "run",
+        "mode": "controlled",
+        "profile_environment": configuration.environment.value,
+        "fake_approval_enabled": configuration.fake_approval,
+        "result": session.result.to_data(),
+    }
+    if session.approval_request is not None and session.checkpoint is not None:
+        response["protected_references"] = {
+            "checkpoint": str(arguments.checkpoint_out),
+            "approval_request": str(arguments.approval_request_out),
+            "protected_payload_ref": session.approval_request.protected_payload_ref,
+        }
+    if arguments.audit_out is not None:
+        response["audit_output"] = str(arguments.audit_out)
+    if arguments.result_out is not None:
+        response["result_output"] = str(arguments.result_out)
+        write_result_document(arguments.result_out, response)
+    return response
+
+
+def _handle_resume(arguments: argparse.Namespace) -> dict[str, Any]:
+    configuration = _resolve_configuration(arguments)
+    if configuration.isolate:
+        raise CLIUsageError("resume does not support --isolate")
+    program = _required_path(configuration.program, "program or --profile is required")
+    principal_path = _required_path(
+        configuration.principal, "--principal or --profile is required"
+    )
+    catalog = load_tool_catalog(configuration.tool_contracts)
+    skill = _load_program(program, catalog)
+    if not _is_controlled_skill(skill):
+        raise ValueError("resume requires an NSL 0.2 controlled WRITE Skill")
+    principal = load_principal(principal_path)
+    inputs = (
+        None
+        if configuration.input is None
+        else load_value_object(configuration.input, "input")
+    )
+    runtime_context = (
+        None
+        if configuration.context is None
+        else load_value_object(configuration.context, "context")
+    )
+    fixture_document = (
+        {"schema_version": "1.0", "tools": []}
+        if configuration.fixture is None
+        else load_json_document(configuration.fixture)
+    )
+    handlers = load_mock_handlers_document(fixture_document, catalog)
+    request = build_execution_request(
+        principal,
+        arguments.execution_id,
+        inputs=inputs,
+        runtime_context=runtime_context,
+        business_operation_id=BusinessOperationId(arguments.business_operation_id),
+    )
+    approval_request = load_approval_request(arguments.approval_request)
+    _validate_resume_request(approval_request, request, skill)
+    if arguments.fake_approval:
+        if not configuration.fake_approval:
+            raise CLIExecutionError(
+                "fake approval requires an explicit DEVELOPMENT profile"
+            )
+        if arguments.approval_evidence_out is None:
+            raise CLIUsageError(
+                "--fake-approval requires --approval-evidence-out"
+            )
+        evidence = create_fake_approval_evidence(
+            approval_request,
+            approver_id=arguments.approver_id,
+        )
+        write_approval_evidence(arguments.approval_evidence_out, evidence)
+        evidence = load_approval_evidence(arguments.approval_evidence_out)
+    else:
+        if arguments.approval_evidence_out is not None:
+            raise CLIUsageError(
+                "--approval-evidence-out is only valid with --fake-approval"
+            )
+        evidence = load_approval_evidence(arguments.approval_evidence)
+    state = FileControlledStatePort(arguments.checkpoint, arguments.approval_request)
+    try:
+        outcome, audit_events = asyncio.run(
+            resume_controlled_run(
+                skill=skill,
+                catalog=catalog,
+                request=request,
+                handlers=handlers,
+                state_port=state,
+                approval_request=approval_request,
+                evidence=evidence,
+                claim_id=arguments.claim_id,
+                environment=configuration.environment,
+                fake_approval_enabled=configuration.fake_approval,
+            )
+        )
+    except RuntimeError as error:
+        raise CLIExecutionError(str(error)) from error
+    if arguments.audit_out is not None:
+        write_audit_jsonl(arguments.audit_out, audit_events)
+    validation = outcome.validation
+    response: dict[str, Any] = {
+        "command": "resume",
+        "status": (
+            "ready_for_write" if validation.approval_gate_passed else "blocked"
+        ),
+        "profile_environment": configuration.environment.value,
+        "fake_approval_enabled": configuration.fake_approval,
+        "approval": {
+            "status": validation.approval_status.value,
+            "validation": validation.validation.value,
+            "reason_code": validation.reason_code,
+            "claim_consumed": outcome.claim_consumed,
+        },
+        "write_execution": "not_started",
+    }
+    if arguments.fake_approval:
+        response["approval_evidence"] = str(arguments.approval_evidence_out)
+    if arguments.audit_out is not None:
+        response["audit_output"] = str(arguments.audit_out)
+    if arguments.result_out is not None:
+        response["result_output"] = str(arguments.result_out)
+        write_result_document(arguments.result_out, response)
+    return response
+
+
+def _validate_resume_request(approval_request, request, skill) -> None:
+    expected = {
+        "execution_id": request.execution_id,
+        "business_operation_id": request.business_operation_id,
+        "tenant_id": request.principal.tenant_id,
+        "skill_id": skill.skill_id,
+        "skill_version": skill.skill_version,
+        "skill_semantic_hash": skill.semantic_hash,
+    }
+    for name, value in expected.items():
+        if getattr(approval_request, name) != value:
+            raise ValueError(f"ApprovalRequest.{name} binding mismatch")
+
+
+def _is_controlled_skill(skill) -> bool:
+    return skill.ir_version == "1.1" and any(
+        isinstance(statement, ApprovalStatement) for statement in skill.body
+    )
 
 
 def _handle_replay(arguments: argparse.Namespace) -> dict[str, Any]:

@@ -18,13 +18,20 @@ from .security import (
     PrincipalVerification,
 )
 from .tools import (
+    Atomicity,
+    CommitConfirmation,
+    CommitSemantics,
     FixtureHandler,
+    IdempotencySemantics,
     IncompatibleToolVersionError,
     MockToolResult,
+    OperationKind,
+    PostWriteVerification,
     ToolContract,
     ToolContractCatalog,
     ToolExecutionError,
     UnknownToolContractError,
+    WriteSemantics,
 )
 
 
@@ -188,7 +195,14 @@ def _tool_contract(value: Any, path: str) -> ToolContract:
             "required_scope",
             "output_classification",
         },
-        {"timeout_ms", "risk", "risk_level", "empty_is_valid"},
+        {
+            "timeout_ms",
+            "risk",
+            "risk_level",
+            "empty_is_valid",
+            "operation_kind",
+            "write_semantics",
+        },
     )
     inputs = tuple(
         _tool_input(input_value, f"{path}.inputs[{index}]")
@@ -223,6 +237,23 @@ def _tool_contract(value: Any, path: str) -> ToolContract:
                 f"{path}.risk_level", "unknown risk level"
             ) from error
 
+    operation_kind = None
+    if "operation_kind" in item:
+        try:
+            operation_kind = OperationKind(
+                _string(item["operation_kind"], f"{path}.operation_kind")
+            )
+        except ValueError as error:
+            raise NsoSchemaError(
+                f"{path}.operation_kind", "unknown operation kind"
+            ) from error
+
+    write_semantics = (
+        None
+        if "write_semantics" not in item
+        else _write_semantics(item["write_semantics"], f"{path}.write_semantics")
+    )
+
     return ToolContract(
         tool_id=_string(item["tool_id"], f"{path}.tool_id"),
         version=_string(item["version"], f"{path}.version"),
@@ -235,7 +266,119 @@ def _tool_contract(value: Any, path: str) -> ToolContract:
         risk=_string(item.get("risk", "READ_ONLY"), f"{path}.risk"),
         risk_level=risk_level,
         empty_is_valid=empty_is_valid,
+        operation_kind=operation_kind,
+        write_semantics=write_semantics,
     )
+
+
+def _write_semantics(value: Any, path: str) -> WriteSemantics:
+    item = _object(
+        value,
+        path,
+        {
+            "side_effect",
+            "atomicity",
+            "idempotency",
+            "commit",
+            "approval",
+            "preconditions",
+        },
+        {"verification"},
+    )
+    idempotency = _object(
+        item["idempotency"],
+        f"{path}.idempotency",
+        {
+            "required",
+            "scope",
+            "retention",
+            "duplicate_behavior",
+            "payload_conflict_behavior",
+        },
+    )
+    commit = _object(
+        item["commit"], f"{path}.commit", {"confirmation"}
+    )
+    approval = _object(
+        item["approval"], f"{path}.approval", {"required"}
+    )
+    preconditions = _object(
+        item["preconditions"], f"{path}.preconditions", {"supported"}
+    )
+    verification = (
+        None
+        if "verification" not in item
+        else _post_write_verification(
+            item["verification"], f"{path}.verification"
+        )
+    )
+    try:
+        return WriteSemantics(
+            side_effect=_boolean(item["side_effect"], f"{path}.side_effect"),
+            atomicity=Atomicity(
+                _string(item["atomicity"], f"{path}.atomicity")
+            ),
+            idempotency=IdempotencySemantics(
+                required=_boolean(
+                    idempotency["required"], f"{path}.idempotency.required"
+                ),
+                scope=_string(idempotency["scope"], f"{path}.idempotency.scope"),
+                retention=_string(
+                    idempotency["retention"], f"{path}.idempotency.retention"
+                ),
+                duplicate_behavior=_string(
+                    idempotency["duplicate_behavior"],
+                    f"{path}.idempotency.duplicate_behavior",
+                ),
+                payload_conflict_behavior=_string(
+                    idempotency["payload_conflict_behavior"],
+                    f"{path}.idempotency.payload_conflict_behavior",
+                ),
+            ),
+            commit=CommitSemantics(
+                CommitConfirmation(
+                    _string(commit["confirmation"], f"{path}.commit.confirmation")
+                )
+            ),
+            approval_required=_boolean(
+                approval["required"], f"{path}.approval.required"
+            ),
+            preconditions_supported=_boolean(
+                preconditions["supported"], f"{path}.preconditions.supported"
+            ),
+            verification=verification,
+        )
+    except ValueError as error:
+        raise NsoSchemaError(path, str(error)) from error
+
+
+def _post_write_verification(value: Any, path: str) -> PostWriteVerification:
+    item = _object(
+        value,
+        path,
+        set(),
+        {"tool_id", "reference_schema", "consistency_hint"},
+    )
+    try:
+        return PostWriteVerification(
+            tool_id=(
+                None
+                if "tool_id" not in item
+                else _string(item["tool_id"], f"{path}.tool_id")
+            ),
+            reference_schema=(
+                None
+                if "reference_schema" not in item
+                else _type_ref(item["reference_schema"], f"{path}.reference_schema")
+            ),
+            consistency_hint=(
+                None
+                if "consistency_hint" not in item
+                else _string(item["consistency_hint"], f"{path}.consistency_hint")
+            ),
+        )
+    except ValueError as error:
+        raise NsoSchemaError(path, str(error)) from error
 
 
 def _tool_input(value: Any, path: str) -> tuple[str, TypeRef]:
@@ -287,4 +430,10 @@ def _string_set(value: Any, path: str) -> frozenset[str]:
 def _string(value: Any, path: str) -> str:
     if type(value) is not str or not value:
         raise NsoSchemaError(path, "expected non-empty string")
+    return value
+
+
+def _boolean(value: Any, path: str) -> bool:
+    if type(value) is not bool:
+        raise NsoSchemaError(path, "expected boolean")
     return value

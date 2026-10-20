@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from .audit import InMemoryAuditSink, InMemorySnapshotStore
+from .core import BusinessOperationId
 from .ir import SkillObject
 from .performance import RuntimeExecutionTiming, measure_runtime_execution
 from .replay import RecordingToolExecutor
@@ -33,6 +34,7 @@ def build_execution_request(
     *,
     inputs: Mapping[str, Any] | None = None,
     runtime_context: Mapping[str, Any] | None = None,
+    business_operation_id: BusinessOperationId | None = None,
 ) -> ExecutionRequest:
     return ExecutionRequest(
         execution_id=execution_id,
@@ -40,6 +42,7 @@ def build_execution_request(
         runtime_context={} if runtime_context is None else runtime_context,
         principal=principal,
         data_policy=DataHandlingPolicy(),
+        business_operation_id=business_operation_id,
     )
 
 

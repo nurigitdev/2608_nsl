@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "program": "voucher_draft_write.ns",
+  "principal": "principal_write.json",
+  "tool_contracts": "tools_write.json",
+  "input": "input.json",
+  "context": "context.json",
+  "fixture": "fixtures/success.json",
+  "execution": {
+    "isolate": false,
+    "timeout_ms": 30000,
+    "environment": "DEVELOPMENT",
+    "fake_approval": true
+  }
+}

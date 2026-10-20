@@ -7,6 +7,7 @@ from typing import Any
 from .data_protection import ensure_no_credential_material
 from .ir_schema import NsoSchemaError, load_nso_json
 from .process_isolation import MAX_ISOLATED_TIMEOUT_MS
+from .security import RuntimeEnvironment
 
 
 PROFILE_SCHEMA_VERSION = "1.0"
@@ -17,6 +18,8 @@ MAX_PROFILE_BYTES = 1024 * 1024
 class ProfileExecutionOptions:
     isolate: bool = False
     timeout_ms: int = 30_000
+    environment: RuntimeEnvironment = RuntimeEnvironment.PRODUCTION
+    fake_approval: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +58,8 @@ class ResolvedCLIConfiguration:
     fixture: Path | None
     isolate: bool
     timeout_ms: int
+    environment: RuntimeEnvironment = RuntimeEnvironment.PRODUCTION
+    fake_approval: bool = False
 
 
 def load_profile_document(path: Path) -> LocalExecutionProfileDocument:
@@ -144,11 +149,18 @@ def resolve_cli_configuration(
         timeout_ms=(
             profile_execution.timeout_ms if timeout_ms is None else timeout_ms
         ),
+        environment=profile_execution.environment,
+        fake_approval=profile_execution.fake_approval,
     )
 
 
 def _execution_options(value: Any) -> ProfileExecutionOptions:
-    item = _object(value, "$.execution", set(), {"isolate", "timeout_ms"})
+    item = _object(
+        value,
+        "$.execution",
+        set(),
+        {"isolate", "timeout_ms", "environment", "fake_approval"},
+    )
     isolate = item.get("isolate", False)
     if type(isolate) is not bool:
         raise NsoSchemaError("$.execution.isolate", "expected boolean")
@@ -162,7 +174,28 @@ def _execution_options(value: Any) -> ProfileExecutionOptions:
             "$.execution.timeout_ms",
             f"expected integer between 1 and {MAX_ISOLATED_TIMEOUT_MS}",
         )
-    return ProfileExecutionOptions(isolate=isolate, timeout_ms=timeout_ms)
+    environment_name = item.get("environment", RuntimeEnvironment.PRODUCTION.value)
+    try:
+        environment = RuntimeEnvironment(environment_name)
+    except (TypeError, ValueError) as error:
+        raise NsoSchemaError(
+            "$.execution.environment",
+            "expected 'PRODUCTION' or 'DEVELOPMENT'",
+        ) from error
+    fake_approval = item.get("fake_approval", False)
+    if type(fake_approval) is not bool:
+        raise NsoSchemaError("$.execution.fake_approval", "expected boolean")
+    if fake_approval and environment is not RuntimeEnvironment.DEVELOPMENT:
+        raise NsoSchemaError(
+            "$.execution.fake_approval",
+            "fake approval requires DEVELOPMENT environment",
+        )
+    return ProfileExecutionOptions(
+        isolate=isolate,
+        timeout_ms=timeout_ms,
+        environment=environment,
+        fake_approval=fake_approval,
+    )
 
 
 def _optional_string(root: dict[str, Any], field: str) -> str | None:

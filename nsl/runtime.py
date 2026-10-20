@@ -301,6 +301,29 @@ class RuntimeEngine:
                 frozenset({required.required_scope}),
             )
 
+    def validate_controlled_execution_request(
+        self, skill: SkillObject, request: ExecutionRequest
+    ) -> None:
+        """Validate a v0.2 controlled request without executing its prefix."""
+        self._validate_execution_principal(request.principal)
+        self.authorizer.authorize(
+            request.principal,
+            f"skill:{skill.skill_id}:execute",
+            frozenset({"nsl:skill:execute"}),
+        )
+        self._preflight(skill, allow_controlled=True)
+        self._validated_input_context_bindings(
+            skill,
+            request,
+            lambda size: self._validate_collection_size(skill, size),
+        )
+        for required in skill.required_tools:
+            self.authorizer.authorize(
+                request.principal,
+                f"tool:{required.tool_id}:execute",
+                frozenset({required.required_scope}),
+            )
+
     async def execute(
         self,
         skill: SkillObject,
