@@ -677,13 +677,25 @@ class AstRead(AstNode):
 
 
 @dataclass(frozen=True, slots=True)
+class AstWrite(AstNode):
+    tool_id: str
+    arguments: tuple[tuple[str, AstExpression], ...]
+    approval_id: str
+    approval_span: SourceSpan | None = field(
+        default=None, compare=False, repr=False, kw_only=True
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class AstBinary(AstNode):
     operator: str
     left: AstExpression
     right: AstExpression
 
 
-AstExpression: TypeAlias = AstLiteral | AstPath | AstCall | AstRead | AstBinary
+AstExpression: TypeAlias = (
+    AstLiteral | AstPath | AstCall | AstRead | AstWrite | AstBinary
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -714,7 +726,16 @@ class AstEmit(AstNode):
     fields: tuple[tuple[str, AstExpression], ...]
 
 
-AstStatement: TypeAlias = AstLet | AstForeach | AstCheck | AstEmit
+@dataclass(frozen=True, slots=True)
+class AstApprove(AstNode):
+    approval_id: str
+    message: str
+    approval_id_span: SourceSpan | None = field(
+        default=None, compare=False, repr=False, kw_only=True
+    )
+
+
+AstStatement: TypeAlias = AstLet | AstForeach | AstCheck | AstEmit | AstApprove
 
 
 @dataclass(frozen=True, slots=True)
@@ -812,6 +833,7 @@ class Parser:
         self.tokens = tokens
         self.source = source
         self.index = 0
+        self.language_version: str | None = None
 
     @staticmethod
     def _span(start: Token | AstNode, end: Token | AstNode) -> SourceSpan:
@@ -936,6 +958,7 @@ class Parser:
         self._expect("NSL")
         language_version_token = self._expect_kind(TokenKind.STRING)
         language_version = language_version_token.value
+        self.language_version = language_version
         self._expect(";")
         self._expect("skill")
         skill_id = self._qualified_name()
@@ -1137,6 +1160,24 @@ class Parser:
 
     def _statement(self) -> AstStatement:
         keyword = self.current.value
+        if (
+            keyword == "approve"
+            and self.current.kind is TokenKind.KEYWORD
+            and self.language_version == SourceLanguageVersion.V0_2
+        ):
+            start_token = self._advance()
+            approval_id_token = self._expect_kind(TokenKind.IDENTIFIER)
+            self._expect("{")
+            self._expect("message")
+            message = self._expect_kind(TokenKind.STRING).value
+            self._expect(";")
+            end_token = self._expect("}")
+            return AstApprove(
+                approval_id_token.value,
+                message,
+                span=self._span(start_token, end_token),
+                approval_id_span=approval_id_token.span,
+            )
         if keyword == "let":
             start_token = self._advance()
             name = self._expect_kind(TokenKind.IDENTIFIER).value
@@ -1257,6 +1298,32 @@ class Parser:
                 tool_id,
                 tuple(arguments),
                 span=self._span(token, self.tokens[self.index - 1]),
+            )
+        if (
+            token.value == "write"
+            and token.kind is TokenKind.KEYWORD
+            and self.language_version == SourceLanguageVersion.V0_2
+        ):
+            self._advance()
+            tool_id = self._qualified_name()
+            self._expect("(")
+            arguments: list[tuple[str, AstExpression]] = []
+            if not self._accept(")"):
+                while True:
+                    name = self._expect_kind(TokenKind.IDENTIFIER).value
+                    self._expect("=")
+                    arguments.append((name, self._expression()))
+                    if self._accept(")"):
+                        break
+                    self._expect(",")
+            self._expect("approved_by")
+            approval_token = self._expect_kind(TokenKind.IDENTIFIER)
+            return AstWrite(
+                tool_id,
+                tuple(arguments),
+                approval_token.value,
+                span=self._span(token, approval_token),
+                approval_span=approval_token.span,
             )
         if token.kind is TokenKind.IDENTIFIER:
             name = self._advance().value

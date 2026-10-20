@@ -98,6 +98,7 @@ ALLOWED_EXTERNAL_MODULES = {
     "zipfile",
 }
 AST_NODE_NAMES = {
+    "AstApprove",
     "AstBinary",
     "AstCall",
     "AstCheck",
@@ -114,6 +115,7 @@ AST_NODE_NAMES = {
     "AstRead",
     "AstRequiredTool",
     "AstSkill",
+    "AstWrite",
 }
 
 
