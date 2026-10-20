@@ -60,6 +60,21 @@ class ApprovalStatus(StrEnum):
     EXPIRED = "EXPIRED"
 
 
+class ApprovalDecision(StrEnum):
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+class ApprovalEvidenceValidation(StrEnum):
+    VALID = "VALID"
+    INVALID = "INVALID"
+    EXPIRED = "EXPIRED"
+    INTENT_MISMATCH = "INTENT_MISMATCH"
+    PAYLOAD_MISMATCH = "PAYLOAD_MISMATCH"
+    BUSINESS_OPERATION_MISMATCH = "BUSINESS_OPERATION_MISMATCH"
+    APPROVAL_REQUEST_MISMATCH = "APPROVAL_REQUEST_MISMATCH"
+
+
 class PreWriteEligibility(StrEnum):
     ALLOWED = "ALLOWED"
     BLOCKED = "BLOCKED"
@@ -80,6 +95,7 @@ class VerificationStatus(StrEnum):
 
 
 BusinessOperationId = NewType("BusinessOperationId", str)
+ApprovalRequestId = NewType("ApprovalRequestId", str)
 IdempotencyKey = NewType("IdempotencyKey", str)
 PayloadHash = NewType("PayloadHash", str)
 

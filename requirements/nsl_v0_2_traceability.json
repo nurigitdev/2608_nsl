@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0046",
+  "current_slice": "0047",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -178,6 +178,9 @@
     "NSL-WEL-003": {"status": "IMPLEMENTED", "target_slice": "0046", "verification": ["TEST-WEL-003"], "evidence": ["tests/test_v0_2_prewrite_eligibility.py::test_wel_003_missing_pending_or_expired_approval_requires_approval"]},
     "NSL-WEL-004": {"status": "IMPLEMENTED", "target_slice": "0046", "verification": ["TEST-WEL-004"], "evidence": ["tests/test_v0_2_prewrite_eligibility.py::test_wel_004_each_current_control_failure_prevents_allowed", "tests/test_v0_2_prewrite_eligibility.py::test_wel_004_invalid_approval_evidence_prevents_allowed", "tests/test_v0_2_prewrite_eligibility.py::test_all_required_evidence_produces_allowed"]},
     "NSL-WEL-005": {"status": "IMPLEMENTED", "target_slice": "0046", "verification": ["TEST-WEL-005"], "evidence": ["tests/test_v0_2_prewrite_eligibility.py::test_wel_005_reconciliation_is_not_prewrite_eligibility"]},
-    "NSL-WRT-005": {"status": "IMPLEMENTED", "target_slice": "0046", "verification": ["TEST-WRT-005"], "evidence": ["tests/test_v0_2_prewrite_eligibility.py::test_wrt_005_write_entry_rejects_every_non_allowed_decision", "tests/test_v0_2_prewrite_eligibility.py::test_wrt_005_write_entry_accepts_only_allowed"]}
+    "NSL-WRT-005": {"status": "IMPLEMENTED", "target_slice": "0046", "verification": ["TEST-WRT-005"], "evidence": ["tests/test_v0_2_prewrite_eligibility.py::test_wrt_005_write_entry_rejects_every_non_allowed_decision", "tests/test_v0_2_prewrite_eligibility.py::test_wrt_005_write_entry_accepts_only_allowed"]},
+    "NSL-APR-002": {"status": "IMPLEMENTED", "target_slice": "0047", "verification": ["TEST-APR-002"], "evidence": ["tests/test_v0_2_approval_request_evidence.py::test_apr_002_static_and_execution_approval_identities_are_distinct"]},
+    "NSL-APR-003": {"status": "IMPLEMENTED", "target_slice": "0047", "verification": ["TEST-APR-003"], "evidence": ["tests/test_v0_2_approval_request_evidence.py::test_apr_003_request_and_evidence_preserve_all_required_bindings", "tests/test_v0_2_approval_request_evidence.py::test_approval_evidence_rejects_malformed_values"]},
+    "NSL-APR-014": {"status": "IMPLEMENTED", "target_slice": "0047", "verification": ["TEST-APR-014"], "evidence": ["tests/test_v0_2_approval_request_evidence.py::test_apr_014_request_data_contains_protected_metadata_not_raw_payload", "tests/test_v0_2_approval_request_evidence.py::test_request_and_evidence_are_immutable_with_deep_frozen_summary", "tests/test_v0_2_approval_request_evidence.py::test_approval_request_rejects_credentials_in_summary_and_identity"]}
   }
 }
