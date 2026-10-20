@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0034",
+  "current_slice": "0035",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -121,7 +121,8 @@
     "NSL-TOL-204": {"status": "IMPLEMENTED", "target_slice": "0034", "verification": ["TEST-TOL-204"], "evidence": ["tests/test_v0_2_tool_contract_model.py::test_tol_204_write_atomicity_must_be_atomic"]},
     "NSL-TOL-205": {"status": "IMPLEMENTED", "target_slice": "0034", "verification": ["TEST-TOL-205"], "evidence": ["tests/test_v0_2_tool_contract_model.py::test_tol_205_write_commit_semantics_are_required_and_explicit"]},
     "NSL-TOL-206": {"status": "IMPLEMENTED", "target_slice": "0034", "verification": ["TEST-TOL-206"], "evidence": ["tests/test_v0_2_tool_contract_model.py::test_tol_206_post_write_verification_is_optional_but_structured", "tests/test_v0_2_tool_contract_model.py::test_tol_206_each_verification_hint_is_independently_usable", "tests/test_v0_2_tool_contract_model.py::test_tol_206_post_write_verification_rejects_malformed_hints"]},
-    "NSL-TOL-207": {"status": "PARTIAL", "target_slice": "0035", "verification": ["TEST-TOL-207"], "evidence": ["tests/test_v0_2_tool_contract_model.py::test_tol_207_write_semantics_participate_in_contract_identity", "tests/test_v0_2_tool_contract_model.py::test_legacy_read_contract_shape_and_hash_are_unchanged"]},
-    "NSL-RSK-001": {"status": "IMPLEMENTED", "target_slice": "0034", "verification": ["TEST-RSK-001"], "evidence": ["tests/test_v0_2_tool_contract_model.py::test_rsk_001_write_contract_declares_bounded_risk_level", "tests/test_v0_2_tool_contract_model.py::test_rsk_001_write_contract_rejects_missing_or_invalid_risk", "tests/test_v0_2_tool_contract_model.py::test_rsk_001_legacy_read_contract_retains_declared_static_risk"]}
+    "NSL-TOL-207": {"status": "IMPLEMENTED", "target_slice": "0035", "verification": ["TEST-TOL-207"], "evidence": ["tests/test_v0_2_tool_contract_identity.py::test_tol_207_hash_uses_complete_canonical_write_semantics", "tests/test_v0_2_tool_contract_identity.py::test_tol_207_each_variable_semantic_changes_contract_hash", "tests/test_v0_2_tool_contract_identity.py::test_tol_207_canonical_data_is_a_detached_deterministic_value", "tests/test_v0_2_tool_contract_model.py::test_legacy_read_contract_shape_and_hash_are_unchanged"]},
+    "NSL-RSK-001": {"status": "IMPLEMENTED", "target_slice": "0034", "verification": ["TEST-RSK-001"], "evidence": ["tests/test_v0_2_tool_contract_model.py::test_rsk_001_write_contract_declares_bounded_risk_level", "tests/test_v0_2_tool_contract_model.py::test_rsk_001_write_contract_rejects_missing_or_invalid_risk", "tests/test_v0_2_tool_contract_model.py::test_rsk_001_legacy_read_contract_retains_declared_static_risk"]},
+    "NSL-RSK-004": {"status": "IMPLEMENTED", "target_slice": "0035", "verification": ["TEST-RSK-004"], "evidence": ["tests/test_v0_2_tool_contract_identity.py::test_rsk_004_environment_policy_and_binding_fields_are_not_contract_fields", "tests/test_v0_2_tool_contract_identity.py::test_rsk_004_customer_bindings_cannot_change_canonical_contract_identity"]}
   }
 }

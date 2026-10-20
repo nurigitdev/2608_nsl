@@ -292,6 +292,12 @@ class ToolContract:
 
     @property
     def contract_hash(self) -> str:
+        return "sha256:" + sha256(
+            canonical_json(self.to_canonical_data())
+        ).hexdigest()
+
+    def to_canonical_data(self) -> dict[str, Any]:
+        """Return provider-independent semantics used for contract identity."""
         payload = {
             "tool_id": self.tool_id,
             "version": self.version,
@@ -313,7 +319,7 @@ class ToolContract:
             payload["risk_level"] = self.risk_level.value
         if self.write_semantics is not None:
             payload["write_semantics"] = self.write_semantics.to_data()
-        return "sha256:" + sha256(canonical_json(payload)).hexdigest()
+        return payload
 
     def input_type(self, name: str) -> TypeRef:
         for input_name, type_info in self.input_types:
