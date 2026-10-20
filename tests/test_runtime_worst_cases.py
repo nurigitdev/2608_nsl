@@ -20,6 +20,7 @@ from nsl.core import (
     ExecutionStatus,
     Money,
     Presence,
+    RiskLevel,
     ValueEnvelope,
     domain,
     list_type,
@@ -95,7 +96,11 @@ def rehashed(skill, **changes):
         lambda skill: rehashed(
             skill,
             required_tools=(
-                replace(skill.required_tools[0], capability="WRITE"),
+                replace(
+                    skill.required_tools[0],
+                    capability="WRITE",
+                    risk_level=RiskLevel.R3,
+                ),
                 *skill.required_tools[1:],
             ),
         ),

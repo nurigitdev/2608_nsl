@@ -5,7 +5,14 @@ from hashlib import sha256
 import json
 from typing import Any, TypeAlias
 
-from .core import DataClassification, TypeRef, decode_value, encode_value
+from .core import (
+    DataClassification,
+    RiskLevel,
+    ToolCapability,
+    TypeRef,
+    decode_value,
+    encode_value,
+)
 from .data_protection import ensure_no_credential_material
 from .integrity import source_manifest_sha256
 from .ir_schema import load_nso_json, validate_nso_document
@@ -74,6 +81,40 @@ class ReadExpr:
     result_policy: ResultPolicy
 
 
+@dataclass(frozen=True, slots=True)
+class WriteExpression:
+    node_id: str
+    tool_ref: str
+    arguments: tuple[tuple[str, Expression], ...]
+    approval_ref: str
+    type_info: TypeRef
+
+    def __post_init__(self) -> None:
+        for label, value in (
+            ("WRITE node_id", self.node_id),
+            ("WRITE tool_ref", self.tool_ref),
+            ("WRITE approval_ref", self.approval_ref),
+        ):
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"{label} must be a non-empty string")
+        if not isinstance(self.arguments, tuple):
+            raise ValueError("WRITE arguments must be an immutable tuple")
+        names: list[str] = []
+        for argument in self.arguments:
+            if not isinstance(argument, tuple) or len(argument) != 2:
+                raise ValueError("WRITE arguments must be name/expression pairs")
+            name, value = argument
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError("WRITE argument names must be non-empty strings")
+            if not isinstance(value, EXPRESSION_TYPES):
+                raise ValueError("WRITE argument values must be IR expressions")
+            names.append(name)
+        if len(names) != len(set(names)):
+            raise ValueError("WRITE argument names must be unique")
+        if not isinstance(self.type_info, TypeRef):
+            raise ValueError("WRITE result type must be a TypeRef")
+
+
 Expression: TypeAlias = (
     LiteralExpr
     | SymbolRefExpr
@@ -82,7 +123,53 @@ Expression: TypeAlias = (
     | CallExpr
     | BinaryExpr
     | ReadExpr
+    | WriteExpression
 )
+
+EXPRESSION_TYPES = (
+    LiteralExpr,
+    SymbolRefExpr,
+    FieldExpr,
+    ProjectionExpr,
+    CallExpr,
+    BinaryExpr,
+    ReadExpr,
+    WriteExpression,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovalPolicy:
+    required: bool = True
+    ttl_seconds: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.required is not True:
+            raise ValueError("approval policy must be required")
+        if self.ttl_seconds is not None and (
+            type(self.ttl_seconds) is not int or self.ttl_seconds < 1
+        ):
+            raise ValueError("approval ttl_seconds must be a positive integer")
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovalStatement:
+    node_id: str
+    approval_id: str
+    message: str
+    policy: ApprovalPolicy
+
+    def __post_init__(self) -> None:
+        for label, value in (
+            ("approval node_id", self.node_id),
+            ("approval_id", self.approval_id),
+        ):
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"{label} must be a non-empty string")
+        if not isinstance(self.message, str):
+            raise ValueError("approval message must be a string")
+        if not isinstance(self.policy, ApprovalPolicy):
+            raise ValueError("approval policy must use ApprovalPolicy")
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,7 +205,13 @@ class EmitStatement:
     fields: tuple[tuple[str, Expression], ...]
 
 
-Statement: TypeAlias = LetStatement | ForeachStatement | CheckStatement | EmitStatement
+Statement: TypeAlias = (
+    LetStatement
+    | ForeachStatement
+    | CheckStatement
+    | EmitStatement
+    | ApprovalStatement
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -164,6 +257,23 @@ class RequiredTool:
     contract_hash: str
     required_scope: str
     output_classification: DataClassification
+    risk_level: RiskLevel | None = None
+
+    def __post_init__(self) -> None:
+        try:
+            capability = ToolCapability(self.capability)
+        except ValueError:
+            capability = self.capability
+        else:
+            object.__setattr__(self, "capability", capability)
+        if self.risk_level is not None:
+            try:
+                risk_level = RiskLevel(self.risk_level)
+            except (TypeError, ValueError) as error:
+                raise ValueError("required tool risk_level is invalid") from error
+            object.__setattr__(self, "risk_level", risk_level)
+        if capability == ToolCapability.WRITE and self.risk_level is None:
+            raise ValueError("WRITE required tool must declare risk_level")
 
 
 @dataclass(frozen=True, slots=True)
