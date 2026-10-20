@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0042",
+  "current_slice": "0043",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -153,6 +153,14 @@
     "NSL-WRT-004": {"status": "IMPLEMENTED", "target_slice": "0041", "verification": ["TEST-WRT-004"], "evidence": ["tests/test_v0_2_static_write_safety.py::test_wrt_004_non_atomic_contract_is_rejected_even_if_model_is_tampered", "tests/test_v0_2_static_write_safety.py::test_wrt_004_missing_write_semantics_is_rejected_before_hashing"]},
     "NSL-RSK-002": {"status": "IMPLEMENTED", "target_slice": "0041", "verification": ["TEST-RSK-002"], "evidence": ["tests/test_v0_2_static_write_safety.py::test_rsk_002_invalid_risk_metadata_is_rejected_before_hashing", "tests/test_v0_2_static_write_safety.py::test_rsk_002_valid_boundary_risks_are_metadata_not_entitlement_decisions"]},
     "NSL-IR-206": {"status": "IMPLEMENTED", "target_slice": "0042", "verification": ["TEST-IR-206"], "evidence": ["tests/test_v0_2_ir_lowering.py::test_ir_206_language_0_1_compiler_output_matches_the_frozen_golden", "tests/test_v0_2_ir_lowering.py::test_ir_206_language_0_2_without_write_still_lowers_to_ir_1_1", "tests/test_v0_2_ir_lowering.py::test_ir_206_approval_and_write_lower_deterministically_to_ir_1_1"]},
-    "NSL-IR-207": {"status": "IMPLEMENTED", "target_slice": "0042", "verification": ["TEST-IR-207"], "evidence": ["tests/test_v0_2_ir_lowering.py::test_ir_207_source_language_is_authoritative_without_compiler_override"]}
+    "NSL-IR-207": {"status": "IMPLEMENTED", "target_slice": "0042", "verification": ["TEST-IR-207"], "evidence": ["tests/test_v0_2_ir_lowering.py::test_ir_207_source_language_is_authoritative_without_compiler_override"]},
+    "NSL-ARC-211": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-ARC-211"], "evidence": ["tests/test_v0_2_runtime_context.py::test_arc_211_v01_principal_and_data_policy_contract_is_additively_preserved"]},
+    "NSL-CTX-201": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-201"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_201_context_preserves_isolated_per_execution_approval_state"]},
+    "NSL-CTX-202": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-202"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_202_context_preserves_isolated_per_execution_write_journal"]},
+    "NSL-CTX-203": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-203"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_203_context_preserves_isolated_per_execution_idempotency_state"]},
+    "NSL-CTX-204": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-204"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_204_context_preserves_checkpoint_state_without_persisting_it"]},
+    "NSL-CTX-205": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-205"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_205_named_state_objects_are_mutable_containers_not_services"]},
+    "NSL-CTX-206": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-206"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_206_external_services_are_not_execution_context_fields", "tests/test_runtime_context_and_determinism.py::test_rt_003_runtime_creates_an_isolated_execution_context_per_run"]},
+    "NSL-CTX-210": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-210"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_210_v02_request_exposes_distinct_runtime_and_business_identity", "tests/test_v0_2_runtime_context.py::test_execution_request_rejects_invalid_business_operation_identity", "tests/test_v0_2_runtime_context.py::test_execution_request_rejects_credentials_in_business_operation_id"]}
   }
 }

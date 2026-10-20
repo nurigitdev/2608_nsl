@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from traceback import format_exception
@@ -105,6 +106,22 @@ class ExpressionEvaluationError(RuntimeContractError):
 _UNEXPECTED_RUNTIME_MESSAGE = "An unexpected runtime error occurred."
 
 
+@dataclass(frozen=True, slots=True)
+class _ExecutionServices:
+    audit: AuditRecorder | None = None
+    snapshots: SnapshotStore | None = None
+
+    def emit(
+        self,
+        event_type: str,
+        payload: dict[str, Any],
+        *args,
+        **kwargs,
+    ) -> None:
+        if self.audit is not None:
+            self.audit.emit(event_type, payload, *args, **kwargs)
+
+
 class RuntimeEngine:
     def __init__(
         self,
@@ -180,6 +197,7 @@ class RuntimeEngine:
             runtime_version=RUNTIME_VERSION,
             principal=principal,
         )
+        services = _ExecutionServices(audit, snapshot_store)
         try:
             self._validate_execution_principal(request.principal)
             skill_decision = self.authorizer.authorize(
@@ -198,9 +216,7 @@ class RuntimeEngine:
         ctx = ExecutionContext(
             skill,
             request,
-            audit,
             self.runtime_clock,
-            snapshot_store,
         )
         try:
             ctx.resource_guard.check_deadline()
@@ -272,7 +288,7 @@ class RuntimeEngine:
                 self.runtime_clock,
                 self.tool_measurement_sink,
             )
-            await self._execute_block(ctx, skill.body, measured_tools)
+            await self._execute_block(ctx, skill.body, measured_tools, services)
             ctx.resource_guard.check_deadline()
             result = self._result(ctx, ExecutionStatus.COMPLETED)
             audit.emit(
@@ -290,6 +306,7 @@ class RuntimeEngine:
         except AuthorizationError as error:
             return self._failed(
                 ctx,
+                services,
                 DiagnosticCode.AUTHORIZATION_DENIED,
                 "AUTHORIZATION",
                 str(error),
@@ -298,6 +315,7 @@ class RuntimeEngine:
         except PermissionError as error:
             return self._failed(
                 ctx,
+                services,
                 DiagnosticCode.REPLAY_ACCESS_DENIED,
                 "AUTHORIZATION",
                 str(error),
@@ -310,6 +328,7 @@ class RuntimeEngine:
             )
             return self._failed(
                 ctx,
+                services,
                 code,
                 "TOOL",
                 str(error),
@@ -319,6 +338,7 @@ class RuntimeEngine:
         except LimitExceeded as error:
             return self._failed(
                 ctx,
+                services,
                 DiagnosticCode.RESOURCE_LIMIT_EXCEEDED,
                 "RESOURCE",
                 str(error),
@@ -327,6 +347,7 @@ class RuntimeEngine:
         except ImmutableBindingError as error:
             return self._failed(
                 ctx,
+                services,
                 DiagnosticCode.RUNTIME_EVALUATION,
                 "RUNTIME",
                 str(error),
@@ -335,6 +356,7 @@ class RuntimeEngine:
         except ExpressionEvaluationError as error:
             return self._failed(
                 ctx,
+                services,
                 DiagnosticCode.RUNTIME_EVALUATION,
                 "RUNTIME",
                 str(error),
@@ -343,12 +365,17 @@ class RuntimeEngine:
             )
         except (RuntimeContractError, MoneyError) as error:
             return self._failed(
-                ctx, DiagnosticCode.RUNTIME_EVALUATION, "RUNTIME", str(error)
+                ctx,
+                services,
+                DiagnosticCode.RUNTIME_EVALUATION,
+                "RUNTIME",
+                str(error),
             )
         except Exception as error:
             self._write_debug_trace(error, self._sensitive_values(ctx))
             return self._failed(
                 ctx,
+                services,
                 DiagnosticCode.RUNTIME_UNEXPECTED,
                 "RUNTIME",
                 _UNEXPECTED_RUNTIME_MESSAGE,
@@ -533,26 +560,28 @@ class RuntimeEngine:
         ctx: ExecutionContext,
         statements: tuple[Statement, ...],
         tools: ToolExecutionPort,
+        services: _ExecutionServices | None = None,
     ) -> None:
+        services = services or _ExecutionServices()
         for statement in statements:
             ctx.resource_guard.check_deadline()
             previous_node_id = ctx.current_node_id
             ctx.current_node_id = statement.node_id
-            ctx.audit.emit(
+            services.emit(
                 "STATEMENT_STARTED",
                 {"node_id": statement.node_id, "kind": type(statement).__name__},
             )
             if isinstance(statement, LetStatement):
-                await self._execute_let(ctx, statement, tools)
+                await self._execute_let(ctx, statement, tools, services)
             elif isinstance(statement, ForeachStatement):
-                await self._execute_foreach(ctx, statement, tools)
+                await self._execute_foreach(ctx, statement, tools, services)
             elif isinstance(statement, CheckStatement):
-                await self._execute_check(ctx, statement, tools)
+                await self._execute_check(ctx, statement, tools, services)
             elif isinstance(statement, EmitStatement):
-                await self._execute_emit(ctx, statement, tools)
+                await self._execute_emit(ctx, statement, tools, services)
             else:
                 raise TypeError(statement)
-            ctx.audit.emit(
+            services.emit(
                 "STATEMENT_COMPLETED",
                 {"node_id": statement.node_id, "kind": type(statement).__name__},
             )
@@ -563,6 +592,7 @@ class RuntimeEngine:
         ctx: ExecutionContext,
         statement: EmitStatement,
         tools: ToolExecutionPort,
+        services: _ExecutionServices,
     ) -> None:
         ctx.resource_guard.before_emit()
         declared = {field.name: field for field in ctx.skill.outputs}
@@ -585,7 +615,7 @@ class RuntimeEngine:
                 raise RuntimeContractError(
                     f"EMIT type does not match output schema: {name}"
                 )
-            result = await self._evaluate(ctx, expression, tools)
+            result = await self._evaluate(ctx, expression, tools, services)
             self._validate_runtime_type(
                 result.value, output.type_info, f"output {name}"
             )
@@ -602,14 +632,14 @@ class RuntimeEngine:
         ctx.outputs.append(EmitRecord(fields))
         ctx.resource_guard.record_emit()
         emit_ref = None
-        if ctx.snapshot_store is not None:
-            emit_ref = ctx.snapshot_store.put(
+        if services.snapshots is not None:
+            emit_ref = services.snapshots.put(
                 ctx.request.principal.tenant_id,
                 values,
                 maximum,
                 ctx.request.data_policy.snapshot_retention_days,
             )
-        ctx.audit.emit(
+        services.emit(
             "EMIT_COMPLETED",
             {"node_id": statement.node_id, "values": values},
             maximum,
@@ -625,8 +655,11 @@ class RuntimeEngine:
         ctx: ExecutionContext,
         statement: CheckStatement,
         tools: ToolExecutionPort,
+        services: _ExecutionServices,
     ) -> None:
-        predicate = await self._evaluate(ctx, statement.condition, tools)
+        predicate = await self._evaluate(
+            ctx, statement.condition, tools, services
+        )
         try:
             check = self.check_evaluator.evaluate(statement, predicate)
         except CheckEvaluationError as error:
@@ -641,7 +674,7 @@ class RuntimeEngine:
                 predicate.provenance_refs,
             ),
         )
-        ctx.audit.emit(
+        services.emit(
             "CHECK_COMPLETED",
             {
                 "node_id": statement.node_id,
@@ -660,6 +693,7 @@ class RuntimeEngine:
         ctx: ExecutionContext,
         statement: ForeachStatement,
         tools: ToolExecutionPort,
+        services: _ExecutionServices,
     ) -> None:
         if ctx.foreach_depth >= MAX_FOREACH_NESTING_DEPTH:
             raise LimitExceeded(
@@ -667,7 +701,9 @@ class RuntimeEngine:
             )
         ctx.foreach_depth += 1
         try:
-            await self._execute_foreach_body(ctx, statement, tools)
+            await self._execute_foreach_body(
+                ctx, statement, tools, services
+            )
         finally:
             ctx.foreach_depth -= 1
 
@@ -676,8 +712,11 @@ class RuntimeEngine:
         ctx: ExecutionContext,
         statement: ForeachStatement,
         tools: ToolExecutionPort,
+        services: _ExecutionServices,
     ) -> None:
-        collection = await self._evaluate(ctx, statement.collection, tools)
+        collection = await self._evaluate(
+            ctx, statement.collection, tools, services
+        )
         values = collection.value
         if len(values) > statement.max_iterations:
             raise LimitExceeded(
@@ -698,7 +737,9 @@ class RuntimeEngine:
                         collection.provenance_refs,
                     ),
                 )
-                await self._execute_block(ctx, statement.body, tools)
+                await self._execute_block(
+                    ctx, statement.body, tools, services
+                )
             finally:
                 ctx.pop_frame()
 
@@ -707,8 +748,11 @@ class RuntimeEngine:
         ctx: ExecutionContext,
         statement: LetStatement,
         tools: ToolExecutionPort,
+        services: _ExecutionServices,
     ) -> None:
-        value = await self._evaluate(ctx, statement.value, tools)
+        value = await self._evaluate(
+            ctx, statement.value, tools, services
+        )
         ctx.bind(statement.target_symbol_id, value)
 
     async def _evaluate(
@@ -716,7 +760,9 @@ class RuntimeEngine:
         ctx: ExecutionContext,
         expression: Expression,
         tools: ToolExecutionPort,
+        services: _ExecutionServices | None = None,
     ) -> ValueEnvelope:
+        services = services or _ExecutionServices()
         if not isinstance(
             expression,
             (
@@ -732,7 +778,9 @@ class RuntimeEngine:
             raise TypeError(expression)
         try:
             ctx.resource_guard.check_deadline()
-            result = await self._evaluate_ir(ctx, expression, tools)
+            result = await self._evaluate_ir(
+                ctx, expression, tools, services
+            )
         except (
             AuthorizationError,
             ToolExecutionError,
@@ -762,6 +810,7 @@ class RuntimeEngine:
         ctx: ExecutionContext,
         expression: Expression,
         tools: ToolExecutionPort,
+        services: _ExecutionServices,
     ) -> ValueEnvelope:
         if isinstance(expression, LiteralExpr):
             return ValueEnvelope.complete(
@@ -770,7 +819,9 @@ class RuntimeEngine:
         if isinstance(expression, SymbolRefExpr):
             return ctx.resolve(expression.symbol_id)
         if isinstance(expression, FieldExpr):
-            source = await self._evaluate(ctx, expression.source, tools)
+            source = await self._evaluate(
+                ctx, expression.source, tools, services
+            )
             value = source.value[expression.field]
             return ValueEnvelope(
                 value,
@@ -781,7 +832,9 @@ class RuntimeEngine:
                 source.provenance_refs,
             )
         if isinstance(expression, ProjectionExpr):
-            source = await self._evaluate(ctx, expression.source, tools)
+            source = await self._evaluate(
+                ctx, expression.source, tools, services
+            )
             value = [item[expression.field] for item in source.value]
             return ValueEnvelope(
                 value,
@@ -793,7 +846,10 @@ class RuntimeEngine:
             )
         if isinstance(expression, CallExpr):
             arguments = tuple(
-                [await self._evaluate(ctx, item, tools) for item in expression.arguments]
+                [
+                    await self._evaluate(ctx, item, tools, services)
+                    for item in expression.arguments
+                ]
             )
             try:
                 value = V0_1_BUILTINS.evaluate(
@@ -814,8 +870,12 @@ class RuntimeEngine:
                 argument.provenance_refs,
             )
         if isinstance(expression, BinaryExpr):
-            left = await self._evaluate(ctx, expression.left, tools)
-            right = await self._evaluate(ctx, expression.right, tools)
+            left = await self._evaluate(
+                ctx, expression.left, tools, services
+            )
+            right = await self._evaluate(
+                ctx, expression.right, tools, services
+            )
             operations = {
                 "ADD": lambda: left.value + right.value,
                 "SUB": lambda: left.value - right.value,
@@ -844,13 +904,16 @@ class RuntimeEngine:
                 highest_classification(left.classification, right.classification),
                 tuple(dict.fromkeys(left.provenance_refs + right.provenance_refs)),
             )
-        return await self._execute_read(ctx, expression, tools)
+        return await self._execute_read(
+            ctx, expression, tools, services
+        )
 
     async def _execute_read(
         self,
         ctx: ExecutionContext,
         expression: ReadExpr,
         tools: ToolExecutionPort,
+        services: _ExecutionServices,
     ) -> ValueEnvelope:
         required = next(
             (
@@ -881,7 +944,7 @@ class RuntimeEngine:
             frozenset({required.required_scope}),
         )
         arguments = {
-            name: await self._evaluate(ctx, value, tools)
+            name: await self._evaluate(ctx, value, tools, services)
             for name, value in expression.arguments
         }
         ctx.resource_guard.before_tool_call()
@@ -897,14 +960,14 @@ class RuntimeEngine:
                 argument_classification, envelope.classification
             )
         argument_ref = None
-        if ctx.snapshot_store is not None:
-            argument_ref = ctx.snapshot_store.put(
+        if services.snapshots is not None:
+            argument_ref = services.snapshots.put(
                 ctx.request.principal.tenant_id,
                 argument_values,
                 argument_classification,
                 ctx.request.data_policy.snapshot_retention_days,
             )
-        ctx.audit.emit(
+        services.emit(
             "TOOL_STARTED",
             {
                 "node_id": expression.node_id,
@@ -957,7 +1020,7 @@ class RuntimeEngine:
                 )
             ctx.resource_guard.check_deadline()
         except LimitExceeded:
-            ctx.audit.emit(
+            services.emit(
                 "TOOL_FAILED",
                 {
                     "node_id": expression.node_id,
@@ -978,7 +1041,7 @@ class RuntimeEngine:
             raise
         except ToolExecutionError as error:
             if error.code == "TOOL_TIMEOUT" and duration_limited:
-                ctx.audit.emit(
+                services.emit(
                     "TOOL_FAILED",
                     {
                         "node_id": expression.node_id,
@@ -999,7 +1062,7 @@ class RuntimeEngine:
                 raise LimitExceeded(
                     "execution duration limit exceeded"
                 ) from error
-            ctx.audit.emit(
+            services.emit(
                 "TOOL_FAILED",
                 {
                     "node_id": expression.node_id,
@@ -1019,7 +1082,7 @@ class RuntimeEngine:
             )
             raise
         except Exception:
-            ctx.audit.emit(
+            services.emit(
                 "TOOL_FAILED",
                 {
                     "node_id": expression.node_id,
@@ -1039,15 +1102,15 @@ class RuntimeEngine:
             )
             raise
         result_snapshot_ref = result.snapshot_ref
-        if result_snapshot_ref is None and ctx.snapshot_store is not None:
-            stored_result = ctx.snapshot_store.put(
+        if result_snapshot_ref is None and services.snapshots is not None:
+            stored_result = services.snapshots.put(
                 ctx.request.principal.tenant_id,
                 result.value,
                 result.classification,
                 ctx.request.data_policy.snapshot_retention_days,
             )
             result_snapshot_ref = stored_result.snapshot_id
-        ctx.audit.emit(
+        services.emit(
             "TOOL_COMPLETED",
             {
                 "node_id": expression.node_id,
@@ -1110,6 +1173,7 @@ class RuntimeEngine:
     def _failed(
         self,
         ctx: ExecutionContext,
+        services: _ExecutionServices,
         code: str | DiagnosticCode,
         category: str,
         message: str,
@@ -1124,7 +1188,7 @@ class RuntimeEngine:
         if detail_code is not None:
             detail_code = redact_text(detail_code, sensitive_values)
         resolved_node_id = node_id if node_id is not None else ctx.current_node_id
-        ctx.audit.emit(
+        services.emit(
             "EXECUTION_FAILED",
             {
                 "execution_id": ctx.request.execution_id,

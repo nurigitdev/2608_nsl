@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from nsl.audit import AuditRecorder, InMemoryAuditSink
+from nsl.audit import InMemoryAuditSink
 from nsl.compiler import NslCompiler
 from nsl.core import (
     BOOL,
@@ -248,9 +248,8 @@ def test_budget_exceeded_produces_fail_not_execution_error(runtime_fixture) -> N
 
 
 def context_for_direct_evaluation(runtime_fixture) -> tuple[RuntimeEngine, _ExecutionContext, MockToolExecutor]:
-    catalog, skill, engine, policy, request = runtime_fixture
-    audit = AuditRecorder(InMemoryAuditSink(), policy)
-    context = _ExecutionContext(skill, request, audit, frames=[{}])
+    catalog, skill, engine, _, request = runtime_fixture
+    context = _ExecutionContext(skill, request, frames=[{}])
     return engine, context, build_mock_executor(catalog)
 
 

@@ -5,12 +5,15 @@ from time import monotonic_ns
 from types import MappingProxyType
 from typing import Any, Mapping, Protocol
 
-from .audit import AuditRecorder, SnapshotStore
 from .core import (
+    ApprovalStatus,
+    BusinessOperationId,
     CheckStatus,
     Completeness,
     DataClassification,
     ExecutionStatus,
+    IdempotencyKey,
+    PayloadHash,
     ValueEnvelope,
     highest_classification,
 )
@@ -43,6 +46,43 @@ class SystemRuntimeClock:
         return monotonic_ns()
 
 
+def _required_identity(value: object, name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{name} must be a non-empty string")
+    ensure_no_credential_material(value, name)
+    return value
+
+
+@dataclass(frozen=True, slots=True)
+class ExecutionIdentity:
+    execution_id: str
+    business_operation_id: BusinessOperationId | None = None
+
+    def __post_init__(self) -> None:
+        _required_identity(self.execution_id, "ExecutionIdentity.execution_id")
+        if self.business_operation_id is not None:
+            _required_identity(
+                self.business_operation_id,
+                "ExecutionIdentity.business_operation_id",
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class ExecutionSecurityContext:
+    principal: ExecutionPrincipal
+    data_policy: DataHandlingPolicy
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.principal, ExecutionPrincipal):
+            raise TypeError("principal must be an ExecutionPrincipal")
+        if not isinstance(self.data_policy, DataHandlingPolicy):
+            raise TypeError("data_policy must be a DataHandlingPolicy")
+
+    @property
+    def tenant_id(self) -> str:
+        return self.principal.tenant_id
+
+
 @dataclass(frozen=True, slots=True)
 class ExecutionRequest:
     execution_id: str
@@ -50,13 +90,18 @@ class ExecutionRequest:
     runtime_context: Mapping[str, Any]
     principal: ExecutionPrincipal
     data_policy: DataHandlingPolicy = DataHandlingPolicy()
+    business_operation_id: BusinessOperationId | None = None
 
     def __post_init__(self) -> None:
-        if not isinstance(self.execution_id, str) or not self.execution_id.strip():
-            raise ValueError("execution_id must be a non-empty string")
-        ensure_no_credential_material(
-            self.execution_id, "ExecutionRequest.execution_id"
+        _required_identity(
+            self.execution_id,
+            "ExecutionRequest.execution_id",
         )
+        if self.business_operation_id is not None:
+            _required_identity(
+                self.business_operation_id,
+                "ExecutionRequest.business_operation_id",
+            )
         if not isinstance(self.inputs, Mapping):
             raise ValueError("inputs must be a mapping")
         if not isinstance(self.runtime_context, Mapping):
@@ -65,6 +110,17 @@ class ExecutionRequest:
         ensure_no_credential_material(
             self.runtime_context, "ExecutionRequest.runtime_context"
         )
+
+    @property
+    def identity(self) -> ExecutionIdentity:
+        return ExecutionIdentity(
+            self.execution_id,
+            self.business_operation_id,
+        )
+
+    @property
+    def security_context(self) -> ExecutionSecurityContext:
+        return ExecutionSecurityContext(self.principal, self.data_policy)
 
 
 def highest_declared_classification(specs: tuple[Any, ...]) -> DataClassification:
@@ -269,12 +325,40 @@ class ResourceGuard:
 
 
 @dataclass(slots=True)
+class ApprovalState:
+    records: dict[str, ApprovalStatus] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class WriteJournalState:
+    entries: list[object] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class IdempotencyState:
+    keys_by_write_node: dict[str, IdempotencyKey] = field(default_factory=dict)
+    payload_hashes_by_write_node: dict[str, PayloadHash] = field(
+        default_factory=dict
+    )
+
+
+@dataclass(slots=True)
+class CheckpointState:
+    checkpoint_version: int = 0
+    last_completed_node_id: str | None = None
+    suspended_at_node_id: str | None = None
+    trace_sequence: int = 0
+    approval_request_published: bool = False
+    write_request_durable: bool = False
+
+
+@dataclass(slots=True)
 class ExecutionContext:
     skill: SkillObject
     request: ExecutionRequest
-    audit: AuditRecorder
     runtime_clock: RuntimeClock = field(default_factory=SystemRuntimeClock)
-    snapshot_store: SnapshotStore | None = None
+    identity: ExecutionIdentity = field(init=False)
+    security_context: ExecutionSecurityContext = field(init=False)
     input_values: dict[str, ValueEnvelope] = field(default_factory=dict)
     context_values: dict[str, ValueEnvelope] = field(default_factory=dict)
     frames: list[dict[str, ValueEnvelope]] = field(
@@ -290,12 +374,22 @@ class ExecutionContext:
     invocation_counter: int = 0
     foreach_depth: int = 0
     current_node_id: str | None = None
+    approvals: ApprovalState = field(default_factory=ApprovalState)
+    writes: WriteJournalState = field(default_factory=WriteJournalState)
+    idempotency: IdempotencyState = field(default_factory=IdempotencyState)
+    checkpoint: CheckpointState = field(default_factory=CheckpointState)
     resource_guard: ResourceGuard = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
+        self.identity = self.request.identity
+        self.security_context = self.request.security_context
         self.resource_guard = ResourceGuard(
             self.skill.limits, self.resources, self.runtime_clock
         )
+
+    @property
+    def tenant_id(self) -> str:
+        return self.security_context.tenant_id
 
     def _is_bound(self, symbol_id: str) -> bool:
         return (

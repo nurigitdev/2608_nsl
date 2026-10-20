@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from nsl.audit import AuditRecorder, InMemoryAuditSink
+from nsl.audit import InMemoryAuditSink
 from nsl.compiler import NslCompiler
 from nsl.core import INT, STRING, ExecutionStatus, ValueEnvelope, list_type, record_type
 from nsl.diagnostics import DiagnosticCode
@@ -47,11 +47,7 @@ def runtime_parts() -> tuple[RuntimeEngine, ExecutionContext]:
         runtime_context={"user": {"team_id": "TEAM-FINANCE"}},
         principal=build_principal(),
     )
-    context = ExecutionContext(
-        skill,
-        request,
-        AuditRecorder(InMemoryAuditSink(), request.data_policy),
-    )
+    context = ExecutionContext(skill, request)
     return RuntimeEngine(catalog), context
 
 

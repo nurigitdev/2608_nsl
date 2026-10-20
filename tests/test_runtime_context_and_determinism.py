@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from nsl.audit import AuditRecorder, InMemoryAuditSink
+from nsl.audit import InMemoryAuditSink
 from nsl.compiler import NslCompiler
 from nsl.core import INT, ExecutionStatus, ValueEnvelope
 from nsl.ir import ForeachStatement, NsoCodec
@@ -150,11 +150,7 @@ def test_rt_004_execution_context_keeps_namespaces_separate_and_write_once() -> 
     catalog = build_tool_catalog()
     skill = NslCompiler(catalog).compile(SOURCE).skill
     request = execution_request("exec-rt-004")
-    context = ExecutionContext(
-        skill,
-        request,
-        AuditRecorder(InMemoryAuditSink(), request.data_policy),
-    )
+    context = ExecutionContext(skill, request)
     values = {
         "input": ValueEnvelope.complete(1, INT),
         "context": ValueEnvelope.complete(2, INT),

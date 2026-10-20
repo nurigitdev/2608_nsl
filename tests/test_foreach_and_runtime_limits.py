@@ -10,7 +10,7 @@ import pytest
 
 import nsl.runtime as runtime_module
 from nsl import CompileError, DiagnosticCode, NslCompiler, SourceFile
-from nsl.audit import AuditRecorder, InMemoryAuditSink
+from nsl.audit import InMemoryAuditSink
 from nsl.core import CheckStatus, INT, ExecutionStatus, ValueEnvelope, list_type
 from nsl.ir import ForeachStatement, SymbolRefExpr
 from nsl.runtime import ExecutionRequest, RuntimeEngine
@@ -588,7 +588,6 @@ def test_lim_005_expired_deadline_has_no_remaining_tool_timeout() -> None:
     context = ExecutionContext(
         skill,
         request,
-        AuditRecorder(InMemoryAuditSink(), request.data_policy),
         clock,
     )
     clock.advance_ns(1_000_000)
@@ -611,11 +610,7 @@ def test_lim_006_collection_limit_applies_to_all_expression_results(
         limits=replace(base_skill.limits, collection_size=1),
     ).with_computed_hash()
     request = execution_request(f"exec-lim-006-{collection_size}")
-    context = ExecutionContext(
-        skill,
-        request,
-        AuditRecorder(InMemoryAuditSink(), request.data_policy),
-    )
+    context = ExecutionContext(skill, request)
     values = list(range(collection_size))
     values_type = list_type(INT)
     context.bind(
@@ -680,11 +675,7 @@ def test_lim_006_collection_limit_applies_at_external_value_boundaries(
                 "user": {"team_id": list(range(collection_size))}
             },
         )
-    context = ExecutionContext(
-        skill,
-        request,
-        AuditRecorder(InMemoryAuditSink(), request.data_policy),
-    )
+    context = ExecutionContext(skill, request)
 
     if collection_size == 2:
         with pytest.raises(LimitExceeded, match="collection size limit"):
