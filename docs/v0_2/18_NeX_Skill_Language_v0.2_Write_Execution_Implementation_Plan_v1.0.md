@@ -65,7 +65,7 @@ synchronization unit.
 |---|---|---|---|---|---|
 | 0050 | COMPLETE | Write Intent and Canonical Payload Hash | `NSL-WRT-006`, `NSL-WRT-010` | `RD-001` | Runtime produces immutable Write Intent and Payload identities from strict typed canonical encoding, and any semantic payload change rejects prior Approval evidence with a new-Approval requirement. |
 | 0051 | COMPLETE | Idempotency Contract and Evidence | `NSL-IDM-001..008` | `RD-009` | Every WRITE has a stable tenant/business-operation/write-node key, separate payload hash, durable collision evidence, resume reuse, and verified provider retention guarantee. |
-| 0052 | PLANNED | WriteGuard and Runtime Preflight | `NSL-WRT-009`, `NSL-WRT-011`, `NSL-RSK-003`, `NSL-RSK-005` | `RD-007` | Runtime revalidates current policy and precondition evidence immediately before invocation while requiring the provider to enforce the actual business condition atomically with WRITE. |
+| 0052 | COMPLETE | WriteGuard and Runtime Preflight | `NSL-WRT-009`, `NSL-WRT-011`, `NSL-RSK-003`, `NSL-RSK-005` | `RD-007` | Runtime revalidates current policy and precondition evidence immediately before invocation while requiring the provider to enforce the actual business condition atomically with WRITE. |
 | 0053 | PLANNED | WriteExecutionPort and Durable Request Evidence | `NSL-WRT-001`, `NSL-ARC-204..205` | `CHG-018`, `CHG-021` | Runtime durably records `WRITE_REQUESTED` before invoking one declared Canonical Business Tool exclusively through an injected side-effect Port. |
 | 0054 | PLANNED | Commit Outcomes and Reconciliation | `NSL-WRT-007..008`, `NSL-CMT-001..004` | `RD-008` | Provider outcomes map to explicit commit states; uncertain commit becomes `RECONCILIATION_REQUIRED`, is never treated as ordinary failure, and is never automatically retried or re-keyed. |
 
@@ -177,6 +177,19 @@ implementation is introduced.
 
 Slice 0052 produces a typed WriteGuard decision. It does not invoke a provider
 and does not convert policy or precondition failure into commit uncertainty.
+
+Slice 0052 completion evidence is maintained in
+`tests/test_v0_2_write_guard.py`. `WriteGuard` consumes a minimal immutable
+`WriteContractEvidence` from Runtime Preflight rather than depending on the
+Tool registry layer, and validates current external policy plus bound,
+unexpired business-precondition evidence before delegating to the existing
+PreWrite evaluator. Tests cover every policy identity binding, deny/missing/
+future/expiry paths, exact time boundaries, all six provider mechanisms,
+R0-R5 with the configurable R3 initial profile, malformed and protected
+evidence, provider atomic-enforcement absence, and preservation of all prior
+CHECK, Approval, trust, idempotency, durability, and Replay controls. An
+ALLOWED decision means only that provider invocation is eligible; it never
+claims that the provider-side business condition passed.
 
 ### 5.4 Slice 0053
 
