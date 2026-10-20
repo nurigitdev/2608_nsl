@@ -32,6 +32,7 @@ RUNTIME_KERNEL_MODULES = {
     "runtime_models.py",
     "security.py",
     "validation.py",
+    "write_intent.py",
 }
 LANGUAGE_CORE_MODULES = {
     "bounds.py",
@@ -185,6 +186,7 @@ def called_attributes(path: Path) -> set[str]:
         ("runtime_models", {"syntax", "compiler"}),
         ("result_codec", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
         ("validation", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
+        ("write_intent", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
     ],
 )
 def test_module_dependency_boundaries(module_name, forbidden) -> None:
