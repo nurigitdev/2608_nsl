@@ -36,6 +36,7 @@ RUNTIME_KERNEL_MODULES = {
     "security.py",
     "trust.py",
     "validation.py",
+    "verification.py",
     "write_intent.py",
 }
 LANGUAGE_CORE_MODULES = {
@@ -193,6 +194,7 @@ def called_attributes(path: Path) -> set[str]:
         ("runtime_models", {"syntax", "compiler"}),
         ("result_codec", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
         ("validation", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
+        ("verification", {"syntax", "compiler", "runtime", "audit", "replay", "nsp_verification"}),
         ("write_intent", {"syntax", "compiler", "runtime", "tools", "audit", "replay"}),
         ("trust", {"syntax", "compiler", "runtime", "tools", "audit", "replay", "nsp_verification"}),
     ],

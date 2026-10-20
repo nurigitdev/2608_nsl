@@ -96,6 +96,14 @@ from ..validation import (
     WritePolicyRequest,
     write_policy_request,
 )
+from ..verification import (
+    PostWriteVerificationPort,
+    PostWriteVerifier,
+    VerificationError,
+    VerificationObservation,
+    VerificationRequest,
+    VerificationResult,
+)
 from ..worker import (
     SkillExecutionWorker,
     WorkerBoundaryCode,
@@ -190,6 +198,8 @@ __all__ = [
     "PackageTrustEvidence",
     "PolicyDecision",
     "PolicyEffect",
+    "PostWriteVerificationPort",
+    "PostWriteVerifier",
     "ProgressEvent",
     "ProgressSink",
     "ProgressState",
@@ -223,6 +233,10 @@ __all__ = [
     "VerifiedSkillArtifact",
     "VerifiedPackageSkillResolver",
     "VerifiedPrincipalContext",
+    "VerificationError",
+    "VerificationObservation",
+    "VerificationRequest",
+    "VerificationResult",
     "WorkerBoundaryCode",
     "WorkerBoundaryError",
     "WorkerEvidencePolicy",

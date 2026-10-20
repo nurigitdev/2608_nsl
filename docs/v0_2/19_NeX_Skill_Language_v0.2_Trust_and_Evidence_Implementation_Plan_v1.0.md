@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Trust and Evidence slices:** 0055-0060<br>
-**Status:** IN PROGRESS (Slices 0055-0056 complete)<br>
+**Status:** IN PROGRESS (Slices 0055-0057 complete)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`
 
@@ -93,7 +93,7 @@ traceability, commit, and synchronization unit.
 |---|---|---|---|---|---|
 | 0055 | COMPLETE | Signed NSP Trust Evidence and Compatibility | `NSL-IR-209`, `NSL-SIG-002..004`, `NSL-SIG-006` | `RD-010`, `CHG-010`, `CHG-031` | Canonical NSP integrity and trusted publisher signature verification produce immutable package/skill trust evidence compatible with the v0.1 trust boundary. |
 | 0056 | COMPLETE | Production WRITE Trust Preflight | `NSL-SIG-001`, `NSL-SIG-005`, `NSL-ARC-210` | `RD-010`, `CHG-010` | Production WRITE fails closed before provider invocation unless current verified package and skill trust evidence matches the exact executable artifact and trust policy. |
-| 0057 | PLANNED | Post-write Verification Core | `NSL-VFY-001..003`, `NSL-VFY-005` | `CHG-029` | A committed WRITE can invoke a declared read-only verification method and return an independent typed verification outcome without changing CommitState. |
+| 0057 | COMPLETE | Post-write Verification Core | `NSL-VFY-001..003`, `NSL-VFY-005` | `CHG-029` | A committed WRITE can invoke a declared read-only verification method and return an independent typed verification outcome without changing CommitState. |
 | 0058 | PLANNED | Verification Result and Persistent Audit Evidence | `NSL-VFY-004`, SRS section 23 | `CHG-029`, `CHG-030` | Verification appears in structured Result and persistent hash-chained Audit together with the complete v0.2 event taxonomy and protected identity references. |
 | 0059 | PLANNED | Protected Replay Evidence Composition | `NSL-RPL-202` | `CHG-025` | Approval, Write, Commit, and Verification evidence can be assembled into a deterministic tenant-bound protected Replay bundle. |
 | 0060 | PLANNED | Replay and Mock No-live-write Safety | `NSL-RPL-201`, `NSL-RPL-203`, `NSL-ARC-207` | `CHG-025` | Replay accepts only recorded or mock outcomes, cannot access a Live WRITE provider, and cannot repeat the original business side effect. |
@@ -196,6 +196,14 @@ future, cross-tenant, and identity-mismatched trust evidence.
 - Distinguish verification failure from commit rejection and commit
   uncertainty in public Runtime decisions.
 - Preserve a Business Reference whenever the provider supplied one.
+
+**Completion evidence:** `PostWriteVerifier` consumes only a confirmed
+`WriteResultEnvelope`, resolves the optional Tool Contract verification
+method, and invokes a dedicated read-only `PostWriteVerificationPort`.
+Canonical request hashes bind the complete committed WRITE identity and
+Business Reference. Success, mismatch, timeout, malformed response, and
+dependency failure produce independent typed verification outcomes while
+`CommitState.COMMITTED` remains invariant.
 
 ### 6.4 Slice 0058: Verification Result and Persistent Audit Evidence
 

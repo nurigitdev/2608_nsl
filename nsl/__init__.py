@@ -54,6 +54,14 @@ from .trust import (
     VerifiedSkillArtifact,
     package_id_for,
 )
+from .verification import (
+    PostWriteVerificationPort,
+    PostWriteVerifier,
+    VerificationError,
+    VerificationObservation,
+    VerificationRequest,
+    VerificationResult,
+)
 
 __all__ = [
     "CompileError",
@@ -86,6 +94,8 @@ __all__ = [
     "ParseMode",
     "PackageTrustError",
     "PackageTrustEvidence",
+    "PostWriteVerificationPort",
+    "PostWriteVerifier",
     "RuntimeEngine",
     "RuntimePreflightValidator",
     "SourceFile",
@@ -101,5 +111,9 @@ __all__ = [
     "VerifiedNspPackage",
     "VerifiedNspSkill",
     "VerifiedSkillArtifact",
+    "VerificationError",
+    "VerificationObservation",
+    "VerificationRequest",
+    "VerificationResult",
     "package_id_for",
 ]
