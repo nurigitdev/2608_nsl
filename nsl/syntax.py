@@ -47,6 +47,18 @@ class ParseMode(StrEnum):
     INCLUDE_FRAGMENT = "INCLUDE_FRAGMENT"
 
 
+class SourceLanguageVersion(StrEnum):
+    V0_1 = "0.1"
+    V0_2 = "0.2"
+
+
+@dataclass(frozen=True, slots=True)
+class LanguageHeader:
+    version: SourceLanguageVersion
+    span: SourceSpan
+    version_span: SourceSpan
+
+
 class TokenKind(StrEnum):
     KEYWORD = "KEYWORD"
     IDENTIFIER = "IDENTIFIER"
@@ -132,8 +144,191 @@ class LexResult:
     diagnostics: tuple[Diagnostic, ...]
 
 
+class LanguageHeaderScanner:
+    MAX_HEADER_BYTES = 4_096
+
+    def scan(self, source: str | SourceFile) -> LanguageHeader:
+        source_file = coerce_source(source)
+        text = source_file.text
+        lines = text.splitlines()
+        index = 0
+        line = 1
+        column = 1
+        scanned_bytes = 0
+
+        def position() -> SourcePosition:
+            return SourcePosition(index, line, column)
+
+        def fail(
+            code: DiagnosticCode,
+            message: str,
+            error_position: SourcePosition | None = None,
+        ) -> CompileError:
+            resolved = error_position or position()
+            snippet = (
+                lines[resolved.line - 1] if resolved.line <= len(lines) else ""
+            )
+            return compile_error(
+                code,
+                DiagnosticPhase.LEXER,
+                message,
+                SourceLocation(resolved.line, resolved.column),
+                snippet,
+                source_file.logical_path,
+            )
+
+        def advance(*, enforce_limit: bool = True) -> None:
+            nonlocal index, line, column, scanned_bytes
+            char = text[index]
+            index += 1
+            scanned_bytes += len(char.encode("utf-8"))
+            if char == "\n":
+                line += 1
+                column = 1
+            else:
+                column += 1
+            if enforce_limit and scanned_bytes > self.MAX_HEADER_BYTES:
+                raise fail(
+                    DiagnosticCode.LEX_LANGUAGE_HEADER_LIMIT,
+                    "language declaration exceeds the bounded header scan limit",
+                )
+
+        def skip_trivia(*, enforce_limit: bool = True) -> None:
+            while index < len(text):
+                if text[index] in " \t\r\n":
+                    if not enforce_limit and scanned_bytes >= self.MAX_HEADER_BYTES:
+                        return
+                    advance(enforce_limit=enforce_limit)
+                    continue
+                if text.startswith("//", index):
+                    while index < len(text) and text[index] != "\n":
+                        if (
+                            not enforce_limit
+                            and scanned_bytes >= self.MAX_HEADER_BYTES
+                        ):
+                            return
+                        advance(enforce_limit=enforce_limit)
+                    continue
+                return
+
+        def is_identifier_char(char: str) -> bool:
+            return char == "_" or (char.isascii() and char.isalnum())
+
+        def matches_word(value: str) -> bool:
+            if not text.startswith(value, index):
+                return False
+            end = index + len(value)
+            return end == len(text) or not is_identifier_char(text[end])
+
+        def contains_word_within_limit(value: str) -> bool:
+            probe_index = index
+            probe_bytes = scanned_bytes
+            while probe_index < len(text):
+                char_bytes = len(text[probe_index].encode("utf-8"))
+                if probe_bytes + char_bytes > self.MAX_HEADER_BYTES:
+                    return False
+                before_is_boundary = (
+                    probe_index == 0
+                    or not is_identifier_char(text[probe_index - 1])
+                )
+                end = probe_index + len(value)
+                after_is_boundary = (
+                    end >= len(text) or not is_identifier_char(text[end])
+                )
+                if (
+                    before_is_boundary
+                    and after_is_boundary
+                    and text.startswith(value, probe_index)
+                ):
+                    return True
+                probe_bytes += char_bytes
+                probe_index += 1
+            return False
+
+        def expect_word(value: str) -> None:
+            if not matches_word(value):
+                raise fail(
+                    DiagnosticCode.LEX_MALFORMED_LANGUAGE_HEADER,
+                    f"malformed language declaration: expected {value!r}",
+                )
+            for _ in value:
+                advance()
+
+        def expect_char(value: str) -> None:
+            if index >= len(text) or text[index] != value:
+                raise fail(
+                    DiagnosticCode.LEX_MALFORMED_LANGUAGE_HEADER,
+                    f"malformed language declaration: expected {value!r}",
+                )
+            advance()
+
+        skip_trivia()
+        header_start = position()
+        if not matches_word("language"):
+            code = (
+                DiagnosticCode.LEX_NON_LEADING_LANGUAGE_HEADER
+                if contains_word_within_limit("language")
+                else DiagnosticCode.LEX_LANGUAGE_HEADER_REQUIRED
+            )
+            message = (
+                "language declaration must be the first non-comment declaration"
+                if code is DiagnosticCode.LEX_NON_LEADING_LANGUAGE_HEADER
+                else "language declaration is required"
+            )
+            raise fail(code, message)
+
+        expect_word("language")
+        skip_trivia()
+        expect_word("NSL")
+        skip_trivia()
+
+        version_start = position()
+        expect_char('"')
+        value_start = index
+        while index < len(text) and text[index] != '"':
+            if text[index] in "\r\n\\":
+                raise fail(
+                    DiagnosticCode.LEX_MALFORMED_LANGUAGE_HEADER,
+                    "malformed language declaration version string",
+                )
+            advance()
+        if index >= len(text):
+            raise fail(
+                DiagnosticCode.LEX_MALFORMED_LANGUAGE_HEADER,
+                "malformed language declaration: unterminated version string",
+            )
+        version_value = text[value_start:index]
+        expect_char('"')
+        version_end = position()
+        skip_trivia()
+        expect_char(";")
+        header_end = position()
+
+        try:
+            version = SourceLanguageVersion(version_value)
+        except ValueError as error:
+            raise fail(
+                DiagnosticCode.LEX_UNSUPPORTED_LANGUAGE_VERSION,
+                f"unsupported NSL version: {version_value}",
+                version_start,
+            ) from error
+
+        skip_trivia(enforce_limit=False)
+        if matches_word("language"):
+            raise fail(
+                DiagnosticCode.LEX_DUPLICATE_LANGUAGE_HEADER,
+                "duplicate language declaration",
+            )
+
+        return LanguageHeader(
+            version,
+            SourceSpan(source_file.source_id, header_start, header_end),
+            SourceSpan(source_file.source_id, version_start, version_end),
+        )
+
+
 class Lexer:
-    _KEYWORDS = {
+    _V0_1_KEYWORDS = frozenset({
         "language",
         "skill",
         "version",
@@ -157,6 +352,11 @@ class Lexer:
         "on_fail",
         "message",
         "emit",
+    })
+    _KEYWORDS_BY_VERSION = {
+        SourceLanguageVersion.V0_1: _V0_1_KEYWORDS,
+        SourceLanguageVersion.V0_2: _V0_1_KEYWORDS
+        | {"write", "approve", "approved_by"},
     }
     _TWO_CHAR = {
         "<=": TokenKind.LE,
@@ -182,14 +382,34 @@ class Lexer:
         ">": TokenKind.GT,
     }
 
-    def tokenize(self, source: str | SourceFile) -> tuple[Token, ...]:
-        result = self.scan(source)
+    def tokenize(
+        self,
+        source: str | SourceFile,
+        language_version: SourceLanguageVersion | str = SourceLanguageVersion.V0_1,
+    ) -> tuple[Token, ...]:
+        result = self.scan(source, language_version)
         if result.diagnostics:
             raise error_from_diagnostic(result.diagnostics[0])
         return result.tokens
 
-    def scan(self, source: str | SourceFile) -> LexResult:
+    def tokenize_root(self, source: str | SourceFile) -> tuple[Token, ...]:
         source_file = coerce_source(source)
+        header = LanguageHeaderScanner().scan(source_file)
+        return self.tokenize(source_file, header.version)
+
+    def scan(
+        self,
+        source: str | SourceFile,
+        language_version: SourceLanguageVersion | str = SourceLanguageVersion.V0_1,
+    ) -> LexResult:
+        source_file = coerce_source(source)
+        try:
+            resolved_version = SourceLanguageVersion(language_version)
+        except ValueError as error:
+            raise ValueError(
+                f"unsupported lexer language version: {language_version}"
+            ) from error
+        keywords = self._KEYWORDS_BY_VERSION[resolved_version]
         text = source_file.text
         tokens: list[Token] = []
         diagnostics: list[Diagnostic] = []
@@ -352,7 +572,7 @@ class Lexer:
                 if lexeme in {"true", "false"}:
                     kind = TokenKind.BOOLEAN
                     value: Any = lexeme == "true"
-                elif lexeme in self._KEYWORDS:
+                elif lexeme in keywords:
                     kind = TokenKind.KEYWORD
                     value = lexeme
                 else:

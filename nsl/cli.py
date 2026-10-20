@@ -206,7 +206,7 @@ def main(
 
 def _handle_parse(arguments: argparse.Namespace) -> dict[str, Any]:
     source = _read_source(arguments.source)
-    ast = Parser(Lexer().tokenize(source), source).parse()
+    ast = Parser(Lexer().tokenize_root(source), source).parse()
     return {
         "command": "parse",
         "source": source.logical_path,

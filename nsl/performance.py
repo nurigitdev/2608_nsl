@@ -196,7 +196,7 @@ def benchmark_parsing(
         )
 
     def parse() -> object:
-        tokens = Lexer().tokenize(source_file)
+        tokens = Lexer().tokenize_root(source_file)
         return Parser(tokens, source_file).parse()
 
     return benchmark(

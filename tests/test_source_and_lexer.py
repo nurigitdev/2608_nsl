@@ -140,7 +140,7 @@ def test_src_006_language_version_is_declared_in_source() -> None:
     assert compiled.skill.language_version == "0.1"
 
     missing = SOURCE_TEXT.replace('language NSL "0.1";', "", 1)
-    with pytest.raises(CompileError, match="expected 'language'"):
+    with pytest.raises(CompileError, match="language declaration is required"):
         NslCompiler(build_tool_catalog()).compile(missing)
 
     empty = SOURCE_TEXT.replace('language NSL "0.1";', 'language NSL "";', 1)
@@ -155,7 +155,12 @@ def test_src_007_unsupported_language_version_is_compile_error(version) -> None:
     )
     with pytest.raises(CompileError) as captured:
         NslCompiler(build_tool_catalog()).compile(source)
-    assert captured.value.code == DiagnosticCode.SEM_UNSUPPORTED_LANGUAGE_VERSION
+    expected_code = (
+        DiagnosticCode.SEM_UNSUPPORTED_LANGUAGE_VERSION
+        if version == "0.2"
+        else DiagnosticCode.LEX_UNSUPPORTED_LANGUAGE_VERSION
+    )
+    assert captured.value.code == expected_code
     assert version in captured.value.public_message
 
 

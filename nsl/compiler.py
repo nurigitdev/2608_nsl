@@ -98,7 +98,7 @@ class NslCompiler:
 
     def compile(self, source: str | SourceFile) -> CompilationResult:
         source_file = coerce_source(source)
-        ast = Parser(Lexer().tokenize(source_file), source_file).parse()
+        ast = Parser(Lexer().tokenize_root(source_file), source_file).parse()
         source_manifest = (manifest_entry(source_file, is_root=True),)
         include_edges: tuple[IncludeEdge, ...] = ()
         source_files = (source_file,)

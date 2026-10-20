@@ -200,8 +200,9 @@ class SourceBundleBuilder:
                 "maximum source bundle size exceeded",
                 root_source,
             )
+        lexer = Lexer()
         root_ast = Parser(
-            Lexer().tokenize(root_source), root_source
+            lexer.tokenize_root(root_source), root_source
         ).parse(ParseMode.ROOT_SKILL)
         if not isinstance(root_ast, AstSkill):
             raise TypeError("root parse mode must produce AstSkill")
@@ -297,7 +298,7 @@ class SourceBundleBuilder:
                 visited.add(source.source_id)
                 active.add(source.source_id)
                 fragment = Parser(
-                    Lexer().tokenize(source), source
+                    lexer.tokenize(source, root_ast.language_version), source
                 ).parse(ParseMode.INCLUDE_FRAGMENT)
                 if not isinstance(fragment, AstIncludeFragment):
                     raise TypeError(

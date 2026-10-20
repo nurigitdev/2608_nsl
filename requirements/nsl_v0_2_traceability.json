@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0037",
+  "current_slice": "0038",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -129,6 +129,9 @@
     "NSL-IR-204": {"status": "IMPLEMENTED", "target_slice": "0036", "verification": ["TEST-IR-204"], "evidence": ["tests/test_v0_2_ir_object_model.py::test_ir_204_write_expression_requires_exact_static_approval_ref"]},
     "NSL-IR-205": {"status": "IMPLEMENTED", "target_slice": "0036", "verification": ["TEST-IR-205"], "evidence": ["tests/test_v0_2_ir_object_model.py::test_ir_205_required_write_tool_carries_static_contract_fingerprint", "tests/test_v0_2_ir_object_model.py::test_ir_205_required_write_tool_rejects_missing_or_invalid_risk", "tests/test_v0_2_ir_object_model.py::test_ir_205_legacy_read_required_tool_remains_additively_compatible", "tests/test_v0_2_ir_object_model.py::test_ir_object_model_excludes_runtime_identity_state_and_tool_objects"]},
     "NSL-IR-201": {"status": "IMPLEMENTED", "target_slice": "0037", "verification": ["TEST-IR-201"], "evidence": ["tests/test_v0_2_ir_codec.py::test_ir_201_ir_1_1_codec_round_trips_deterministically", "tests/test_v0_2_ir_codec.py::test_ir_201_ir_1_1_canonical_shape_contains_only_static_write_semantics", "tests/test_v0_2_ir_codec.py::test_ir_201_write_less_ir_1_1_remains_a_supported_additive_shape", "tests/test_v0_2_ir_codec.py::test_ir_201_loader_rejects_unsupported_ir_versions", "tests/test_v0_2_ir_codec.py::test_ir_201_ir_1_1_rejects_missing_approval_link", "tests/test_v0_2_ir_codec.py::test_ir_201_ir_1_1_rejects_approval_after_write", "tests/test_v0_2_ir_codec.py::test_ir_201_ir_1_1_rejects_write_inside_foreach_and_multiple_writes"]},
-    "NSL-IR-208": {"status": "IMPLEMENTED", "target_slice": "0037", "verification": ["TEST-IR-208"], "evidence": ["tests/test_v0_2_ir_codec.py::test_ir_208_v1_0_artifact_bytes_hash_and_load_are_unchanged", "tests/test_v0_2_ir_codec.py::test_ir_208_ir_1_0_rejects_v1_1_additions_and_non_read_tools"]}
+    "NSL-IR-208": {"status": "IMPLEMENTED", "target_slice": "0037", "verification": ["TEST-IR-208"], "evidence": ["tests/test_v0_2_ir_codec.py::test_ir_208_v1_0_artifact_bytes_hash_and_load_are_unchanged", "tests/test_v0_2_ir_codec.py::test_ir_208_ir_1_0_rejects_v1_1_additions_and_non_read_tools"]},
+    "NSL-LEX-201": {"status": "IMPLEMENTED", "target_slice": "0038", "verification": ["TEST-LEX-201"], "evidence": ["tests/test_v0_2_version_aware_lexer.py::test_lex_201_new_words_are_reserved_only_for_language_0_2", "tests/test_v0_2_version_aware_lexer.py::test_lex_201_keyword_matching_is_ascii_case_sensitive_and_exact", "tests/test_v0_2_version_aware_lexer.py::test_lex_201_root_header_selects_the_keyword_table"]},
+    "NSL-LEX-202": {"status": "IMPLEMENTED", "target_slice": "0038", "verification": ["TEST-LEX-202"], "evidence": ["tests/test_v0_2_version_aware_lexer.py::test_lex_202_include_and_bool_tokens_are_preserved"]},
+    "NSL-LEX-203": {"status": "IMPLEMENTED", "target_slice": "0038", "verification": ["TEST-LEX-203"], "evidence": ["tests/test_v0_2_version_aware_lexer.py::test_lex_203_identifier_decimal_and_money_tokens_are_preserved", "tests/test_v0_2_version_aware_lexer.py::test_lex_203_incomplete_decimal_forms_keep_legacy_token_boundaries", "tests/test_v0_2_version_aware_lexer.py::test_lex_203_worst_case_numeric_token_is_not_truncated", "tests/test_v0_2_version_aware_lexer.py::test_lex_203_non_ascii_identifier_still_fails_closed"]}
   }
 }
