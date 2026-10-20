@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 
 RESULT_SCHEMA_VERSION = "1.0"
+RESULT_V02_SCHEMA_VERSION = "1.1"
 
 
 def _check_to_data(check: Any) -> dict[str, Any]:
@@ -65,7 +66,7 @@ def _error_to_data(error: Any) -> dict[str, Any] | None:
 
 
 def execution_result_to_data(result: ExecutionResult) -> dict[str, Any]:
-    return {
+    data = {
         "schema_version": RESULT_SCHEMA_VERSION,
         "execution_id": result.execution_id,
         "skill_id": result.skill_id,
@@ -78,6 +79,29 @@ def execution_result_to_data(result: ExecutionResult) -> dict[str, Any]:
         "resources": _resources_to_data(result.resources),
         "error": _error_to_data(result.error),
     }
+    extensions = {
+        "pre_write_eligibility": (
+            result.pre_write_eligibility.value
+            if result.pre_write_eligibility is not None
+            else None
+        ),
+        "approval": (
+            result.approval.to_data() if result.approval is not None else None
+        ),
+        "write": result.write.to_data() if result.write is not None else None,
+        "verification": (
+            result.verification.to_data()
+            if result.verification is not None
+            else None
+        ),
+        "suspension": (
+            result.suspension.to_data() if result.suspension is not None else None
+        ),
+    }
+    if any(value is not None for value in extensions.values()):
+        data["schema_version"] = RESULT_V02_SCHEMA_VERSION
+        data.update(extensions)
+    return data
 
 
 def execution_result_to_json(result: ExecutionResult) -> str:
@@ -91,7 +115,7 @@ def execution_result_to_json(result: ExecutionResult) -> str:
 
 
 def semantic_result_view(result: ExecutionResult) -> dict[str, Any]:
-    return {
+    data = {
         "skill_id": result.skill_id,
         "skill_version": result.skill_version,
         "semantic_hash": result.semantic_hash,
@@ -109,3 +133,18 @@ def semantic_result_view(result: ExecutionResult) -> dict[str, Any]:
         "resources": _resources_to_data(result.resources),
         "error": _error_to_data(result.error),
     }
+    serialized = execution_result_to_data(result)
+    if serialized["schema_version"] == RESULT_V02_SCHEMA_VERSION:
+        data.update(
+            {
+                name: serialized[name]
+                for name in (
+                    "pre_write_eligibility",
+                    "approval",
+                    "write",
+                    "verification",
+                    "suspension",
+                )
+            }
+        )
+    return data

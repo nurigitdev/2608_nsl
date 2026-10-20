@@ -10,11 +10,14 @@ from .core import (
     BusinessOperationId,
     CheckStatus,
     Completeness,
+    CommitState,
     DataClassification,
     ExecutionStatus,
     IdempotencyKey,
     PayloadHash,
+    PreWriteEligibility,
     ValueEnvelope,
+    VerificationStatus,
     highest_classification,
 )
 from .data_protection import ensure_no_credential_material
@@ -219,6 +222,129 @@ class RuntimeErrorInfo:
     detail_code: str | None = None
 
 
+def _optional_identity(value: object, name: str) -> str | None:
+    if value is None:
+        return None
+    return _required_identity(value, name)
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovalSummary:
+    status: ApprovalStatus
+    approval_id: str
+    approval_request_id: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.status, ApprovalStatus):
+            raise TypeError("ApprovalSummary.status must be an ApprovalStatus")
+        _required_identity(self.approval_id, "ApprovalSummary.approval_id")
+        _optional_identity(
+            self.approval_request_id,
+            "ApprovalSummary.approval_request_id",
+        )
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "status": self.status.value,
+            "approval_id": self.approval_id,
+            "approval_request_id": self.approval_request_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class WriteSummary:
+    commit_state: CommitState
+    tool_id: str
+    node_id: str
+    idempotency_key: IdempotencyKey
+    payload_hash: PayloadHash
+    provider_transaction_id: str | None = None
+    business_reference: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.commit_state, CommitState):
+            raise TypeError("WriteSummary.commit_state must be a CommitState")
+        identities = (
+            ("tool_id", self.tool_id),
+            ("node_id", self.node_id),
+            ("idempotency_key", self.idempotency_key),
+            ("payload_hash", self.payload_hash),
+        )
+        for name, value in identities:
+            _required_identity(value, f"WriteSummary.{name}")
+        _optional_identity(
+            self.provider_transaction_id,
+            "WriteSummary.provider_transaction_id",
+        )
+        _optional_identity(
+            self.business_reference,
+            "WriteSummary.business_reference",
+        )
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "commit_state": self.commit_state.value,
+            "tool_id": self.tool_id,
+            "node_id": self.node_id,
+            "idempotency_key": self.idempotency_key,
+            "payload_hash": self.payload_hash,
+            "provider_transaction_id": self.provider_transaction_id,
+            "business_reference": self.business_reference,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class VerificationSummary:
+    status: VerificationStatus
+    reason_code: str | None = None
+    evidence_ref: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.status, VerificationStatus):
+            raise TypeError(
+                "VerificationSummary.status must be a VerificationStatus"
+            )
+        _optional_identity(self.reason_code, "VerificationSummary.reason_code")
+        _optional_identity(self.evidence_ref, "VerificationSummary.evidence_ref")
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "status": self.status.value,
+            "reason_code": self.reason_code,
+            "evidence_ref": self.evidence_ref,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class SuspensionInfo:
+    reason: str
+    checkpoint_version: int
+    approval_id: str
+    approval_request_id: str
+
+    def __post_init__(self) -> None:
+        _required_identity(self.reason, "SuspensionInfo.reason")
+        if (
+            not isinstance(self.checkpoint_version, int)
+            or isinstance(self.checkpoint_version, bool)
+            or self.checkpoint_version <= 0
+        ):
+            raise ValueError("SuspensionInfo.checkpoint_version must be positive")
+        _required_identity(self.approval_id, "SuspensionInfo.approval_id")
+        _required_identity(
+            self.approval_request_id,
+            "SuspensionInfo.approval_request_id",
+        )
+
+    def to_data(self) -> dict[str, Any]:
+        return {
+            "reason": self.reason,
+            "checkpoint_version": self.checkpoint_version,
+            "approval_id": self.approval_id,
+            "approval_request_id": self.approval_request_id,
+        }
+
+
 @dataclass(frozen=True, slots=True)
 class ExecutionResult:
     execution_id: str
@@ -231,6 +357,29 @@ class ExecutionResult:
     outputs: tuple[EmitRecord, ...]
     resources: ResourceUsage
     error: RuntimeErrorInfo | None = None
+    pre_write_eligibility: PreWriteEligibility | None = None
+    approval: ApprovalSummary | None = None
+    write: WriteSummary | None = None
+    verification: VerificationSummary | None = None
+    suspension: SuspensionInfo | None = None
+
+    def __post_init__(self) -> None:
+        optional_values = (
+            (
+                "pre_write_eligibility",
+                self.pre_write_eligibility,
+                PreWriteEligibility,
+            ),
+            ("approval", self.approval, ApprovalSummary),
+            ("write", self.write, WriteSummary),
+            ("verification", self.verification, VerificationSummary),
+            ("suspension", self.suspension, SuspensionInfo),
+        )
+        for name, value, expected_type in optional_values:
+            if value is not None and not isinstance(value, expected_type):
+                raise TypeError(
+                    f"ExecutionResult.{name} must be {expected_type.__name__}"
+                )
 
     def to_data(self) -> dict[str, Any]:
         from .result_codec import execution_result_to_data

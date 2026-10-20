@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0044",
+  "current_slice": "0045",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -164,6 +164,14 @@
     "NSL-CTX-210": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-210"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_210_v02_request_exposes_distinct_runtime_and_business_identity", "tests/test_v0_2_runtime_context.py::test_execution_request_rejects_invalid_business_operation_identity", "tests/test_v0_2_runtime_context.py::test_execution_request_rejects_credentials_in_business_operation_id"]},
     "NSL-CTX-207": {"status": "IMPLEMENTED", "target_slice": "0044", "verification": ["TEST-CTX-207"], "evidence": ["tests/test_v0_2_checkpoint_restore.py::test_ctx_207_restores_all_execution_local_state_and_injected_clock", "tests/test_v0_2_checkpoint_restore.py::test_ctx_207_default_clock_restore_and_empty_state_are_supported", "tests/test_v0_2_checkpoint_restore.py::test_restore_rejects_malformed_or_inconsistent_state"]},
     "NSL-CTX-208": {"status": "IMPLEMENTED", "target_slice": "0044", "verification": ["TEST-CTX-208"], "evidence": ["tests/test_v0_2_checkpoint_restore.py::test_ctx_208_checkpoint_is_bound_to_skill_semantic_hash", "tests/test_v0_2_checkpoint_restore.py::test_checkpoint_rejects_invalid_integrity_value_and_tampering"]},
-    "NSL-CTX-209": {"status": "IMPLEMENTED", "target_slice": "0044", "verification": ["TEST-CTX-209"], "evidence": ["tests/test_v0_2_checkpoint_restore.py::test_ctx_209_preserves_business_approval_write_and_payload_identities", "tests/test_v0_2_checkpoint_restore.py::test_restore_rejects_tenant_principal_or_policy_mismatch"]}
+    "NSL-CTX-209": {"status": "IMPLEMENTED", "target_slice": "0044", "verification": ["TEST-CTX-209"], "evidence": ["tests/test_v0_2_checkpoint_restore.py::test_ctx_209_preserves_business_approval_write_and_payload_identities", "tests/test_v0_2_checkpoint_restore.py::test_restore_rejects_tenant_principal_or_policy_mismatch"]},
+    "NSL-STS-201": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-STS-201"], "evidence": ["tests/test_v0_2_status_and_result.py::test_sts_201_preserves_every_v01_status_and_adds_only_durable_states"]},
+    "NSL-STS-202": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-STS-202"], "evidence": ["tests/test_v0_2_status_and_result.py::test_sts_202_validation_error_keeps_legacy_identity_and_result_meaning"]},
+    "NSL-STS-203": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-STS-203"], "evidence": ["tests/test_v0_2_status_and_result.py::test_sts_203_and_204_platform_and_attempt_states_are_not_public_statuses"]},
+    "NSL-STS-204": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-STS-204"], "evidence": ["tests/test_v0_2_status_and_result.py::test_sts_203_and_204_platform_and_attempt_states_are_not_public_statuses"]},
+    "NSL-STS-205": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-STS-205"], "evidence": ["tests/test_v0_2_status_and_result.py::test_sts_205_unknown_commit_can_produce_reconciliation_result"]},
+    "NSL-RSL-201": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-RSL-201"], "evidence": ["tests/test_v0_2_status_and_result.py::test_rsl_201_v01_result_data_and_json_are_byte_compatible", "tests/test_emit_and_structured_result.py::test_emt_006_execution_result_has_lossless_deterministic_json"]},
+    "NSL-RSL-202": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-RSL-202"], "evidence": ["tests/test_v0_2_status_and_result.py::test_rsl_202_serializes_all_v02_optional_summary_fields_additively", "tests/test_v0_2_status_and_result.py::test_rsl_202_each_optional_field_is_independently_serializable"]},
+    "NSL-RSL-203": {"status": "IMPLEMENTED", "target_slice": "0045", "verification": ["TEST-RSL-203"], "evidence": ["tests/test_v0_2_status_and_result.py::test_rsl_203_read_only_result_does_not_invent_write_semantics", "tests/test_v0_2_status_and_result.py::test_rsl_203_ir_1_0_runtime_execution_keeps_v01_result_contract"]}
   }
 }

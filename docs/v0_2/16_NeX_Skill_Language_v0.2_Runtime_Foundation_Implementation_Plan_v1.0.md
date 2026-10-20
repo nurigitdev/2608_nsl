@@ -39,7 +39,7 @@ traceability, commit, and synchronization unit.
 |---|---|---|---|---|---|
 | 0043 | COMPLETE | Execution Identity and Context v0.2 | `NSL-CTX-201..206`, `NSL-CTX-210`, `NSL-ARC-211` | `CHG-003`, `CHG-009`, `CHG-027` | Execution identity and preserved Principal/DataPolicy are explicit; Approval, Write Journal, Idempotency, and Checkpoint state are isolated per execution; side-effecting external services are absent from `ExecutionContext`. |
 | 0044 | COMPLETE | Checkpoint State and Restore | `NSL-CTX-207..209` | `CHG-018` | A versioned immutable checkpoint is deterministically serialized, integrity-bound, and validated against semantic, security, and business identities before state restoration. |
-| 0045 | PLANNED | Execution Status and Structured Result | `NSL-STS-201..205`, `NSL-RSL-201..203`, `RD-008` | `CHG-008`, `CHG-022`, `CHG-030` | Durable suspend and reconciliation statuses plus additive v0.2 result summaries preserve every v0.1 result field and meaning. |
+| 0045 | COMPLETE | Execution Status and Structured Result | `NSL-STS-201..205`, `NSL-RSL-201..203` | `CHG-008`, `CHG-022`, `CHG-030` | Durable suspend and reconciliation statuses plus additive v0.2 result summaries preserve every v0.1 result field and meaning. |
 | 0046 | PLANNED | Validation Summary and PreWriteEligibility | `NSL-WEL-001..005`, `NSL-WRT-005` | `CHG-007` | Deterministic validation aggregation produces typed pre-write eligibility, and WRITE entry rejects every result other than `ALLOWED`. |
 
 `RD-004` and `RD-008` are FROZEN implementation decisions, not additional SRS
@@ -97,10 +97,18 @@ rejection.
 
 - Add only the durable Runtime statuses defined by the SRS; platform queue and
   transient write-attempt states remain outside `ExecutionStatus`.
-- Extend structured results additively with suspension, approval, write,
-  commit, verification, and reconciliation summaries.
+- Extend structured results additively with pre-write eligibility, approval,
+  write, verification, and suspension summaries.
 - Keep v0.1 result decoding, required fields, status meaning, and canonical
   output behavior compatible.
+- Keep the complete commit uncertainty transition policy governed by `RD-008`
+  in Slice 0054; Slice 0045 provides its typed public status/result surface.
+
+Slice 0045 completion evidence is maintained in
+`tests/test_v0_2_status_and_result.py`, including exact v0.1 JSON
+compatibility, independent optional-field serialization, READ-only absence
+semantics, forbidden public statuses, and structured suspension and
+reconciliation outcomes.
 
 ### 4.4 Slice 0046
 
