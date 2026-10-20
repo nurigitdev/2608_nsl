@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0058",
+  "current_slice": "0059",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -235,6 +235,7 @@
     "NSL-VFY-002": {"status": "IMPLEMENTED", "target_slice": "0057", "verification": ["TEST-VFY-002"], "evidence": ["tests/test_v0_2_post_write_verification.py::test_vfy_001_002_committed_business_reference_drives_read_only_method", "tests/test_v0_2_post_write_verification.py::test_no_executable_verification_method_returns_not_requested", "tests/test_v0_2_tool_contract_model.py::test_tol_206_post_write_verification_is_optional_but_structured"]},
     "NSL-VFY-003": {"status": "IMPLEMENTED", "target_slice": "0057", "verification": ["TEST-VFY-003"], "evidence": ["tests/test_v0_2_post_write_verification.py::test_vfy_003_verification_outcome_is_typed_and_independent", "tests/test_v0_2_post_write_verification.py::test_vfy_003_unknown_normalization_preserves_committed_state"]},
     "NSL-VFY-005": {"status": "IMPLEMENTED", "target_slice": "0057", "verification": ["TEST-VFY-005"], "evidence": ["tests/test_v0_2_post_write_verification.py::test_vfy_005_failed_and_unknown_never_reclassify_commit", "tests/test_v0_2_post_write_verification.py::test_noncommitted_outcome_cannot_enter_post_write_verifier"]},
-    "NSL-VFY-004": {"status": "IMPLEMENTED", "target_slice": "0058", "verification": ["TEST-VFY-004", "TEST-V02-AUDIT-EVENT-TAXONOMY", "TEST-V02-AUDIT-PERSISTENCE"], "evidence": ["tests/test_v0_2_write_audit.py::test_vfy_004_typed_verification_is_persisted_in_result_and_audit", "tests/test_v0_2_write_audit.py::test_srs_section_23_complete_event_taxonomy_is_durable_and_hash_chained", "tests/test_v0_2_write_audit.py::test_generic_audit_contains_only_protected_write_metadata", "tests/test_v0_2_write_audit.py::test_persisted_v02_audit_tampering_is_detected_after_restart"]}
+    "NSL-VFY-004": {"status": "IMPLEMENTED", "target_slice": "0058", "verification": ["TEST-VFY-004", "TEST-V02-AUDIT-EVENT-TAXONOMY", "TEST-V02-AUDIT-PERSISTENCE"], "evidence": ["tests/test_v0_2_write_audit.py::test_vfy_004_typed_verification_is_persisted_in_result_and_audit", "tests/test_v0_2_write_audit.py::test_srs_section_23_complete_event_taxonomy_is_durable_and_hash_chained", "tests/test_v0_2_write_audit.py::test_generic_audit_contains_only_protected_write_metadata", "tests/test_v0_2_write_audit.py::test_persisted_v02_audit_tampering_is_detected_after_restart"]},
+    "NSL-RPL-202": {"status": "IMPLEMENTED", "target_slice": "0059", "verification": ["TEST-RPL-202"], "evidence": ["tests/test_v0_2_write_replay_evidence.py::test_rpl_202_complete_evidence_is_sealed_and_rehydrated_without_live_calls", "tests/test_v0_2_write_replay_evidence.py::test_rejected_approval_uses_single_record_and_no_write_identity", "tests/test_v0_2_write_replay_evidence.py::test_noncommitted_outcomes_are_rehydrated_exactly_without_verification", "tests/test_v0_2_write_replay_evidence.py::test_bundle_rejects_empty_over_limit_duplicate_reordered_and_partial_sets", "tests/test_v0_2_write_replay_evidence.py::test_loader_fails_closed_for_missing_wrong_type_and_tampered_snapshot"]}
   }
 }

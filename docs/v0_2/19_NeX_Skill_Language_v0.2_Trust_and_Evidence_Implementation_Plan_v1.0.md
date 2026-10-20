@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Trust and Evidence slices:** 0055-0060<br>
-**Status:** IN PROGRESS (Slices 0055-0058 complete)<br>
+**Status:** IN PROGRESS (Slices 0055-0059 complete)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`
 
@@ -95,7 +95,7 @@ traceability, commit, and synchronization unit.
 | 0056 | COMPLETE | Production WRITE Trust Preflight | `NSL-SIG-001`, `NSL-SIG-005`, `NSL-ARC-210` | `RD-010`, `CHG-010` | Production WRITE fails closed before provider invocation unless current verified package and skill trust evidence matches the exact executable artifact and trust policy. |
 | 0057 | COMPLETE | Post-write Verification Core | `NSL-VFY-001..003`, `NSL-VFY-005` | `CHG-029` | A committed WRITE can invoke a declared read-only verification method and return an independent typed verification outcome without changing CommitState. |
 | 0058 | COMPLETE | Verification Result and Persistent Audit Evidence | `NSL-VFY-004`, SRS section 23 | `CHG-029`, `CHG-030` | Verification appears in structured Result and persistent hash-chained Audit together with the complete v0.2 event taxonomy and protected identity references. |
-| 0059 | PLANNED | Protected Replay Evidence Composition | `NSL-RPL-202` | `CHG-025` | Approval, Write, Commit, and Verification evidence can be assembled into a deterministic tenant-bound protected Replay bundle. |
+| 0059 | COMPLETE | Protected Replay Evidence Composition | `NSL-RPL-202` | `CHG-025` | Approval, Write, Commit, and Verification evidence can be assembled into a deterministic tenant-bound protected Replay bundle. |
 | 0060 | PLANNED | Replay and Mock No-live-write Safety | `NSL-RPL-201`, `NSL-RPL-203`, `NSL-ARC-207` | `CHG-025` | Replay accepts only recorded or mock outcomes, cannot access a Live WRITE provider, and cannot repeat the original business side effect. |
 
 ## 6. Slice Boundaries
@@ -270,6 +270,17 @@ SRS requirements.
   without consulting live business systems.
 - Preserve `UNKNOWN_COMMIT_STATE` and reconciliation evidence exactly; Replay
   must not reinterpret uncertainty as failure or success.
+
+**Completion evidence:** `WriteReplayEvidenceComposer` validates the complete
+lifecycle before writing any snapshot, seals typed Approval, WRITE request,
+Commit, and Verification outcomes through `ProtectedSnapshotStore`, and emits
+an immutable, ordered, tenant-bound manifest containing only protected
+references and hashes. `WriteReplayEvidenceLoader` revalidates principal,
+tenant, type, identity, snapshot integrity, request/outcome binding, and
+lifecycle consistency while preserving rejected, not-committed,
+`UNKNOWN_COMMIT_STATE`, and committed outcomes exactly. Tests cover the
+`0/1/MAX/MAX+1` record boundary, missing, duplicate, reordered, partial,
+cross-tenant, wrong-type, unsupported-version, and tampered evidence.
 
 ### 6.6 Slice 0060: Replay and Mock No-live-write Safety
 
