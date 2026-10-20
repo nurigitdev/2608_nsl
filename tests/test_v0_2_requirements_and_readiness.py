@@ -71,10 +71,13 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
         "0052": 4,
         "0053": 3,
         "0054": 6,
-        "0055": 8,
-        "0056": 5,
-        "0058": 4,
-        "0062": 2,
+        "0055": 5,
+        "0056": 3,
+        "0057": 4,
+        "0058": 1,
+        "0059": 1,
+        "0060": 3,
+        "0064": 2,
     }
     assert tuple(records)[0] == "NSL-ARC-201"
     assert tuple(records)[-1] == "NSL-RPL-203"
