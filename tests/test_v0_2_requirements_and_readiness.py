@@ -80,7 +80,7 @@ def test_repository_v0_2_requirement_baseline_is_complete() -> None:
         "0068": 2,
     }
     baseline = json.loads(V0_2_BASELINE.read_text(encoding="utf-8"))
-    assert baseline["current_slice"] == "0061"
+    assert baseline["current_slice"] == "0062"
     assert {
         slice_id: baseline["slices"][slice_id]["title"]
         for slice_id in (

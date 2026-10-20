@@ -16,6 +16,7 @@ from ..approval import (
     ResumeToken,
 )
 from ..audit import AuditSink, SnapshotStore
+from ..checkpoints import CheckpointCoordinator, CheckpointedExecution
 from ..dispatch import (
     DispatchStatus,
     InMemoryJobDispatcher,
@@ -164,6 +165,8 @@ __all__ = [
     "AuditSink",
     "BusinessPreconditionEvidence",
     "BusinessPreconditionMechanism",
+    "CheckpointCoordinator",
+    "CheckpointedExecution",
     "CheckpointPort",
     "CanonicalWriteValueError",
     "CommitAwareWriteExecutor",

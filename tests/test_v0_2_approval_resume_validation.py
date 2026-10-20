@@ -710,6 +710,29 @@ def test_missing_checkpoint_request_binding_releases_claim() -> None:
     assert port.events == ["claim", "release"]
 
 
+@pytest.mark.parametrize(
+    ("binding_name", "message"),
+    (
+        ("write_intent_hashes_by_write_node", "write intent binding is missing"),
+        ("payload_hashes_by_write_node", "payload binding is missing"),
+    ),
+)
+def test_missing_checkpoint_write_identity_releases_claim(
+    binding_name: str,
+    message: str,
+) -> None:
+    ctx, port, checkpoint = _prepare()
+    restored = CheckpointCoordinator().restore(checkpoint, ctx.skill, ctx.request)
+    getattr(restored.checkpoint, binding_name).clear()
+    replacement = CheckpointCoordinator().capture(restored)
+    asyncio.run(port.save(replacement))
+    port.events.clear()
+
+    with pytest.raises(ValueError, match=message):
+        _resume(ctx, port, replacement)
+    assert port.events == ["claim", "release"]
+
+
 def test_validation_and_outcome_reject_invalid_objects() -> None:
     ctx, port, checkpoint = _prepare()
     bindings = ApprovalResumeBindings(

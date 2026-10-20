@@ -12,6 +12,7 @@ from .core import (
     CheckStatus,
     Completeness,
     DataClassification,
+    ExecutionStatus,
     PayloadHash,
     Presence,
     TypeRef,
@@ -26,6 +27,7 @@ from .runtime_models import (
     EmitRecord,
     ExecutionContext,
     ExecutionRequest,
+    ExecutionResult,
     RuntimeClock,
 )
 
@@ -270,6 +272,39 @@ class ExecutionCheckpoint:
         )
         checkpoint.verify()
         return checkpoint
+
+
+@dataclass(frozen=True, slots=True)
+class CheckpointedExecution:
+    """Completed READ/CHECK execution paired with its immutable checkpoint."""
+
+    result: ExecutionResult
+    checkpoint: ExecutionCheckpoint | None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.result, ExecutionResult):
+            raise TypeError("result must be an ExecutionResult")
+        if self.checkpoint is not None and not isinstance(
+            self.checkpoint, ExecutionCheckpoint
+        ):
+            raise TypeError("checkpoint must be an ExecutionCheckpoint or None")
+        if self.result.status is not ExecutionStatus.COMPLETED:
+            if self.checkpoint is not None:
+                raise ValueError("only completed execution may carry a checkpoint")
+            return
+        if self.checkpoint is None:
+            raise ValueError("completed execution requires a checkpoint")
+        expected = {
+            "execution_id": self.result.execution_id,
+            "skill_id": self.result.skill_id,
+            "skill_version": self.result.skill_version,
+            "semantic_hash": self.result.semantic_hash,
+        }
+        for name, value in expected.items():
+            if getattr(self.checkpoint, name) != value:
+                raise ValueError(f"checkpoint {name} does not match result")
+
+
 def _envelope_to_data(value: ValueEnvelope) -> dict[str, Any]:
     return {
         "value": encode_value(value.value),

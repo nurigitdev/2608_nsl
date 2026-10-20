@@ -1,0 +1,15 @@
+{
+  "approval_id": "APPROVE_VOUCHER_DRAFT",
+  "approval_request_id": "approval-request-voucher-0062",
+  "write_node_id": "write-voucher-draft-0001",
+  "tool_id": "FINANCE.CREATE_VOUCHER_DRAFT",
+  "risk_level": "R3",
+  "message": "Create the validated voucher draft",
+  "ttl_seconds": 3600,
+  "protected_payload_ref": "snapshot://tenant-finance/voucher-payload-0062",
+  "data_classification": "CONFIDENTIAL",
+  "display_safe_summary": {
+    "document_type": "voucher_draft",
+    "line_count": 1
+  }
+}

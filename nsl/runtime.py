@@ -14,6 +14,7 @@ from .audit import (
     value_hash,
 )
 from .builtins import BuiltinError, V0_1_BUILTINS
+from .checkpoints import CheckpointCoordinator, CheckpointedExecution
 from .core import (
     CHECK_RESULT,
     DATE,
@@ -241,6 +242,57 @@ class RuntimeEngine:
         audit_sink: AuditSink,
         snapshot_store: SnapshotStore | None = None,
     ) -> ExecutionResult:
+        result, _ = await self._execute_with_context(
+            skill,
+            request,
+            tools,
+            audit_sink,
+            snapshot_store,
+        )
+        return result
+
+    async def execute_checkpointed(
+        self,
+        skill: SkillObject,
+        request: ExecutionRequest,
+        tools: ToolExecutionPort,
+        audit_sink: AuditSink,
+        snapshot_store: SnapshotStore | None = None,
+        checkpoint_coordinator: CheckpointCoordinator | None = None,
+    ) -> CheckpointedExecution:
+        """Execute a READ/CHECK prefix and seal completed state for suspension."""
+        if request.business_operation_id is None:
+            raise RuntimeContractError(
+                "checkpointed execution requires a business operation identity"
+            )
+        if checkpoint_coordinator is not None and not isinstance(
+            checkpoint_coordinator, CheckpointCoordinator
+        ):
+            raise TypeError(
+                "checkpoint_coordinator must be a CheckpointCoordinator"
+            )
+        result, context = await self._execute_with_context(
+            skill,
+            request,
+            tools,
+            audit_sink,
+            snapshot_store,
+        )
+        if result.status is not ExecutionStatus.COMPLETED:
+            return CheckpointedExecution(result, None)
+        if context is None:
+            raise RuntimeContractError("completed execution context is unavailable")
+        coordinator = checkpoint_coordinator or CheckpointCoordinator()
+        return CheckpointedExecution(result, coordinator.capture(context))
+
+    async def _execute_with_context(
+        self,
+        skill: SkillObject,
+        request: ExecutionRequest,
+        tools: ToolExecutionPort,
+        audit_sink: AuditSink,
+        snapshot_store: SnapshotStore | None = None,
+    ) -> tuple[ExecutionResult, ExecutionContext | None]:
         principal = (
             request.principal
             if isinstance(request.principal, ExecutionPrincipal)
@@ -265,12 +317,15 @@ class RuntimeEngine:
                 frozenset({"nsl:skill:execute"}),
             )
         except AuthorizationError as error:
-            return self._reject_execution(
-                skill,
-                request,
-                audit,
-                str(error),
-                error.decision_ref,
+            return (
+                self._reject_execution(
+                    skill,
+                    request,
+                    audit,
+                    str(error),
+                    error.decision_ref,
+                ),
+                None,
             )
         ctx = ExecutionContext(
             skill,
@@ -361,23 +416,29 @@ class RuntimeEngine:
                     "authorization_decision_ref": skill_decision.decision_id,
                 },
             )
-            return result
+            return result, ctx
         except AuthorizationError as error:
-            return self._failed(
+            return (
+                self._failed(
+                    ctx,
+                    services,
+                    DiagnosticCode.AUTHORIZATION_DENIED,
+                    "AUTHORIZATION",
+                    str(error),
+                    authorization_decision_ref=error.decision_ref,
+                ),
                 ctx,
-                services,
-                DiagnosticCode.AUTHORIZATION_DENIED,
-                "AUTHORIZATION",
-                str(error),
-                authorization_decision_ref=error.decision_ref,
             )
         except PermissionError as error:
-            return self._failed(
+            return (
+                self._failed(
+                    ctx,
+                    services,
+                    DiagnosticCode.REPLAY_ACCESS_DENIED,
+                    "AUTHORIZATION",
+                    str(error),
+                ),
                 ctx,
-                services,
-                DiagnosticCode.REPLAY_ACCESS_DENIED,
-                "AUTHORIZATION",
-                str(error),
             )
         except ToolExecutionError as error:
             code = (
@@ -385,59 +446,77 @@ class RuntimeEngine:
                 if error.code == "TOOL_CONTRACT_MISMATCH"
                 else DiagnosticCode.TOOL_EXECUTION_FAILURE
             )
-            return self._failed(
+            return (
+                self._failed(
+                    ctx,
+                    services,
+                    code,
+                    "TOOL",
+                    str(error),
+                    ExecutionStatus.TOOL_ERROR,
+                    detail_code=error.code,
+                ),
                 ctx,
-                services,
-                code,
-                "TOOL",
-                str(error),
-                ExecutionStatus.TOOL_ERROR,
-                detail_code=error.code,
             )
         except LimitExceeded as error:
-            return self._failed(
+            return (
+                self._failed(
+                    ctx,
+                    services,
+                    DiagnosticCode.RESOURCE_LIMIT_EXCEEDED,
+                    "RESOURCE",
+                    str(error),
+                    ExecutionStatus.LIMIT_EXCEEDED,
+                ),
                 ctx,
-                services,
-                DiagnosticCode.RESOURCE_LIMIT_EXCEEDED,
-                "RESOURCE",
-                str(error),
-                ExecutionStatus.LIMIT_EXCEEDED,
             )
         except ImmutableBindingError as error:
-            return self._failed(
+            return (
+                self._failed(
+                    ctx,
+                    services,
+                    DiagnosticCode.RUNTIME_EVALUATION,
+                    "RUNTIME",
+                    str(error),
+                    detail_code=error.detail_code,
+                ),
                 ctx,
-                services,
-                DiagnosticCode.RUNTIME_EVALUATION,
-                "RUNTIME",
-                str(error),
-                detail_code=error.detail_code,
             )
         except ExpressionEvaluationError as error:
-            return self._failed(
+            return (
+                self._failed(
+                    ctx,
+                    services,
+                    DiagnosticCode.RUNTIME_EVALUATION,
+                    "RUNTIME",
+                    str(error),
+                    detail_code=error.detail_code,
+                    node_id=error.node_id,
+                ),
                 ctx,
-                services,
-                DiagnosticCode.RUNTIME_EVALUATION,
-                "RUNTIME",
-                str(error),
-                detail_code=error.detail_code,
-                node_id=error.node_id,
             )
         except (RuntimeContractError, MoneyError) as error:
-            return self._failed(
+            return (
+                self._failed(
+                    ctx,
+                    services,
+                    DiagnosticCode.RUNTIME_EVALUATION,
+                    "RUNTIME",
+                    str(error),
+                ),
                 ctx,
-                services,
-                DiagnosticCode.RUNTIME_EVALUATION,
-                "RUNTIME",
-                str(error),
             )
         except Exception as error:
             self._write_debug_trace(error, self._sensitive_values(ctx))
-            return self._failed(
+            return (
+                self._failed(
+                    ctx,
+                    services,
+                    DiagnosticCode.RUNTIME_UNEXPECTED,
+                    "RUNTIME",
+                    _UNEXPECTED_RUNTIME_MESSAGE,
+                ),
                 ctx,
-                services,
-                DiagnosticCode.RUNTIME_UNEXPECTED,
-                "RUNTIME",
-                _UNEXPECTED_RUNTIME_MESSAGE,
             )
 
     def _validate_execution_principal(self, principal: object) -> None:

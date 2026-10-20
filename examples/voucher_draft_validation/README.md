@@ -9,6 +9,11 @@ The executable prefix registers only `ACCOUNT.GET_ACCOUNT`,
 `FINANCE.CREATE_VOUCHER_DRAFT` and `FINANCE.GET_VOUCHER` contracts are reserved
 for Slice 0063, so this Slice cannot invoke a WRITE provider.
 
+`approval.json` defines the Slice 0062 approval boundary. A complete passing
+validation is sealed as a checkpoint before this request is published. The
+asset carries only display-safe metadata and a protected payload reference;
+provider WRITE execution remains outside this Slice.
+
 Run the deterministic local profile and scenario suite from the repository
 root:
 

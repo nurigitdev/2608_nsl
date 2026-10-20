@@ -12,9 +12,11 @@ from .core import (
     ApprovalRequestId,
     ApprovalStatus,
     BusinessOperationId,
+    Completeness,
     DataClassification,
     ExecutionStatus,
     PayloadHash,
+    PreWriteEligibility,
     RiskLevel,
 )
 from .data_protection import ensure_no_credential_material
@@ -26,7 +28,10 @@ from .runtime_models import (
     ExecutionResult,
     RuntimeClock,
     SuspensionInfo,
+    ValidationSummary,
+    ValidationSummaryStatus,
 )
+from .validation import PreWriteEvaluator, PreWriteEvidence
 
 
 def _required_text(value: object, name: str) -> str:
@@ -297,6 +302,7 @@ class ApprovalSuspensionCoordinator:
         request: ApprovalRequest,
         checkpoint_port: CheckpointPort,
         approval_port: ApprovalPort,
+        pre_write_evidence: PreWriteEvidence | None = None,
     ) -> ApprovalSuspension:
         if not isinstance(ctx, ExecutionContext):
             raise TypeError("ctx must be an ExecutionContext")
@@ -307,6 +313,10 @@ class ApprovalSuspensionCoordinator:
         if not isinstance(approval_port, ApprovalPort):
             raise TypeError("approval_port must implement ApprovalPort")
         self._validate_bindings(ctx, request)
+        validation, eligibility = self._validated_pre_write(
+            ctx,
+            pre_write_evidence,
+        )
         self._stage_suspend(ctx, request)
 
         checkpoint = self._checkpoints.capture(ctx)
@@ -328,6 +338,8 @@ class ApprovalSuspensionCoordinator:
                 checks=tuple(ctx.checks),
                 outputs=tuple(ctx.outputs),
                 resources=ctx.usage(),
+                validation=validation,
+                pre_write_eligibility=eligibility,
                 approval=ApprovalSummary(
                     status=ApprovalStatus.PENDING,
                     approval_id=request.approval_id,
@@ -341,6 +353,30 @@ class ApprovalSuspensionCoordinator:
                 ),
             ),
         )
+
+    @staticmethod
+    def _validated_pre_write(
+        ctx: ExecutionContext,
+        evidence: PreWriteEvidence | None,
+    ) -> tuple[ValidationSummary | None, PreWriteEligibility | None]:
+        if ctx.skill.language_version != "0.2":
+            return None, None
+        if not isinstance(evidence, PreWriteEvidence):
+            raise TypeError("v0.2 approval requires PreWriteEvidence")
+        validation = ValidationSummary.from_checks(tuple(ctx.checks))
+        if evidence.validation != validation:
+            raise ValueError("PreWriteEvidence validation binding mismatch")
+        if (
+            validation.status is not ValidationSummaryStatus.ALL_PASS
+            or ctx.data_completeness is not Completeness.COMPLETE
+        ):
+            raise ValueError(
+                "v0.2 approval requires complete passing validation"
+            )
+        decision = PreWriteEvaluator().evaluate(evidence)
+        if decision.eligibility is not PreWriteEligibility.REQUIRES_APPROVAL:
+            raise ValueError("v0.2 approval requires REQUIRES_APPROVAL eligibility")
+        return validation, decision.eligibility
 
     @staticmethod
     def _validate_bindings(
@@ -711,8 +747,6 @@ class ApprovalResumeCoordinator:
                 context,
                 approval_id,
                 write_node_id,
-                current_write_intent_hash,
-                current_payload_hash,
             )
             validation = self._validator.validate(
                 token.approval_evidence,
@@ -720,6 +754,12 @@ class ApprovalResumeCoordinator:
                 verifier,
                 clock,
             )
+            if validation.approval_gate_passed:
+                validation = self._validate_current_identity(
+                    bindings,
+                    current_write_intent_hash,
+                    current_payload_hash,
+                )
         except Exception:
             await checkpoint_port.release(
                 token.execution_id,
@@ -804,8 +844,6 @@ class ApprovalResumeCoordinator:
         context: ExecutionContext,
         approval_id: str,
         write_node_id: str,
-        current_write_intent_hash: str,
-        current_payload_hash: PayloadHash,
     ) -> ApprovalResumeBindings:
         if context.approvals.records.get(approval_id) is not ApprovalStatus.PENDING:
             raise ValueError("checkpoint approval is not pending")
@@ -816,6 +854,18 @@ class ApprovalResumeCoordinator:
         )
         if approval_request_id is None:
             raise ValueError("checkpoint approval request binding is missing")
+        write_intent_hash = (
+            context.checkpoint.write_intent_hashes_by_write_node.get(
+                write_node_id
+            )
+        )
+        if write_intent_hash is None:
+            raise ValueError("checkpoint write intent binding is missing")
+        payload_hash = context.checkpoint.payload_hashes_by_write_node.get(
+            write_node_id
+        )
+        if payload_hash is None:
+            raise ValueError("checkpoint payload binding is missing")
         return ApprovalResumeBindings(
             tenant_id=context.tenant_id,
             execution_id=context.identity.execution_id,
@@ -823,6 +873,30 @@ class ApprovalResumeCoordinator:
             approval_id=approval_id,
             approval_request_id=ApprovalRequestId(approval_request_id),
             skill_semantic_hash=context.skill.semantic_hash,
-            payload_hash=current_payload_hash,
-            write_intent_hash=current_write_intent_hash,
+            payload_hash=payload_hash,
+            write_intent_hash=write_intent_hash,
+        )
+
+    @staticmethod
+    def _validate_current_identity(
+        bindings: ApprovalResumeBindings,
+        current_write_intent_hash: str,
+        current_payload_hash: PayloadHash,
+    ) -> ApprovalValidationResult:
+        if current_write_intent_hash != bindings.write_intent_hash:
+            return ApprovalValidationResult(
+                ApprovalEvidenceValidation.INTENT_MISMATCH,
+                ApprovalStatus.PENDING,
+                "APPROVAL_INTENT_MISMATCH",
+            )
+        if current_payload_hash != bindings.payload_hash:
+            return ApprovalValidationResult(
+                ApprovalEvidenceValidation.PAYLOAD_MISMATCH,
+                ApprovalStatus.PENDING,
+                "APPROVAL_PAYLOAD_MISMATCH",
+            )
+        return ApprovalValidationResult(
+            ApprovalEvidenceValidation.VALID,
+            ApprovalStatus.APPROVED,
+            None,
         )

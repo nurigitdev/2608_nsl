@@ -2,7 +2,7 @@
 
 **Version:** 1.0<br>
 **Vertical Integration slices:** 0061-0069<br>
-**Status:** IN PROGRESS (Slice 0061 COMPLETE)<br>
+**Status:** IN PROGRESS (Slice 0062 COMPLETE)<br>
 **Normative requirements:** `03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md`<br>
 **Machine traceability:** `requirements/nsl_v0_2_traceability.json`<br>
 **Implementation readiness:** `requirements/nsl_v0_2_readiness.json`
@@ -89,7 +89,7 @@ traceability, commit, and synchronization unit.
 | Slice | Status | Title | Primary authority | Completion boundary |
 |---|---|---|---|---|
 | 0061 | COMPLETE | Voucher Scenario Contract and READ Validation | `AC-W01` prefix, SRS sections 10, 13, and 26 | Canonical Voucher source, Tool contracts, profiles, and fixtures deterministically exercise account, project, period, amount, and partial-data validation without a WRITE call. |
-| 0062 | PLANNED | Voucher Approval Suspend and Resume | `AC-W01` Approval path | A passing Voucher validation requests approval, durably suspends, and resumes only from valid evidence; rejection, expiry, tampering, and duplicate resume produce zero WRITE calls. |
+| 0062 | COMPLETE | Voucher Approval Suspend and Resume | `AC-W01` Approval path | A passing Voucher validation requests approval, durably suspends, and resumes only from valid evidence; rejection, expiry, tampering, and duplicate resume produce zero WRITE calls. |
 | 0063 | PLANNED | Voucher Write Commit and Verification E2E | `AC-W01` | Trusted approval proceeds through idempotent WRITE, durable request evidence, commit outcome, `FINANCE.GET_VOUCHER` verification, Audit/Replay evidence, and structured `voucher_no` output. |
 | 0064 | PLANNED | Project Scenario Contract and Validation | `AC-W02` prefix, SRS section 26 | Canonical Project source, Tool contracts, profiles, and fixtures exercise duplicate, parent, period/date-range, team-authority, and partial-data validation without domain logic in Runtime. |
 | 0065 | PLANNED | Project Draft Generalization E2E | `AC-W02` | The same public Runtime pipeline performs approval, idempotent Project WRITE, verification, Audit/Replay evidence, and structured `project_code` output without a Project-specific Runtime branch. |
@@ -169,7 +169,20 @@ and
 - Prove that suspend, reject, expire, tamper, duplicate, and failed-resume
   paths all invoke the WRITE provider zero times.
 
-**Planned verification:** `TEST-AC-W01-APPROVAL-LIFECYCLE`.
+**Verification:** `TEST-AC-W01-APPROVAL-LIFECYCLE`.<br>
+**Completion evidence:**
+`examples/voucher_draft_validation/approval.json`,
+`nsl/runtime.py::RuntimeEngine.execute_checkpointed`,
+`nsl/approval.py::ApprovalSuspensionCoordinator`,
+`nsl/approval.py::ApprovalResumeCoordinator`,
+`tests/test_v0_2_voucher_approval_lifecycle.py::test_ac_w01_passing_validation_persists_before_approval_publication`,
+`tests/test_v0_2_voucher_approval_lifecycle.py::test_ac_w01_nonpassing_validation_cannot_publish_approval`,
+`tests/test_v0_2_voucher_approval_lifecycle.py::test_ac_w01_valid_evidence_resumes_once_without_write`,
+`tests/test_v0_2_voucher_approval_lifecycle.py::test_ac_w01_rejection_and_expiry_boundaries_never_write`,
+`tests/test_v0_2_voucher_approval_lifecycle.py::test_ac_w01_tampering_and_cross_tenant_evidence_release_claim`,
+`tests/test_v0_2_voucher_approval_lifecycle.py::test_ac_w01_resume_dependency_failure_releases_for_retry`,
+and
+`tests/test_v0_2_voucher_approval_lifecycle.py::test_ac_w01_checkpoint_failure_blocks_publish_and_publish_retry_is_idempotent`.
 
 ### 6.3 Slice 0063: Voucher Write Commit and Verification E2E
 
