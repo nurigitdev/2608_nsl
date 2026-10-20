@@ -350,6 +350,15 @@ class CheckpointState:
     trace_sequence: int = 0
     approval_request_published: bool = False
     write_request_durable: bool = False
+    approval_request_ids_by_write_node: dict[str, str] = field(
+        default_factory=dict
+    )
+    write_intent_hashes_by_write_node: dict[str, str] = field(
+        default_factory=dict
+    )
+    payload_hashes_by_write_node: dict[str, PayloadHash] = field(
+        default_factory=dict
+    )
 
 
 @dataclass(slots=True)

@@ -4,7 +4,7 @@
   "source_document": "docs/v0_2/03_NeX_Skill_Language_v0.2_Interpreter_Runtime_SRS_v2.0_Draft.md",
   "expected_requirement_count": 123,
   "requirements_sha256": "47ef551d51cddddf23a0b9b5745a5630403d333043db0350268245b9a361256b",
-  "current_slice": "0043",
+  "current_slice": "0044",
   "scope_decisions": [
     {
       "decision_id": "RB2-001",
@@ -161,6 +161,9 @@
     "NSL-CTX-204": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-204"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_204_context_preserves_checkpoint_state_without_persisting_it"]},
     "NSL-CTX-205": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-205"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_205_named_state_objects_are_mutable_containers_not_services"]},
     "NSL-CTX-206": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-206"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_206_external_services_are_not_execution_context_fields", "tests/test_runtime_context_and_determinism.py::test_rt_003_runtime_creates_an_isolated_execution_context_per_run"]},
-    "NSL-CTX-210": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-210"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_210_v02_request_exposes_distinct_runtime_and_business_identity", "tests/test_v0_2_runtime_context.py::test_execution_request_rejects_invalid_business_operation_identity", "tests/test_v0_2_runtime_context.py::test_execution_request_rejects_credentials_in_business_operation_id"]}
+    "NSL-CTX-210": {"status": "IMPLEMENTED", "target_slice": "0043", "verification": ["TEST-CTX-210"], "evidence": ["tests/test_v0_2_runtime_context.py::test_ctx_210_v02_request_exposes_distinct_runtime_and_business_identity", "tests/test_v0_2_runtime_context.py::test_execution_request_rejects_invalid_business_operation_identity", "tests/test_v0_2_runtime_context.py::test_execution_request_rejects_credentials_in_business_operation_id"]},
+    "NSL-CTX-207": {"status": "IMPLEMENTED", "target_slice": "0044", "verification": ["TEST-CTX-207"], "evidence": ["tests/test_v0_2_checkpoint_restore.py::test_ctx_207_restores_all_execution_local_state_and_injected_clock", "tests/test_v0_2_checkpoint_restore.py::test_ctx_207_default_clock_restore_and_empty_state_are_supported", "tests/test_v0_2_checkpoint_restore.py::test_restore_rejects_malformed_or_inconsistent_state"]},
+    "NSL-CTX-208": {"status": "IMPLEMENTED", "target_slice": "0044", "verification": ["TEST-CTX-208"], "evidence": ["tests/test_v0_2_checkpoint_restore.py::test_ctx_208_checkpoint_is_bound_to_skill_semantic_hash", "tests/test_v0_2_checkpoint_restore.py::test_checkpoint_rejects_invalid_integrity_value_and_tampering"]},
+    "NSL-CTX-209": {"status": "IMPLEMENTED", "target_slice": "0044", "verification": ["TEST-CTX-209"], "evidence": ["tests/test_v0_2_checkpoint_restore.py::test_ctx_209_preserves_business_approval_write_and_payload_identities", "tests/test_v0_2_checkpoint_restore.py::test_restore_rejects_tenant_principal_or_policy_mismatch"]}
   }
 }

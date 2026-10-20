@@ -38,13 +38,15 @@ traceability, commit, and synchronization unit.
 | Slice | Status | Title | Primary requirements | Governing decision | Completion boundary |
 |---|---|---|---|---|---|
 | 0043 | COMPLETE | Execution Identity and Context v0.2 | `NSL-CTX-201..206`, `NSL-CTX-210`, `NSL-ARC-211` | `CHG-003`, `CHG-009`, `CHG-027` | Execution identity and preserved Principal/DataPolicy are explicit; Approval, Write Journal, Idempotency, and Checkpoint state are isolated per execution; side-effecting external services are absent from `ExecutionContext`. |
-| 0044 | PLANNED | Checkpoint State and Restore | `NSL-CTX-207..209`, `RD-004` | `CHG-018` | A versioned immutable checkpoint is deterministically serialized, integrity-bound, restored once, and validated against semantic and business identities. |
+| 0044 | COMPLETE | Checkpoint State and Restore | `NSL-CTX-207..209` | `CHG-018` | A versioned immutable checkpoint is deterministically serialized, integrity-bound, and validated against semantic, security, and business identities before state restoration. |
 | 0045 | PLANNED | Execution Status and Structured Result | `NSL-STS-201..205`, `NSL-RSL-201..203`, `RD-008` | `CHG-008`, `CHG-022`, `CHG-030` | Durable suspend and reconciliation statuses plus additive v0.2 result summaries preserve every v0.1 result field and meaning. |
 | 0046 | PLANNED | Validation Summary and PreWriteEligibility | `NSL-WEL-001..005`, `NSL-WRT-005` | `CHG-007` | Deterministic validation aggregation produces typed pre-write eligibility, and WRITE entry rejects every result other than `ALLOWED`. |
 
 `RD-004` and `RD-008` are FROZEN implementation decisions, not additional SRS
 requirements. They constrain implementation and evidence without changing the
-123-requirement baseline or its fingerprint.
+123-requirement baseline or its fingerprint. The atomic single-consumer claim
+required by `RD-004` is owned by Slice 0049, and the commit uncertainty behavior
+required by `RD-008` is owned by Slice 0054.
 
 ## 4. Slice Boundaries
 
@@ -81,8 +83,15 @@ suite.
   applicable.
 - Restore Symbol, Check, Resource, Approval, Write, and Idempotency state with
   schema, integrity, and ownership validation.
-- Enforce a single-consumer claim/restore transition without owning a resume
-  queue or worker lifecycle.
+- Establish the monotonic checkpoint version token consumed by the atomic
+  single-consumer claim/restore transition in Slice 0049. Slice 0044 does not
+  own a Checkpoint Port, claim persistence, resume queue, or worker lifecycle.
+
+Slice 0044 completion evidence is maintained in
+`tests/test_v0_2_checkpoint_restore.py`, including deterministic round-trip,
+full execution-local state restoration, semantic/security/business binding,
+identity preservation, boundary values, and malformed or tampered checkpoint
+rejection.
 
 ### 4.3 Slice 0045
 

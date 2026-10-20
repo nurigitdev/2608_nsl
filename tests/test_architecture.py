@@ -20,6 +20,7 @@ LLM_MODULES = {
 RUNTIME_KERNEL_MODULES = {
     "audit.py",
     "builtins.py",
+    "checkpoints.py",
     "core.py",
     "data_protection.py",
     "ir.py",
