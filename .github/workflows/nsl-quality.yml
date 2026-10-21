@@ -46,6 +46,10 @@ jobs:
           .\.venv\Scripts\python.exe -m pip install --upgrade pip
           .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 
+      - name: Verify NeX Platform cryptography baseline
+        shell: pwsh
+        run: .\.venv\Scripts\python.exe -c "import cryptography; print(cryptography.__version__); assert cryptography.__version__ == '46.0.7'"
+
       - name: Run authoritative NSL quality gate
         id: quality
         shell: pwsh
@@ -72,6 +76,7 @@ jobs:
             "quality_outcome=${{ steps.quality.outcome }}"
             "wheel_outcome=${{ steps.wheel.outcome }}"
             "python=$(& .\.venv\Scripts\python.exe --version 2>&1)"
+            "cryptography=$(& .\.venv\Scripts\python.exe -c 'import cryptography; print(cryptography.__version__)' 2>&1)"
             "verified_at_utc=$((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))"
           ) | Set-Content -Path test\ci-freeze-evidence.txt -Encoding utf8
 
@@ -86,6 +91,7 @@ jobs:
           - Ref: ${{ github.ref }}
           - Runner: ${{ runner.os }}
           - Python: $(& .\.venv\Scripts\python.exe --version 2>&1)
+          - cryptography: $(& .\.venv\Scripts\python.exe -c 'import cryptography; print(cryptography.__version__)' 2>&1)
           - Quality gate outcome: ${{ steps.quality.outcome }}
           - Wheel gate outcome: ${{ steps.wheel.outcome }}
 

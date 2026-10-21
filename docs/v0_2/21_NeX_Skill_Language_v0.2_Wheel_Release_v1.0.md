@@ -21,7 +21,7 @@ Replay semantics and therefore does not rebaseline an SRS Requirement ID.
 |---|---|
 | Wheel | `nex_skill_language-0.2.0-py3-none-any.whl` |
 | Python | `>=3.12` |
-| Runtime dependency | `cryptography>=49.0.0,<50.0.0` |
+| Runtime dependency | `cryptography>=46.0.7,<47.0.0` |
 | Console entry point | `nsl = nsl.cli:main` |
 | NeX-Platform API | `nsl.api` |
 | Version API | `nsl.__version__`, `nsl.api.__version__` |
@@ -62,3 +62,9 @@ python -c "import nsl.api; print(nsl.api.__version__)"
 
 Production deployment must verify the published SHA-256 digest and pin the
 exact `0.2.0` artifact. Public PyPI publication is outside this release scope.
+
+Slice 0071 rebaselines the runtime dependency to the NeX Platform integration
+baseline `cryptography 46.0.7`. The `0.2.0` version remains unchanged because
+the earlier wheel was not distributed outside the repository. The replacement
+wheel is valid only after the Slice 0071 compatibility suite, full quality gate,
+and clean-environment installation smoke test pass with `cryptography 46.0.7`.

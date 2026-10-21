@@ -357,7 +357,7 @@ def test_arc_007_nsl_is_an_independent_python_package() -> None:
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert project["project"]["requires-python"] == ">=3.12"
     assert project["project"].get("dependencies", []) == [
-        "cryptography>=49.0.0,<50.0.0"
+        "cryptography>=46.0.7,<47.0.0"
     ]
     assert not violations, f"NSL depends on NeX-AE or web frameworks: {violations}"
 
@@ -673,7 +673,7 @@ def test_sec_011_cryptography_is_isolated_to_ed25519_adapter() -> None:
     dependencies = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
         "project"
     ]["dependencies"]
-    assert dependencies == ["cryptography>=49.0.0,<50.0.0"]
+    assert dependencies == ["cryptography>=46.0.7,<47.0.0"]
 
 
 def test_sec_004_runtime_has_no_arbitrary_filesystem_access() -> None:

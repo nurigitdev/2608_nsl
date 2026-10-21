@@ -25,7 +25,7 @@ from nsl._version import __version__
 
 DISTRIBUTION_NAME = "nex-skill-language"
 NORMALIZED_NAME = "nex_skill_language"
-EXPECTED_DEPENDENCY = "cryptography>=49.0.0,<50.0.0"
+EXPECTED_DEPENDENCY = "cryptography>=46.0.7,<47.0.0"
 EXPECTED_PYTHON = ">=3.12"
 EXPECTED_TAG = "py3-none-any"
 REPRODUCIBLE_BUILD_EPOCH = "315532800"

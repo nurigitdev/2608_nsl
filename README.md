@@ -24,7 +24,7 @@ controlled WRITE, Commit, Verification, Audit, Replay 실행 경계를 제공한
 ## Requirements
 
 - Python 3.12+
-- `cryptography>=49.0.0,<50.0.0` (wheel 설치 시 자동 설치)
+- `cryptography>=46.0.7,<47.0.0` (NeX Platform 호환 기준, wheel 설치 시 자동 설치)
 
 ## Install
 

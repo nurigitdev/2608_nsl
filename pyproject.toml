@@ -9,7 +9,7 @@ description = "Deterministic execution kernel for NeX Skills with controlled wri
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.12"
 dependencies = [
-    "cryptography>=49.0.0,<50.0.0",
+    "cryptography>=46.0.7,<47.0.0",
 ]
 
 [project.urls]

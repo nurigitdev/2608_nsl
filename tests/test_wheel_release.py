@@ -33,7 +33,7 @@ def _wheel(
     tmp_path: Path,
     *,
     metadata_version: str = "0.2.0",
-    dependency: str = "cryptography<50.0.0,>=49.0.0",
+    dependency: str = "cryptography<47.0.0,>=46.0.7",
     extra: tuple[tuple[str, bytes], ...] = (),
     omit: str | None = None,
     tamper_record_for: str | None = None,
@@ -97,6 +97,8 @@ def test_ci_uses_v020_identity_and_publishes_verified_wheel_evidence() -> None:
     assert "nsl-v0.2-quality-${{ github.ref }}" in workflow
     assert "nsl-v0.2-release-evidence-${{ github.sha }}" in workflow
     assert "tools\\wheel_release.py" in workflow
+    assert "Verify NeX Platform cryptography baseline" in workflow
+    assert "cryptography.__version__ == '46.0.7'" in workflow
     assert "dist/nex_skill_language-0.2.0-py3-none-any.whl" in workflow
     assert "nsl-v0.1-quality" not in workflow
 
@@ -109,14 +111,32 @@ def test_valid_release_wheel_has_approved_identity_and_integrity(tmp_path: Path)
     assert inspection.python_requirement == ">=3.12"
     assert inspection.tags == ("py3-none-any",)
     assert inspection.console_scripts == ("nsl=nsl.cli:main",)
+    assert inspection.runtime_dependencies == ("cryptography<47.0.0,>=46.0.7",)
     assert len(inspection.sha256) == 64
+
+
+@pytest.mark.parametrize(
+    "dependency",
+    [
+        "cryptography>=46.0.6,<47.0.0",
+        "cryptography>=46.0.7,<46.0.8",
+        "cryptography>=46.0.7,<47.0.1",
+        "cryptography>=47.0.0,<48.0.0",
+    ],
+)
+def test_release_wheel_rejects_dependency_range_boundaries(
+    tmp_path: Path,
+    dependency: str,
+) -> None:
+    with pytest.raises(WheelReleaseError, match="dependency set"):
+        inspect_wheel(_wheel(tmp_path, dependency=dependency))
 
 
 @pytest.mark.parametrize(
     ("change", "message"),
     [
         ({"metadata_version": "0.2.1"}, "metadata version"),
-        ({"dependency": "cryptography>=49.0.0"}, "dependency set"),
+        ({"dependency": "cryptography>=46.0.7"}, "dependency set"),
         ({"omit": "nsl/api/__init__.py"}, "missing required files"),
         ({"extra": (("tests/test_leak.py", b""),)}, "unexpected top-level content"),
         ({"extra": (("../escape.py", b""),)}, "unsafe archive path"),

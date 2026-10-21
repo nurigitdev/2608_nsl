@@ -99,9 +99,9 @@ Signature는 64-byte Ed25519 signature를 unpadded base64url로 표현한다. �
 
 `Ed25519PackageSigner`는 32-byte raw private key로 deterministic signature를 생성한다. `Ed25519TrustStore`는 사전에 등록된 `key_id -> 32-byte raw public key`만 신뢰하며 unknown key, wrong key, algorithm mismatch, malformed/modified signature를 모두 거부한다.
 
-암호 연산은 직접 구현하지 않고 공식 `cryptography 49.0.0`을 사용한다. 공식 문서가 설명하는 `Ed25519PrivateKey.sign()`과 `Ed25519PublicKey.verify()` 계약을 적용하며 invalid signature는 예외를 외부에 노출하지 않고 fail-closed 결과로 정규화한다.
+암호 연산은 직접 구현하지 않고 NeX Platform에서 검증한 공식 `cryptography 46.0.7`을 사용한다. 공식 문서가 설명하는 `Ed25519PrivateKey.sign()`과 `Ed25519PublicKey.verify()` 계약을 적용하며 invalid signature는 예외를 외부에 노출하지 않고 fail-closed 결과로 정규화한다.
 
-- Ed25519 API: https://cryptography.io/en/49.0.0/hazmat/primitives/asymmetric/ed25519/
+- Ed25519 API: https://cryptography.io/en/46.0.7/hazmat/primitives/asymmetric/ed25519/
 - Installation: https://cryptography.io/en/latest/installation/
 
 Production private key는 Source, NSO, NSP, Audit에 저장하지 않는다. 배포 환경은 KMS/Vault/remote signer port를 사용해야 하며 raw-key signer는 deterministic local integration과 adapter contract를 제공한다.
