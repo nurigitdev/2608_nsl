@@ -1,5 +1,6 @@
 """Stable framework-neutral API for NeX-AE Worker integration."""
 
+from .._version import __version__
 from ..approval import (
     ApprovalClock,
     ApprovalEvidence,
@@ -152,6 +153,7 @@ from ..write_intent import (
 )
 
 __all__ = [
+    "__version__",
     "ApprovalClock",
     "ApprovalEvidence",
     "ApprovalEvidenceVerifier",

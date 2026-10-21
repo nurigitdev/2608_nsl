@@ -1,8 +1,9 @@
-# NeX Skill Language
+# NeX Skill Language v0.2
 
 NSL은 NeX-AE가 선택한 업무 Skill을 제한된 규칙과 Canonical Tool Contract로 실행하는 Deterministic Execution Kernel이다.
 
-현재 저장소에는 `FINANCE.PROJECT_BUDGET_CHECK` Vertical Slice가 구현되어 있다.
+NSL v0.2 release는 이전 v0.1 READ 실행과의 호환성을 유지하면서 Approval,
+controlled WRITE, Commit, Verification, Audit, Replay 실행 경계를 제공한다.
 
 ```text
 .ns Source
@@ -23,9 +24,30 @@ NSL은 NeX-AE가 선택한 업무 Skill을 제한된 규칙과 Canonical Tool Co
 ## Requirements
 
 - Python 3.12+
-- Runtime dependency 없음
+- `cryptography>=49.0.0,<50.0.0` (wheel 설치 시 자동 설치)
 
-## Run
+## Install
+
+NeX-Platform은 승인된 내부 Artifact Repository의 NSL wheel을 정확한 버전으로
+설치하고 framework-neutral API인 `nsl.api`를 통해 연동한다.
+
+```powershell
+python -m pip install nex_skill_language-0.2.0-py3-none-any.whl
+python -c "import nsl.api; print(nsl.api.__version__)"
+```
+
+Release wheel 생성과 무결성 검증은 다음 명령으로 수행한다.
+
+```powershell
+.\.venv\Scripts\python.exe tools\wheel_release.py
+```
+
+검증된 wheel과 동일 이름의 `.sha256` 파일이 `dist`에 생성된다.
+
+## Source Checkout Demo
+
+The repository example files are intentionally not bundled in the Runtime
+wheel. From a Source checkout, run the v0.1 compatibility demonstration with:
 
 ```powershell
 python -m nsl.vertical_slice
@@ -71,9 +93,12 @@ CLI의 JSON stdout과 stderr는 key 순서를 고정한 2-space pretty JSON으�
 .\.venv\Scripts\python.exe tools\run_quality.py
 ```
 
-`tools/run_quality.py` executes one pytest regression run with statement and branch coverage. Pytest uses the repository-local `test/` directory for temporary files and coverage reports. The quality gate requires statement coverage >= 95% and branch coverage >= 90%.
+`tools/run_quality.py` executes one pytest regression run with statement and branch coverage. Pytest uses the repository-local `test/` directory for temporary files and coverage reports. The v0.2 quality gate requires statement coverage >= 99% and branch coverage >= 98%.
 
-Before pytest, the command validates all 325 SRS Requirement IDs against `requirements/nsl_v0_1_traceability.json` and all 15 Slice 0031 extension requirements against `requirements/nsl_cli_local_execution_extension.json`. Requirement text or priority changes, missing Slice/Test mappings, and unsupported status claims fail the same quality gate.
+Before pytest, the command validates the v0.1 and v0.2 SRS traceability baselines,
+the v0.2 readiness and acceptance baselines, and all 15 Slice 0031 extension
+requirements. Requirement text or priority changes, missing Slice/Test mappings,
+and unsupported status claims fail the same quality gate.
 
 ## Business Controls Showcase
 
@@ -110,7 +135,7 @@ The suite covers:
 - deterministic Symbol IDs and explicit foreach Scope frames
 - duplicate, use-before-declaration, escaped iterator, and shadowing rejection
 - CHECK result resolution only after declaration
-- complete NSL v0.1 source type parsing, including recursive `List<T>`
+- backward-compatible NSL v0.1 source type parsing, including recursive `List<T>`
 - Tool result, collection element, projection, and binding type propagation
 - exact Decimal literals without binary floating point types
 - strict Bool assertions, comparisons, and negative truthiness cases
@@ -132,8 +157,17 @@ The Runtime has no direct filesystem, network, SQL, Web Framework, NeX-AE, or LL
 
 ## Current Scope
 
-The current parser and IR implement the acceptance slice needed by `PROJECT_BUDGET_CHECK`. They are not yet the complete NSL v0.1 language implementation. Slice 0002 establishes the verifiable SRS baseline, Slice 0003 fixes the Safe Architecture and Diagnostics boundary, Slice 0004 fixes the Source Model and Lexer contract, Slice 0005 fixes Parser and AST conformance, Slice 0006 adds secure Include resolution and structured composition, Slice 0007 fixes Symbol and Scope semantics, Slice 0008 fixes Static Type and Bool Strictness semantics, and Slice 0009 fixes Decimal Money and Currency semantics. SourceSpan propagation is complete through Symbol/Scope and type diagnostics; some tool declaration, tool argument-set, and resource-bound Semantic Diagnostics remain `PARTIAL` for a later Semantic Slice.
+NSL v0.2 supports deterministic compile and execution for READ validation and
+single controlled WRITE flows with Approval suspend/resume, idempotency,
+preflight policy enforcement, commit outcome handling, post-write verification,
+persistent Audit, and no-live-write Replay. The wheel exposes the stable
+NeX-Platform integration contracts through `nsl.api`.
 
-Include Sources are supplied through an injected `IncludeResolver`. Compiler Core performs canonical path validation and enforces configurable depth, file-count, and UTF-8 byte limits; it does not read the filesystem directly. Include dependency metadata remains in `CompilationResult` and is removed before immutable Runtime IR is produced.
+Include Sources are supplied through an injected `IncludeResolver`. Compiler
+Core performs canonical path validation and enforces depth, file-count, and
+UTF-8 byte limits without direct filesystem access. Runtime business access is
+performed only through injected ports.
 
-Workflow Language, multi-Skill orchestration, WRITE, and APPROVAL are outside the current scope. Scheduled execution is a NeX Platform extension that repeatedly submits one registered Skill through the same execution path; it is not NSL syntax or IR.
+Workflow Language and multi-Skill orchestration remain outside NSL. Scheduled
+execution is a NeX-Platform extension that repeatedly submits one registered
+Skill through the same execution path; it is not NSL syntax or IR.

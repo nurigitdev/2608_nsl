@@ -1,4 +1,6 @@
-"""NeX Skill Language vertical-slice implementation."""
+"""NeX Skill Language deterministic execution kernel."""
+
+from ._version import __version__
 
 from .compiler import CompilationResult, NslCompiler
 from .diagnostics import (
@@ -69,6 +71,7 @@ from .verification import (
 )
 
 __all__ = [
+    "__version__",
     "CompileError",
     "CompilationResult",
     "ControlledExecutionPlan",

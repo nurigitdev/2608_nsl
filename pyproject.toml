@@ -4,18 +4,25 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nex-skill-language"
-version = "0.1.0"
-description = "Deterministic execution kernel for NeX Skills"
+dynamic = ["version"]
+description = "Deterministic execution kernel for NeX Skills with controlled write approval"
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.12"
 dependencies = [
     "cryptography>=49.0.0,<50.0.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/nurigitdev/2608_nsl"
 
 [project.scripts]
 nsl = "nsl.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["nsl*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "nsl._version.__version__" }
 
 [tool.pytest.ini_options]
 minversion = "8.3"
