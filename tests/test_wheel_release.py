@@ -99,6 +99,8 @@ def test_ci_uses_v020_identity_and_publishes_verified_wheel_evidence() -> None:
     assert "tools\\wheel_release.py" in workflow
     assert "Verify NeX Platform cryptography baseline" in workflow
     assert "cryptography.__version__ == '46.0.7'" in workflow
+    assert "runs-on: ubuntu-latest" in workflow
+    assert "./.venv/bin/python tools/run_quality.py" in workflow
     assert "dist/nex_skill_language-0.2.0-py3-none-any.whl" in workflow
     assert "nsl-v0.1-quality" not in workflow
 

@@ -141,7 +141,7 @@ def test_cli_001_parse_rejects_invalid_utf8_syntax_and_missing_file(tmp_path) ->
     }
 
 
-def test_cli_001_parse_usage_and_serialization_boundaries() -> None:
+def test_cli_001_parse_usage_and_serialization_boundaries(tmp_path: Path) -> None:
     code, output, error = invoke()
     assert code == CLIExitCode.USAGE_ERROR
     assert output is None
@@ -152,6 +152,20 @@ def test_cli_001_parse_usage_and_serialization_boundaries() -> None:
     }
     assert _safe_os_message(PermissionError()) == "permission denied"
     assert _safe_os_message(OSError()) == "file operation failed"
+
+    directory = tmp_path / "directory"
+    directory.mkdir()
+    regular_file = tmp_path / "regular-file"
+    regular_file.write_bytes(b"")
+    assert _safe_os_message(IsADirectoryError()) == "file operation failed"
+    assert (
+        _safe_os_message(PermissionError(13, "denied", str(directory)))
+        == "file operation failed"
+    )
+    assert (
+        _safe_os_message(PermissionError(13, "denied", str(regular_file)))
+        == "permission denied"
+    )
 
 
 def test_cli_001_module_entry_point(tmp_path, monkeypatch, capsys) -> None:
@@ -350,7 +364,7 @@ def test_cli_003_compile_reports_output_io_failure(tmp_path) -> None:
     assert code == CLIExitCode.IO_ERROR
     assert output is None
     assert error == {
-        "error": {"code": "CLI_IO_ERROR", "message": "permission denied"}
+        "error": {"code": "CLI_IO_ERROR", "message": "file operation failed"}
     }
 
 

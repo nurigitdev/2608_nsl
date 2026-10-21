@@ -82,6 +82,6 @@ adapter and signed-package trust requirements.
 Replacement artifact:
 
 - Wheel: `nex_skill_language-0.2.0-py3-none-any.whl`
-- Size: `194346` bytes
-- SHA-256: `d23b6735a3c27c00afd189d1e3a20cd00758dc2d732caf9285653bfeb44d218a`
+- Size: `194397` bytes
+- SHA-256: `92f993d5b4093d2c9b6a2785e390abdae616b9219faeab3e1d62fea44a5ed260`
 - Runtime dependency: `cryptography<47.0.0,>=46.0.7`

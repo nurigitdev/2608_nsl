@@ -955,6 +955,11 @@ def _write_error(
 def _safe_os_message(error: OSError) -> str:
     if isinstance(error, FileNotFoundError):
         return "file not found"
+    if isinstance(error, IsADirectoryError):
+        return "file operation failed"
     if isinstance(error, PermissionError):
+        filename = error.filename
+        if isinstance(filename, str) and Path(filename).is_dir():
+            return "file operation failed"
         return "permission denied"
     return "file operation failed"

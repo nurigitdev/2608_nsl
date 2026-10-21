@@ -115,6 +115,11 @@ Standalone CLI에는 KMS/Vault key provider가 없으므로 `.nsr` 평문 파일
 
 오류는 stderr에 `{"error":{"code","message","details?"}}` 형태로 출력한다. Runtime 실패의 검증된 `ExecutionResult`와 Replay difference는 `details`에 포함하지만 내부 exception text와 credential은 노출하지 않는다.
 
+Slice 0072에서 디렉터리를 파일 출력 경로로 지정한 오류는 운영체제의
+`PermissionError` 또는 `IsADirectoryError` 차이와 무관하게
+`file operation failed`로 정규화한다. 실제 권한 거부만 `permission denied`로
+반환한다.
+
 Slice 0031에서 추가된 local profile, dry-run, evidence, isolation과 scenario
 runner의 상세 계약은 `38_NSL_v0.1_CLI_Local_Execution_Profile_and_Scenario_Runner.md`를
 따른다. 이 기능은 CLI orchestration extension이며 NSL Syntax, AST, IR을 변경하지
