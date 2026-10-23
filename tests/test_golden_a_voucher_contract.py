@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples/golden_a_voucher_draft"
 SEMANTIC_HASH = (
-    "sha256:9b7b7b3bffaf3263487b1ff2be4682e8c3e049d2fbc189a23dea64da74e6e7ca"
+    "sha256:b6ba60f6ae681dc754b6d304fcf7c99794a48e88429c698afd9d12afcb90a8fc"
 )
 PAYLOAD_HASH = "sha256:240a7e83a1b3355ba98b5473cc239f1aea6a318b17e53e385c01837666fb8eb9"
 
@@ -40,6 +40,9 @@ def test_golden_a_v11_write_contract_contains_only_canonical_business_payload() 
 
     assert [item["name"] for item in write["inputs"]] == expected
     assert [item["name"] for item in resolver["output"]["fields"]] == expected
+    assert write["write_semantics"]["verification"]["tool_id"] == (
+        "FINANCE.GET_VOUCHER_DRAFT"
+    )
     assert not {
         "nsl_approval_request_id",
         "nsl_approval_evidence_ref",

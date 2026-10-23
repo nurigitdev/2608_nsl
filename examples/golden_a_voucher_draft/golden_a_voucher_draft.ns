@@ -10,7 +10,7 @@ skill FINANCE.VOUCHER_DRAFT_CREATE {
         tool FINANCE.GET_ACCOUNTING_PERIOD version "1.0.0";
         tool FINANCE.RESOLVE_VOUCHER_DRAFT_COMMAND version "1.0.0";
         tool FINANCE.CREATE_VOUCHER_DRAFT version "1.1.0";
-        tool FINANCE.GET_VOUCHER version "1.0.0";
+        tool FINANCE.GET_VOUCHER_DRAFT version "1.0.0";
     }
 
     limits {

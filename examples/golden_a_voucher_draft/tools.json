@@ -278,7 +278,7 @@
         "approval": {"required": true},
         "preconditions": {"supported": true},
         "verification": {
-          "tool_id": "FINANCE.GET_VOUCHER",
+          "tool_id": "FINANCE.GET_VOUCHER_DRAFT",
           "reference_schema": {
             "kind": "record",
             "name": "VoucherDraft",
@@ -291,7 +291,7 @@
       }
     },
     {
-      "tool_id": "FINANCE.GET_VOUCHER",
+      "tool_id": "FINANCE.GET_VOUCHER_DRAFT",
       "version": "1.0.0",
       "capability": "READ",
       "inputs": [
