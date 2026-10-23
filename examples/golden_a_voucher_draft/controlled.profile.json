@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "program": "golden_a_voucher_draft.ns",
+  "principal": "principal_write.json",
+  "tool_contracts": "tools.json",
+  "input": "input.json",
+  "context": "context.json",
+  "fixture": "fixtures/success.json",
+  "execution": {
+    "isolate": false,
+    "timeout_ms": 30000,
+    "environment": "DEVELOPMENT",
+    "fake_approval": true
+  }
+}

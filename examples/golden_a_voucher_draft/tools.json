@@ -1,0 +1,312 @@
+{
+  "tools": [
+    {
+      "tool_id": "ACCOUNT.GET_ACCOUNT",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "account_code", "type": {"kind": "domain", "name": "AccountCode"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "Account",
+        "fields": [
+          {"name": "account_code", "type": {"kind": "domain", "name": "AccountCode"}},
+          {"name": "status", "type": {"kind": "primitive", "name": "String"}}
+        ]
+      },
+      "required_scope": "finance:voucher:validate",
+      "risk_level": "R1",
+      "output_classification": "INTERNAL"
+    },
+    {
+      "tool_id": "PROJECT.GET_PROJECT",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "Project",
+        "fields": [
+          {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+          {"name": "status", "type": {"kind": "primitive", "name": "String"}}
+        ]
+      },
+      "required_scope": "finance:voucher:validate",
+      "risk_level": "R1",
+      "output_classification": "INTERNAL"
+    },
+    {
+      "tool_id": "FINANCE.GET_ACCOUNTING_PERIOD",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "accounting_period", "type": {"kind": "domain", "name": "AccountingPeriod"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "AccountingPeriodState",
+        "fields": [
+          {"name": "accounting_period", "type": {"kind": "domain", "name": "AccountingPeriod"}},
+          {"name": "open", "type": {"kind": "primitive", "name": "Bool"}}
+        ]
+      },
+      "required_scope": "finance:voucher:validate",
+      "risk_level": "R1",
+      "output_classification": "INTERNAL"
+    },
+    {
+      "tool_id": "FINANCE.RESOLVE_VOUCHER_DRAFT_COMMAND",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "account_code", "type": {"kind": "domain", "name": "AccountCode"}},
+        {"name": "counter_account_code", "type": {"kind": "domain", "name": "AccountCode"}},
+        {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+        {"name": "accounting_period", "type": {"kind": "domain", "name": "AccountingPeriod"}},
+        {"name": "amount", "type": {"kind": "money", "currency": "KRW"}},
+        {"name": "transaction_date", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "voucher_type", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "economic_category", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "settlement_method", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "description_text", "type": {"kind": "primitive", "name": "String"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "CanonicalVoucherDraftCommand",
+        "fields": [
+          {"name": "schema_version", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+          {
+            "name": "requester_ref",
+            "type": {
+              "kind": "record",
+              "name": "RequesterRef",
+              "fields": [
+                {"name": "type", "type": {"kind": "primitive", "name": "String"}},
+                {"name": "id", "type": {"kind": "primitive", "name": "String"}}
+              ]
+            }
+          },
+          {
+            "name": "project_ref",
+            "type": {
+              "kind": "record",
+              "name": "ProjectRef",
+              "fields": [
+                {"name": "type", "type": {"kind": "primitive", "name": "String"}},
+                {"name": "id", "type": {"kind": "primitive", "name": "String"}}
+              ]
+            }
+          },
+          {"name": "voucher_type", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "transaction_date", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "currency", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "description_text", "type": {"kind": "primitive", "name": "String"}},
+          {
+            "name": "lines",
+            "type": {
+              "kind": "list",
+              "item": {
+                "kind": "record",
+                "name": "VoucherLine",
+                "fields": [
+                  {"name": "line_no", "type": {"kind": "primitive", "name": "Int"}},
+                  {
+                    "name": "account_ref",
+                    "type": {
+                      "kind": "record",
+                      "name": "AccountRef",
+                      "fields": [
+                        {"name": "type", "type": {"kind": "primitive", "name": "String"}},
+                        {"name": "id", "type": {"kind": "primitive", "name": "String"}}
+                      ]
+                    }
+                  },
+                  {"name": "signed_amount", "type": {"kind": "primitive", "name": "String"}},
+                  {"name": "economic_category", "type": {"kind": "primitive", "name": "String"}},
+                  {"name": "description", "type": {"kind": "primitive", "name": "String"}},
+                  {
+                    "name": "evidence_refs",
+                    "type": {
+                      "kind": "list",
+                      "item": {"kind": "primitive", "name": "String"}
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "attachments",
+            "type": {
+              "kind": "list",
+              "item": {
+                "kind": "record",
+                "name": "VoucherAttachment",
+                "fields": [
+                  {"name": "attachment_id", "type": {"kind": "primitive", "name": "String"}},
+                  {"name": "object_ref", "type": {"kind": "primitive", "name": "String"}},
+                  {"name": "display_name", "type": {"kind": "primitive", "name": "String"}},
+                  {"name": "media_type", "type": {"kind": "primitive", "name": "String"}},
+                  {"name": "size_bytes", "type": {"kind": "primitive", "name": "Int"}},
+                  {"name": "content_sha256", "type": {"kind": "primitive", "name": "String"}},
+                  {"name": "evidence_ref", "type": {"kind": "primitive", "name": "String"}}
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "required_scope": "finance:voucher:resolve",
+      "risk_level": "R1",
+      "output_classification": "CONFIDENTIAL"
+    },
+    {
+      "tool_id": "FINANCE.CREATE_VOUCHER_DRAFT",
+      "version": "1.1.0",
+      "capability": "WRITE",
+      "operation_kind": "CREATE_DRAFT",
+      "inputs": [
+        {"name": "schema_version", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {
+          "name": "requester_ref",
+          "type": {
+            "kind": "record",
+            "name": "RequesterRef",
+            "fields": [
+              {"name": "type", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "id", "type": {"kind": "primitive", "name": "String"}}
+            ]
+          }
+        },
+        {
+          "name": "project_ref",
+          "type": {
+            "kind": "record",
+            "name": "ProjectRef",
+            "fields": [
+              {"name": "type", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "id", "type": {"kind": "primitive", "name": "String"}}
+            ]
+          }
+        },
+        {"name": "voucher_type", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "transaction_date", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "currency", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "description_text", "type": {"kind": "primitive", "name": "String"}},
+        {
+          "name": "lines",
+          "type": {
+            "kind": "list",
+            "item": {
+              "kind": "record",
+              "name": "VoucherLine",
+              "fields": [
+                {"name": "line_no", "type": {"kind": "primitive", "name": "Int"}},
+                {
+                  "name": "account_ref",
+                  "type": {
+                    "kind": "record",
+                    "name": "AccountRef",
+                    "fields": [
+                      {"name": "type", "type": {"kind": "primitive", "name": "String"}},
+                      {"name": "id", "type": {"kind": "primitive", "name": "String"}}
+                    ]
+                  }
+                },
+                {"name": "signed_amount", "type": {"kind": "primitive", "name": "String"}},
+                {"name": "economic_category", "type": {"kind": "primitive", "name": "String"}},
+                {"name": "description", "type": {"kind": "primitive", "name": "String"}},
+                {
+                  "name": "evidence_refs",
+                  "type": {
+                    "kind": "list",
+                    "item": {"kind": "primitive", "name": "String"}
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "attachments",
+          "type": {
+            "kind": "list",
+            "item": {
+              "kind": "record",
+              "name": "VoucherAttachment",
+              "fields": [
+                {"name": "attachment_id", "type": {"kind": "primitive", "name": "String"}},
+                {"name": "object_ref", "type": {"kind": "primitive", "name": "String"}},
+                {"name": "display_name", "type": {"kind": "primitive", "name": "String"}},
+                {"name": "media_type", "type": {"kind": "primitive", "name": "String"}},
+                {"name": "size_bytes", "type": {"kind": "primitive", "name": "Int"}},
+                {"name": "content_sha256", "type": {"kind": "primitive", "name": "String"}},
+                {"name": "evidence_ref", "type": {"kind": "primitive", "name": "String"}}
+              ]
+            }
+          }
+        }
+      ],
+      "output": {
+        "kind": "record",
+        "name": "VoucherDraft",
+        "fields": [
+          {"name": "voucher_no", "type": {"kind": "primitive", "name": "String"}}
+        ]
+      },
+      "required_scope": "finance:voucher:write",
+      "risk_level": "R3",
+      "output_classification": "CONFIDENTIAL",
+      "write_semantics": {
+        "side_effect": true,
+        "atomicity": "ATOMIC",
+        "idempotency": {
+          "required": true,
+          "scope": "TOOL_AND_TENANT",
+          "retention": "PROVIDER_DEFINED",
+          "duplicate_behavior": "RETURN_ORIGINAL_RESULT",
+          "payload_conflict_behavior": "IDEMPOTENCY_CONFLICT"
+        },
+        "commit": {"confirmation": "EXPLICIT"},
+        "approval": {"required": true},
+        "preconditions": {"supported": true},
+        "verification": {
+          "tool_id": "FINANCE.GET_VOUCHER",
+          "reference_schema": {
+            "kind": "record",
+            "name": "VoucherDraft",
+            "fields": [
+              {"name": "voucher_no", "type": {"kind": "primitive", "name": "String"}}
+            ]
+          },
+          "consistency_hint": "READ_AFTER_WRITE_STRONG"
+        }
+      }
+    },
+    {
+      "tool_id": "FINANCE.GET_VOUCHER",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "voucher_no", "type": {"kind": "primitive", "name": "String"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "VoucherDraft",
+        "fields": [
+          {"name": "voucher_no", "type": {"kind": "primitive", "name": "String"}}
+        ]
+      },
+      "required_scope": "finance:voucher:verify",
+      "risk_level": "R1",
+      "output_classification": "CONFIDENTIAL"
+    }
+  ]
+}

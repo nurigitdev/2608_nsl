@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "tool_id": "ACCOUNT.GET_ACCOUNT",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"account_code": "TRAVEL"},
+          "result": {"account_code": "TRAVEL", "status": "ACTIVE"}
+        }
+      ]
+    },
+    {
+      "tool_id": "PROJECT.GET_PROJECT",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"project_code": "PROJECT-A-2"},
+          "result": {"project_code": "PROJECT-A-2", "status": "ACTIVE"}
+        }
+      ]
+    },
+    {
+      "tool_id": "FINANCE.GET_ACCOUNTING_PERIOD",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {"accounting_period": "2026-10"},
+          "result": {"accounting_period": "2026-10", "open": true}
+        }
+      ]
+    },
+    {
+      "tool_id": "FINANCE.RESOLVE_VOUCHER_DRAFT_COMMAND",
+      "version": "1.0.0",
+      "cases": [
+        {
+          "arguments": {
+            "tenant_id": "p8-golden-a",
+            "requester_id": "employee-1001",
+            "account_code": "TRAVEL",
+            "counter_account_code": "CASH",
+            "project_code": "PROJECT-A-2",
+            "accounting_period": "2026-10",
+            "amount": {"$type": "Money", "amount": "84000.00", "currency": "KRW"},
+            "transaction_date": "2026-10-23",
+            "voucher_type": "GENERAL",
+            "economic_category": "TRAVEL",
+            "settlement_method": "CASH",
+            "description_text": "Golden A travel expense draft"
+          },
+          "result": {
+            "schema_version": "eos_create_voucher_draft_command.v1",
+            "tenant_id": "p8-golden-a",
+            "requester_ref": {"type": "oa.user", "id": "employee-1001"},
+            "project_ref": {
+              "type": "eos.project",
+              "id": "82000000-0000-4000-8000-000000000001"
+            },
+            "voucher_type": "GENERAL",
+            "transaction_date": "2026-10-23",
+            "currency": "KRW",
+            "description_text": "Golden A travel expense draft",
+            "lines": [
+              {
+                "line_no": 1,
+                "account_ref": {
+                  "type": "eos.account",
+                  "id": "83000000-0000-4000-8000-000000000001"
+                },
+                "signed_amount": "84000.00",
+                "economic_category": "TRAVEL",
+                "description": "Golden A travel expense",
+                "evidence_refs": ["policy:golden-a.travel.cash.v1"]
+              },
+              {
+                "line_no": 2,
+                "account_ref": {
+                  "type": "eos.account",
+                  "id": "83000000-0000-4000-8000-000000000002"
+                },
+                "signed_amount": "-84000.00",
+                "economic_category": "CASH",
+                "description": "Golden A cash settlement",
+                "evidence_refs": ["policy:golden-a.travel.cash.v1"]
+              }
+            ],
+            "attachments": []
+          }
+        }
+      ]
+    }
+  ]
+}

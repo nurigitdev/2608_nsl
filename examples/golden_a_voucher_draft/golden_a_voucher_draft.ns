@@ -1,0 +1,116 @@
+language NSL "0.2";
+
+skill FINANCE.VOUCHER_DRAFT_CREATE {
+    version "1.1.0";
+    risk WRITE;
+
+    requires {
+        tool ACCOUNT.GET_ACCOUNT version "1.0.0";
+        tool PROJECT.GET_PROJECT version "1.0.0";
+        tool FINANCE.GET_ACCOUNTING_PERIOD version "1.0.0";
+        tool FINANCE.RESOLVE_VOUCHER_DRAFT_COMMAND version "1.0.0";
+        tool FINANCE.CREATE_VOUCHER_DRAFT version "1.1.0";
+        tool FINANCE.GET_VOUCHER version "1.0.0";
+    }
+
+    limits {
+        tool_calls 6;
+        loop_iterations 1;
+        emitted_rows 1;
+        collection_size 1000;
+    }
+
+    input {
+        tenant_id: String classification INTERNAL;
+        requester_id: String classification INTERNAL;
+        account_code: AccountCode classification INTERNAL;
+        counter_account_code: AccountCode classification INTERNAL;
+        project_code: ProjectCode classification INTERNAL;
+        accounting_period: AccountingPeriod classification INTERNAL;
+        amount: Money<KRW> classification CONFIDENTIAL;
+        transaction_date: String classification INTERNAL;
+        voucher_type: String classification INTERNAL;
+        economic_category: String classification INTERNAL;
+        settlement_method: String classification INTERNAL;
+        description_text: String classification CONFIDENTIAL;
+    }
+
+    context {
+        minimum_voucher_amount: Money<KRW>
+            from "policy.minimum_voucher_amount"
+            classification INTERNAL;
+    }
+
+    output {
+        voucher_no: String classification CONFIDENTIAL;
+    }
+
+    let account = read ACCOUNT.GET_ACCOUNT(account_code: account_code);
+    let project = read PROJECT.GET_PROJECT(project_code: project_code);
+    let period = read FINANCE.GET_ACCOUNTING_PERIOD(
+        accounting_period: accounting_period
+    );
+    let command = read FINANCE.RESOLVE_VOUCHER_DRAFT_COMMAND(
+        tenant_id: tenant_id,
+        requester_id: requester_id,
+        account_code: account_code,
+        counter_account_code: counter_account_code,
+        project_code: project_code,
+        accounting_period: accounting_period,
+        amount: amount,
+        transaction_date: transaction_date,
+        voucher_type: voucher_type,
+        economic_category: economic_category,
+        settlement_method: settlement_method,
+        description_text: description_text
+    );
+
+    check ACCOUNT_VALID {
+        assert account.status == "ACTIVE";
+        severity ERROR;
+        on_fail REPORT;
+        message "The voucher account must be active.";
+    }
+
+    check PROJECT_VALID {
+        assert project.status == "ACTIVE";
+        severity ERROR;
+        on_fail REPORT;
+        message "The voucher project must be active.";
+    }
+
+    check PERIOD_OPEN {
+        assert period.open == true;
+        severity ERROR;
+        on_fail REPORT;
+        message "The accounting period must be open.";
+    }
+
+    check AMOUNT_VALID {
+        assert amount >= minimum_voucher_amount;
+        severity ERROR;
+        on_fail REPORT;
+        message "The voucher amount must meet the minimum amount.";
+    }
+
+    approve CREATE_VOUCHER_DRAFT {
+        message "Create the canonical Golden A voucher draft?";
+    }
+
+    let voucher = write FINANCE.CREATE_VOUCHER_DRAFT(
+        schema_version = command.schema_version,
+        tenant_id = command.tenant_id,
+        requester_ref = command.requester_ref,
+        project_ref = command.project_ref,
+        voucher_type = command.voucher_type,
+        transaction_date = command.transaction_date,
+        currency = command.currency,
+        description_text = command.description_text,
+        lines = command.lines,
+        attachments = command.attachments
+    ) approved_by CREATE_VOUCHER_DRAFT;
+
+    emit {
+        voucher_no: voucher.voucher_no;
+    }
+}

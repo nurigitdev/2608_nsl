@@ -1,0 +1,16 @@
+{
+  "tenant_id": "p8-golden-a",
+  "subject_id": "employee-1001",
+  "actor_type": "USER",
+  "roles": ["EMPLOYEE"],
+  "scopes": [
+    "nsl:skill:execute",
+    "finance:voucher:validate",
+    "finance:voucher:resolve",
+    "finance:voucher:write",
+    "finance:voucher:verify",
+    "nsl:replay:read"
+  ],
+  "auth_context_ref": "auth-golden-a-voucher-001",
+  "verification": "VERIFIED"
+}
