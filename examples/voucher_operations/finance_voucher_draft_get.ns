@@ -1,0 +1,41 @@
+language NSL "0.2";
+
+skill FINANCE.VOUCHER_DRAFT.GET {
+    version "1.0.0";
+    risk READ_ONLY;
+    requires { tool FINANCE.VOUCHER_DRAFT.GET version "1.0.0"; }
+    limits {
+        tool_calls 1;
+        loop_iterations 1;
+        emitted_rows 1;
+        collection_size 1;
+    }
+    input {
+        tenant_id: String classification INTERNAL;
+        requester_subject_id: String classification INTERNAL;
+        voucher_id: String classification INTERNAL;
+    }
+    output {
+        voucher_id: String classification INTERNAL;
+        project_id: String classification INTERNAL;
+        transaction_date: String classification INTERNAL;
+        description_text: String classification INTERNAL;
+        currency: String classification INTERNAL;
+        state: String classification INTERNAL;
+        entity_version: Int classification INTERNAL;
+    }
+    let voucher = read FINANCE.VOUCHER_DRAFT.GET(
+        tenant_id: tenant_id,
+        requester_subject_id: requester_subject_id,
+        voucher_id: voucher_id
+    );
+    emit {
+        voucher_id: voucher.voucher_id;
+        project_id: voucher.project_id;
+        transaction_date: voucher.transaction_date;
+        description_text: voucher.description_text;
+        currency: voucher.currency;
+        state: voucher.state;
+        entity_version: voucher.entity_version;
+    }
+}

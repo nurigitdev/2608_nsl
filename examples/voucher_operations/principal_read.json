@@ -1,0 +1,9 @@
+{
+  "tenant_id": "p8-voucher-read",
+  "subject_id": "employee-1001",
+  "actor_type": "USER",
+  "roles": ["PROJECT_MEMBER"],
+  "scopes": ["nsl:skill:execute", "finance:voucher-draft:read"],
+  "auth_context_ref": "auth-p8-voucher-read-001",
+  "verification": "VERIFIED"
+}

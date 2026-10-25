@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "tool_id": "FINANCE.VOUCHER_DRAFT.GET",
+      "version": "1.0.0",
+      "cases": [{
+        "arguments": {
+          "tenant_id": "p8-voucher-read",
+          "requester_subject_id": "employee-1001",
+          "voucher_id": "94000000-0000-4000-8000-000000000001"
+        },
+        "result": {
+        "voucher_id": "94000000-0000-4000-8000-000000000001",
+        "project_id": "92000000-0000-4000-8000-000000000001",
+        "transaction_date": "2026-10-25",
+        "description_text": "Project travel expense",
+        "currency": "KRW",
+        "state": "DRAFT",
+        "entity_version": 1
+        }
+      }]
+    },
+    {
+      "tool_id": "FINANCE.VOUCHER_DRAFT.LIST",
+      "version": "1.0.0",
+      "cases": [{
+        "arguments": {
+          "tenant_id": "p8-voucher-read",
+          "requester_subject_id": "employee-1001",
+          "project_id": "92000000-0000-4000-8000-000000000001",
+          "limit": 100,
+          "offset": 0
+        },
+        "result": [
+        {
+          "voucher_id": "94000000-0000-4000-8000-000000000001",
+          "project_id": "92000000-0000-4000-8000-000000000001",
+          "transaction_date": "2026-10-25",
+          "description_text": "Project travel expense",
+          "currency": "KRW",
+          "state": "DRAFT",
+          "entity_version": 1
+        }
+        ]
+      }]
+    }
+  ]
+}
