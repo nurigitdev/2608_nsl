@@ -1,0 +1,33 @@
+{
+  "schema_version": "nsl_project_operation_artifact_set.v1",
+  "artifact_set_version": "1.0.0",
+  "language_version": "0.2",
+  "runtime_package_version": "0.2.0",
+  "tool_catalog": {
+    "path": "tools.json",
+    "sha256": "sha256:9adee5c5c3a7edcadafb92de6ccca598c06ca249ca17254e79d5cc6aafa0ffa3"
+  },
+  "skills": [
+    {
+      "skill_id": "PROJECT.PROJECT.GET",
+      "skill_version": "1.0.0",
+      "path": "project_project_get.ns",
+      "source_sha256": "sha256:698d67806bfc275f5090bb124c26a687f0f5748e700e15673c135fb981c16ba4",
+      "semantic_hash": "sha256:31b08c9032fb4c244e5a47a7371dad4df4b80270dfa6d69fd431a9dfeb6b29e8"
+    },
+    {
+      "skill_id": "PROJECT.PROJECT.LIST",
+      "skill_version": "1.0.0",
+      "path": "project_project_list.ns",
+      "source_sha256": "sha256:49b1318f3bdc83d0ff632858dcc529ba891654159e2954795801c61ef2908121",
+      "semantic_hash": "sha256:36ef806f56afb96bd3cdf97ce30667824030c98489accc39c3f87635911a7649"
+    },
+    {
+      "skill_id": "PROJECT.MEMBERSHIP.LIST",
+      "skill_version": "1.0.0",
+      "path": "project_membership_list.ns",
+      "source_sha256": "sha256:b795f9afeebe873d08ba994c7e2e1d6f075948c84fcbf9cc2ba16e3c2c06081e",
+      "semantic_hash": "sha256:16c5d8cd1a7319b2cc3d46a724af25e9158a8016a39d43f04eb4abbafda6c13f"
+    }
+  ]
+}

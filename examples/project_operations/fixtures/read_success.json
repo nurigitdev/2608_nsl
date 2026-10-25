@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "tool_id": "PROJECT.PROJECT.GET",
+      "version": "1.0.0",
+      "cases": [{
+        "arguments": {
+          "tenant_id": "p8-project-read",
+          "requester_subject_id": "employee-1001",
+          "project_id": "92000000-0000-4000-8000-000000000001"
+        },
+        "result": {
+          "project_id": "92000000-0000-4000-8000-000000000001",
+          "project_code": "DEMO-PROJECT",
+          "name": "Demonstration Project",
+          "status": "ACTIVE",
+          "entity_version": 1
+        }
+      }]
+    },
+    {
+      "tool_id": "PROJECT.PROJECT.LIST",
+      "version": "1.0.0",
+      "cases": [{
+        "arguments": {
+          "tenant_id": "p8-project-read",
+          "requester_subject_id": "employee-1001",
+          "limit": 100,
+          "offset": 0
+        },
+        "result": [{
+          "project_id": "92000000-0000-4000-8000-000000000001",
+          "project_code": "DEMO-PROJECT",
+          "name": "Demonstration Project",
+          "status": "ACTIVE",
+          "entity_version": 1
+        }]
+      }]
+    },
+    {
+      "tool_id": "PROJECT.MEMBERSHIP.LIST",
+      "version": "1.0.0",
+      "cases": [{
+        "arguments": {
+          "tenant_id": "p8-project-read",
+          "requester_subject_id": "employee-1001",
+          "project_id": "92000000-0000-4000-8000-000000000001",
+          "limit": 100,
+          "offset": 0
+        },
+        "result": [{
+          "project_membership_id": "93000000-0000-4000-8000-000000000001",
+          "project_id": "92000000-0000-4000-8000-000000000001",
+          "subject_id": "employee-1001",
+          "member_role": "OWNER",
+          "status": "ACTIVE",
+          "entity_version": 1
+        }]
+      }]
+    }
+  ]
+}

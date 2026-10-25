@@ -1,0 +1,9 @@
+{
+  "tenant_id": "p8-project-read",
+  "subject_id": "employee-1001",
+  "actor_type": "USER",
+  "roles": ["EMPLOYEE"],
+  "scopes": ["nsl:skill:execute", "project:project:read"],
+  "auth_context_ref": "auth-p8-project-read-001",
+  "verification": "VERIFIED"
+}

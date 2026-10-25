@@ -1,0 +1,86 @@
+{
+  "tools": [
+    {
+      "tool_id": "PROJECT.PROJECT.GET",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "project_id", "type": {"kind": "primitive", "name": "String"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "Project",
+        "fields": [
+          {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+          {"name": "name", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+        ]
+      },
+      "required_scope": "project:project:read",
+      "risk_level": "R1",
+      "output_classification": "INTERNAL"
+    },
+    {
+      "tool_id": "PROJECT.PROJECT.LIST",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "limit", "type": {"kind": "primitive", "name": "Int"}},
+        {"name": "offset", "type": {"kind": "primitive", "name": "Int"}}
+      ],
+      "output": {
+        "kind": "list",
+        "item": {
+          "kind": "record",
+          "name": "Project",
+          "fields": [
+            {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+            {"name": "name", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+          ]
+        }
+      },
+      "required_scope": "project:project:read",
+      "risk_level": "R1",
+      "output_classification": "INTERNAL"
+    },
+    {
+      "tool_id": "PROJECT.MEMBERSHIP.LIST",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "limit", "type": {"kind": "primitive", "name": "Int"}},
+        {"name": "offset", "type": {"kind": "primitive", "name": "Int"}}
+      ],
+      "output": {
+        "kind": "list",
+        "item": {
+          "kind": "record",
+          "name": "ProjectMembership",
+          "fields": [
+            {"name": "project_membership_id", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "subject_id", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "member_role", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+          ]
+        }
+      },
+      "required_scope": "project:project:read",
+      "risk_level": "R1",
+      "output_classification": "INTERNAL"
+    }
+  ]
+}

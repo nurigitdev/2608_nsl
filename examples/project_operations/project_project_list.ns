@@ -1,0 +1,41 @@
+language NSL "0.2";
+
+skill PROJECT.PROJECT.LIST {
+    version "1.0.0";
+    risk READ_ONLY;
+    requires { tool PROJECT.PROJECT.LIST version "1.0.0"; }
+    limits {
+        tool_calls 1;
+        loop_iterations 100;
+        emitted_rows 100;
+        collection_size 100;
+    }
+    input {
+        tenant_id: String classification INTERNAL;
+        requester_subject_id: String classification INTERNAL;
+        limit: Int classification INTERNAL;
+        offset: Int classification INTERNAL;
+    }
+    output {
+        project_id: String classification INTERNAL;
+        project_code: ProjectCode classification INTERNAL;
+        name: String classification INTERNAL;
+        status: String classification INTERNAL;
+        entity_version: Int classification INTERNAL;
+    }
+    let projects = read PROJECT.PROJECT.LIST(
+        tenant_id: tenant_id,
+        requester_subject_id: requester_subject_id,
+        limit: limit,
+        offset: offset
+    );
+    foreach project in projects max 100 {
+        emit {
+            project_id: project.project_id;
+            project_code: project.project_code;
+            name: project.name;
+            status: project.status;
+            entity_version: project.entity_version;
+        }
+    }
+}
