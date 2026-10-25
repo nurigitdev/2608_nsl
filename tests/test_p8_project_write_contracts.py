@@ -37,6 +37,11 @@ CASES = (
     ),
     ("project_membership_add.ns", "PROJECT.MEMBERSHIP.ADD", OperationKind.CREATE),
     (
+        "project_membership_add_many.ns",
+        "PROJECT.MEMBERSHIP.ADD_MANY",
+        OperationKind.CREATE,
+    ),
+    (
         "project_membership_remove.ns",
         "PROJECT.MEMBERSHIP.REMOVE",
         OperationKind.UPDATE,
@@ -98,6 +103,10 @@ def test_project_write_catalog_has_exact_operation_and_scope_map() -> None:
             OperationKind.CREATE,
             "project:membership:manage",
         ),
+        "PROJECT.MEMBERSHIP.ADD_MANY": (
+            OperationKind.CREATE,
+            "project:membership:manage",
+        ),
         "PROJECT.MEMBERSHIP.REMOVE": (
             OperationKind.UPDATE,
             "project:membership:manage",
@@ -111,6 +120,27 @@ def test_project_write_catalog_has_exact_operation_and_scope_map() -> None:
         assert CANONICAL_NAME.fullmatch(tool_id)
 
 
+def test_membership_add_many_is_one_bounded_collection_write() -> None:
+    catalog = load_tool_catalog(EXAMPLE / "tools_write.json")
+    compiled = NslCompiler(catalog).compile(
+        (EXAMPLE / "project_membership_add_many.ns").read_text(encoding="utf-8")
+    ).skill
+    plan = ControlledExecutionPlan.from_skill(compiled)
+    target_input = next(
+        item for item in compiled.inputs if item.name == "target_subject_ids"
+    )
+
+    assert target_input.type_info.kind == "list"
+    assert target_input.type_info.item is not None
+    assert target_input.type_info.item.name == "String"
+    assert compiled.limits.collection_size == 50
+    assert compiled.analysis.max_tool_calls == 1
+    assert compiled.analysis.max_loop_iterations == 0
+    assert len(plan.write_expression.arguments) == 6
+    assert plan.write_expression.tool_ref == compiled.required_tools[0].tool_ref
+    assert plan.write_expression.approval_ref == plan.approval.approval_id
+
+
 def test_project_write_artifact_manifest_matches_exact_sources() -> None:
     catalog = load_tool_catalog(EXAMPLE / "tools_write.json")
     manifest = load_json_document(EXAMPLE / "write_artifact_manifest.json")
@@ -121,7 +151,7 @@ def test_project_write_artifact_manifest_matches_exact_sources() -> None:
     assert manifest["tool_catalog"]["sha256"] == _sha256(
         EXAMPLE / "tools_write.json"
     )
-    assert len(manifest["skills"]) == 6
+    assert len(manifest["skills"]) == 7
     for artifact in manifest["skills"]:
         source_path = EXAMPLE / artifact["path"]
         compiled = NslCompiler(catalog).compile(

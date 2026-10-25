@@ -20,9 +20,14 @@ NSL v0.2.1 adds a separate governed WRITE artifact set without mutating the
 historical READ admission. `tools_write.json` and
 `write_artifact_manifest.json` bind PROJECT.PROJECT.CREATE,
 PROJECT.PROJECT.DEACTIVATE, PROJECT.MEMBERSHIP.ADD, and
-PROJECT.MEMBERSHIP.REMOVE.
+PROJECT.MEMBERSHIP.ADD_MANY, and PROJECT.MEMBERSHIP.REMOVE.
 
 The CREATE operations use `OperationKind.CREATE`; logical deactivation and
 membership removal use `OperationKind.UPDATE`. Every Skill has exactly one
 approved WRITE. RuntimePolicy, current OA authorization, durable idempotency,
 EOS commit, and post-WRITE verification remain Platform-owned controls.
+
+`PROJECT.MEMBERSHIP.ADD_MANY` is one collection-valued WRITE, not a loop over
+single-member writes. It accepts at most 50 canonical subject references and
+emits aggregate scalar outcomes plus a safe business-result reference; the
+detailed item projection remains EOS-owned.

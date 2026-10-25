@@ -1,0 +1,56 @@
+language NSL "0.2";
+
+skill PROJECT.MEMBERSHIP.ADD_MANY {
+    version "1.0.0";
+    risk WRITE;
+    requires { tool PROJECT.MEMBERSHIP.ADD_MANY version "1.0.0"; }
+    limits {
+        tool_calls 1;
+        loop_iterations 1;
+        emitted_rows 1;
+        collection_size 50;
+    }
+    input {
+        tenant_id: String classification INTERNAL;
+        requester_subject_id: String classification INTERNAL;
+        project_id: String classification INTERNAL;
+        target_subject_ids: List<String> classification INTERNAL;
+        member_role: String classification INTERNAL;
+        resolution_evidence_hash: String classification INTERNAL;
+    }
+    output {
+        operation_status: String classification INTERNAL;
+        requested_count: Int classification INTERNAL;
+        resolved_count: Int classification INTERNAL;
+        added_count: Int classification INTERNAL;
+        reactivated_count: Int classification INTERNAL;
+        unchanged_count: Int classification INTERNAL;
+        rejected_count: Int classification INTERNAL;
+        project_id: String classification INTERNAL;
+        member_role: String classification INTERNAL;
+        business_result_ref: String classification INTERNAL;
+    }
+    approve MEMBERSHIP_ADD_MANY {
+        message "Add the resolved subjects to the governed Project?";
+    }
+    let batch = write PROJECT.MEMBERSHIP.ADD_MANY(
+        tenant_id = tenant_id,
+        requester_subject_id = requester_subject_id,
+        project_id = project_id,
+        target_subject_ids = target_subject_ids,
+        member_role = member_role,
+        resolution_evidence_hash = resolution_evidence_hash
+    ) approved_by MEMBERSHIP_ADD_MANY;
+    emit {
+        operation_status: batch.operation_status;
+        requested_count: batch.requested_count;
+        resolved_count: batch.resolved_count;
+        added_count: batch.added_count;
+        reactivated_count: batch.reactivated_count;
+        unchanged_count: batch.unchanged_count;
+        rejected_count: batch.rejected_count;
+        project_id: batch.project_id;
+        member_role: batch.member_role;
+        business_result_ref: batch.business_result_ref;
+    }
+}

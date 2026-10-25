@@ -366,6 +366,73 @@
       }
     },
     {
+      "tool_id": "PROJECT.MEMBERSHIP.ADD_MANY",
+      "version": "1.0.0",
+      "capability": "WRITE",
+      "operation_kind": "CREATE",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "target_subject_ids", "type": {"kind": "list", "item": {"kind": "primitive", "name": "String"}}},
+        {"name": "member_role", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "resolution_evidence_hash", "type": {"kind": "primitive", "name": "String"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "ProjectMembershipBatch",
+        "fields": [
+          {"name": "operation_status", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "requested_count", "type": {"kind": "primitive", "name": "Int"}},
+          {"name": "resolved_count", "type": {"kind": "primitive", "name": "Int"}},
+          {"name": "added_count", "type": {"kind": "primitive", "name": "Int"}},
+          {"name": "reactivated_count", "type": {"kind": "primitive", "name": "Int"}},
+          {"name": "unchanged_count", "type": {"kind": "primitive", "name": "Int"}},
+          {"name": "rejected_count", "type": {"kind": "primitive", "name": "Int"}},
+          {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "member_role", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "business_result_ref", "type": {"kind": "primitive", "name": "String"}}
+        ]
+      },
+      "required_scope": "project:membership:manage",
+      "risk_level": "R3",
+      "output_classification": "INTERNAL",
+      "write_semantics": {
+        "side_effect": true,
+        "atomicity": "ATOMIC",
+        "idempotency": {
+          "required": true,
+          "scope": "TOOL_AND_TENANT",
+          "retention": "PROVIDER_DEFINED",
+          "duplicate_behavior": "RETURN_ORIGINAL_RESULT",
+          "payload_conflict_behavior": "IDEMPOTENCY_CONFLICT"
+        },
+        "commit": {"confirmation": "EXPLICIT"},
+        "approval": {"required": true},
+        "preconditions": {"supported": true},
+        "verification": {
+          "tool_id": "PROJECT.MEMBERSHIP.LIST",
+          "reference_schema": {
+            "kind": "record",
+            "name": "ProjectMembershipBatch",
+            "fields": [
+              {"name": "operation_status", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "requested_count", "type": {"kind": "primitive", "name": "Int"}},
+              {"name": "resolved_count", "type": {"kind": "primitive", "name": "Int"}},
+              {"name": "added_count", "type": {"kind": "primitive", "name": "Int"}},
+              {"name": "reactivated_count", "type": {"kind": "primitive", "name": "Int"}},
+              {"name": "unchanged_count", "type": {"kind": "primitive", "name": "Int"}},
+              {"name": "rejected_count", "type": {"kind": "primitive", "name": "Int"}},
+              {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "member_role", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "business_result_ref", "type": {"kind": "primitive", "name": "String"}}
+            ]
+          },
+          "consistency_hint": "FILTERED_READ_AFTER_WRITE_STRONG"
+        }
+      }
+    },
+    {
       "tool_id": "PROJECT.MEMBERSHIP.REMOVE",
       "version": "1.0.0",
       "capability": "WRITE",
