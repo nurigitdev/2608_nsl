@@ -15,7 +15,8 @@ from nsl.api import __version__ as api_version
 from tools.wheel_release import WheelReleaseError, inspect_wheel, write_checksum
 
 
-DIST_INFO = "nex_skill_language-0.2.0.dist-info"
+RELEASE_VERSION = __version__
+DIST_INFO = f"nex_skill_language-{RELEASE_VERSION}.dist-info"
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -32,7 +33,7 @@ def _record(contents: dict[str, bytes]) -> bytes:
 def _wheel(
     tmp_path: Path,
     *,
-    metadata_version: str = "0.2.0",
+    metadata_version: str = RELEASE_VERSION,
     dependency: str = "cryptography<47.0.0,>=46.0.7",
     extra: tuple[tuple[str, bytes], ...] = (),
     omit: str | None = None,
@@ -47,7 +48,7 @@ def _wheel(
     ).encode("utf-8")
     contents = {
         "nsl/__init__.py": b"",
-        "nsl/_version.py": b'__version__ = "0.2.0"\n',
+        "nsl/_version.py": f'__version__ = "{RELEASE_VERSION}"\n'.encode(),
         "nsl/api/__init__.py": b"",
         "nsl/cli.py": b"",
         f"{DIST_INFO}/METADATA": metadata,
@@ -65,7 +66,7 @@ def _wheel(
         record = record.replace(target.encode("ascii"), b"sha256=invalid", 1)
     contents[f"{DIST_INFO}/RECORD"] = record
 
-    path = tmp_path / "nex_skill_language-0.2.0-py3-none-any.whl"
+    path = tmp_path / f"nex_skill_language-{RELEASE_VERSION}-py3-none-any.whl"
     with ZipFile(path, "w", compression=ZIP_DEFLATED) as archive:
         for name, data in contents.items():
             archive.writestr(name, data)
@@ -73,7 +74,7 @@ def _wheel(
 
 
 def test_distribution_version_is_shared_by_root_and_nex_api() -> None:
-    assert __version__ == "0.2.0"
+    assert __version__ == "0.2.1"
     assert api_version == __version__
 
 
@@ -101,7 +102,7 @@ def test_ci_uses_v020_identity_and_publishes_verified_wheel_evidence() -> None:
     assert "cryptography.__version__ == '46.0.7'" in workflow
     assert "runs-on: ubuntu-latest" in workflow
     assert "./.venv/bin/python tools/run_quality.py" in workflow
-    assert "dist/nex_skill_language-0.2.0-py3-none-any.whl" in workflow
+    assert f"dist/nex_skill_language-{RELEASE_VERSION}-py3-none-any.whl" in workflow
     assert "nsl-v0.1-quality" not in workflow
 
 
@@ -109,7 +110,7 @@ def test_valid_release_wheel_has_approved_identity_and_integrity(tmp_path: Path)
     inspection = inspect_wheel(_wheel(tmp_path))
 
     assert inspection.distribution == "nex-skill-language"
-    assert inspection.version == "0.2.0"
+    assert inspection.version == RELEASE_VERSION
     assert inspection.python_requirement == ">=3.12"
     assert inspection.tags == ("py3-none-any",)
     assert inspection.console_scripts == ("nsl=nsl.cli:main",)
@@ -137,7 +138,7 @@ def test_release_wheel_rejects_dependency_range_boundaries(
 @pytest.mark.parametrize(
     ("change", "message"),
     [
-        ({"metadata_version": "0.2.1"}, "metadata version"),
+        ({"metadata_version": "0.2.0"}, "metadata version"),
         ({"dependency": "cryptography>=46.0.7"}, "dependency set"),
         ({"omit": "nsl/api/__init__.py"}, "missing required files"),
         ({"extra": (("tests/test_leak.py", b""),)}, "unexpected top-level content"),

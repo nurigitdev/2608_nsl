@@ -112,8 +112,8 @@ jobs:
             test/srs_certification.json
             test/v0_2_certification.json
             test/ci-freeze-evidence.txt
-            dist/nex_skill_language-0.2.0-py3-none-any.whl
-            dist/nex_skill_language-0.2.0-py3-none-any.whl.sha256
+            dist/nex_skill_language-0.2.1-py3-none-any.whl
+            dist/nex_skill_language-0.2.1-py3-none-any.whl.sha256
           if-no-files-found: warn
           retention-days: 90
 

@@ -48,6 +48,7 @@ MAX_TOOL_TIMEOUT_MS = 2_147_483_647
 class OperationKind(StrEnum):
     CREATE = "CREATE"
     CREATE_DRAFT = "CREATE_DRAFT"
+    UPDATE = "UPDATE"
 
 
 class Atomicity(StrEnum):

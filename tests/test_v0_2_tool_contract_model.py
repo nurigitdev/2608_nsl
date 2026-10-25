@@ -115,12 +115,15 @@ def test_tol_201_v0_1_compiler_rejects_complete_write_contract() -> None:
     assert captured.value.code == DiagnosticCode.SEM_WRITE_TOOL_FORBIDDEN
 
 
-@pytest.mark.parametrize("invalid", (None, "", "UPDATE"))
+@pytest.mark.parametrize("invalid", (None, "", "DELETE"))
 def test_tol_202_write_operation_kind_is_required_and_bounded(invalid) -> None:
     with pytest.raises(ValueError, match="operation_kind"):
         _write_contract(operation_kind=invalid)
 
     assert _write_contract(operation_kind="CREATE").operation_kind is OperationKind.CREATE
+    update = _write_contract(operation_kind="UPDATE")
+    assert update.operation_kind is OperationKind.UPDATE
+    assert update.to_canonical_data()["operation_kind"] == "UPDATE"
 
 
 @pytest.mark.parametrize("invalid", (False, 0, 1, None))

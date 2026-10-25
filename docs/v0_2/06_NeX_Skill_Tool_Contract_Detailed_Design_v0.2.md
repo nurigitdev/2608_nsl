@@ -132,7 +132,12 @@ v0.2에서 허용하는 WRITE OperationKind:
 ```text
 CREATE
 CREATE_DRAFT
+UPDATE
 ```
+
+`UPDATE`는 이미 존재하는 Business Object의 상태 또는 관계를 변경하는
+governed WRITE에 사용한다. 생성과 수정/비활성화/관계 제거의 idempotency
+의미를 섞지 않도록 Tool Contract가 operation kind를 명시해야 한다.
 
 향후 후보:
 

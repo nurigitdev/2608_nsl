@@ -248,7 +248,7 @@ READ Tool과 WRITE Tool을 구분한다.
 tool declared in requires
 contract exists
 capability == WRITE
-operation_kind in {CREATE, CREATE_DRAFT}
+operation_kind in {CREATE, CREATE_DRAFT, UPDATE}
 risk_level exists
 idempotency.required == true
 atomicity == ATOMIC

@@ -295,7 +295,7 @@ def test_write_requires_write_capability_and_supported_operation() -> None:
     )
 
     contract = _write_contract()
-    object.__setattr__(contract, "operation_kind", "UPDATE")
+    object.__setattr__(contract, "operation_kind", "DELETE")
     _assert_error(
         _approval() + "\n" + _write(),
         DiagnosticCode.SEM_UNSUPPORTED_WRITE_OPERATION,
