@@ -1,0 +1,42 @@
+language NSL "0.2";
+
+skill PROJECT.PROJECT.DEACTIVATE {
+    version "1.0.0";
+    risk WRITE;
+    requires { tool PROJECT.PROJECT.DEACTIVATE version "1.0.0"; }
+    limits {
+        tool_calls 1;
+        loop_iterations 1;
+        emitted_rows 1;
+        collection_size 1;
+    }
+    input {
+        tenant_id: String classification INTERNAL;
+        requester_subject_id: String classification INTERNAL;
+        project_id: String classification INTERNAL;
+        expected_version: Int classification INTERNAL;
+    }
+    output {
+        project_id: String classification INTERNAL;
+        project_code: ProjectCode classification INTERNAL;
+        name: String classification INTERNAL;
+        status: String classification INTERNAL;
+        entity_version: Int classification INTERNAL;
+    }
+    approve PROJECT_DEACTIVATE {
+        message "Deactivate the governed Project?";
+    }
+    let project = write PROJECT.PROJECT.DEACTIVATE(
+        tenant_id = tenant_id,
+        requester_subject_id = requester_subject_id,
+        project_id = project_id,
+        expected_version = expected_version
+    ) approved_by PROJECT_DEACTIVATE;
+    emit {
+        project_id: project.project_id;
+        project_code: project.project_code;
+        name: project.name;
+        status: project.status;
+        entity_version: project.entity_version;
+    }
+}

@@ -1,0 +1,288 @@
+{
+  "tools": [
+    {
+      "tool_id": "PROJECT.PROJECT.GET",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "project_id", "type": {"kind": "primitive", "name": "String"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "Project",
+        "fields": [
+          {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+          {"name": "name", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+        ]
+      },
+      "required_scope": "project:project:read",
+      "risk_level": "R1",
+      "output_classification": "INTERNAL"
+    },
+    {
+      "tool_id": "PROJECT.MEMBERSHIP.LIST",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "limit", "type": {"kind": "primitive", "name": "Int"}},
+        {"name": "offset", "type": {"kind": "primitive", "name": "Int"}}
+      ],
+      "output": {
+        "kind": "list",
+        "item": {
+          "kind": "record",
+          "name": "ProjectMembership",
+          "fields": [
+            {"name": "project_membership_id", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "subject_id", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "member_role", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+          ]
+        }
+      },
+      "required_scope": "project:project:read",
+      "risk_level": "R1",
+      "output_classification": "INTERNAL"
+    },
+    {
+      "tool_id": "PROJECT.PROJECT.CREATE",
+      "version": "1.0.0",
+      "capability": "WRITE",
+      "operation_kind": "CREATE",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+        {"name": "project_name", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "initial_owner_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "initial_owner_membership_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "currency", "type": {"kind": "primitive", "name": "String"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "Project",
+        "fields": [
+          {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+          {"name": "name", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+        ]
+      },
+      "required_scope": "project:project:create",
+      "risk_level": "R3",
+      "output_classification": "INTERNAL",
+      "write_semantics": {
+        "side_effect": true,
+        "atomicity": "ATOMIC",
+        "idempotency": {
+          "required": true,
+          "scope": "TOOL_AND_TENANT",
+          "retention": "PROVIDER_DEFINED",
+          "duplicate_behavior": "RETURN_ORIGINAL_RESULT",
+          "payload_conflict_behavior": "IDEMPOTENCY_CONFLICT"
+        },
+        "commit": {"confirmation": "EXPLICIT"},
+        "approval": {"required": true},
+        "preconditions": {"supported": true},
+        "verification": {
+          "tool_id": "PROJECT.PROJECT.GET",
+          "reference_schema": {
+            "kind": "record",
+            "name": "Project",
+            "fields": [
+              {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+              {"name": "name", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+            ]
+          },
+          "consistency_hint": "READ_AFTER_WRITE_STRONG"
+        }
+      }
+    },
+    {
+      "tool_id": "PROJECT.PROJECT.DEACTIVATE",
+      "version": "1.0.0",
+      "capability": "WRITE",
+      "operation_kind": "UPDATE",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "expected_version", "type": {"kind": "primitive", "name": "Int"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "Project",
+        "fields": [
+          {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+          {"name": "name", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+        ]
+      },
+      "required_scope": "project:project:admin",
+      "risk_level": "R3",
+      "output_classification": "INTERNAL",
+      "write_semantics": {
+        "side_effect": true,
+        "atomicity": "ATOMIC",
+        "idempotency": {
+          "required": true,
+          "scope": "TOOL_AND_TENANT",
+          "retention": "PROVIDER_DEFINED",
+          "duplicate_behavior": "RETURN_ORIGINAL_RESULT",
+          "payload_conflict_behavior": "IDEMPOTENCY_CONFLICT"
+        },
+        "commit": {"confirmation": "EXPLICIT"},
+        "approval": {"required": true},
+        "preconditions": {"supported": true},
+        "verification": {
+          "tool_id": "PROJECT.PROJECT.GET",
+          "reference_schema": {
+            "kind": "record",
+            "name": "Project",
+            "fields": [
+              {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+              {"name": "name", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+            ]
+          },
+          "consistency_hint": "READ_AFTER_WRITE_STRONG"
+        }
+      }
+    },
+    {
+      "tool_id": "PROJECT.MEMBERSHIP.ADD",
+      "version": "1.0.0",
+      "capability": "WRITE",
+      "operation_kind": "CREATE",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "target_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "project_membership_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "member_role", "type": {"kind": "primitive", "name": "String"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "ProjectMembership",
+        "fields": [
+          {"name": "project_membership_id", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "subject_id", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "member_role", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+        ]
+      },
+      "required_scope": "project:membership:manage",
+      "risk_level": "R3",
+      "output_classification": "INTERNAL",
+      "write_semantics": {
+        "side_effect": true,
+        "atomicity": "ATOMIC",
+        "idempotency": {
+          "required": true,
+          "scope": "TOOL_AND_TENANT",
+          "retention": "PROVIDER_DEFINED",
+          "duplicate_behavior": "RETURN_ORIGINAL_RESULT",
+          "payload_conflict_behavior": "IDEMPOTENCY_CONFLICT"
+        },
+        "commit": {"confirmation": "EXPLICIT"},
+        "approval": {"required": true},
+        "preconditions": {"supported": true},
+        "verification": {
+          "tool_id": "PROJECT.MEMBERSHIP.LIST",
+          "reference_schema": {
+            "kind": "record",
+            "name": "ProjectMembership",
+            "fields": [
+              {"name": "project_membership_id", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "subject_id", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "member_role", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+            ]
+          },
+          "consistency_hint": "FILTERED_READ_AFTER_WRITE_STRONG"
+        }
+      }
+    },
+    {
+      "tool_id": "PROJECT.MEMBERSHIP.REMOVE",
+      "version": "1.0.0",
+      "capability": "WRITE",
+      "operation_kind": "UPDATE",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "target_subject_id", "type": {"kind": "primitive", "name": "String"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "ProjectMembership",
+        "fields": [
+          {"name": "project_membership_id", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "subject_id", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "member_role", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+        ]
+      },
+      "required_scope": "project:membership:manage",
+      "risk_level": "R3",
+      "output_classification": "INTERNAL",
+      "write_semantics": {
+        "side_effect": true,
+        "atomicity": "ATOMIC",
+        "idempotency": {
+          "required": true,
+          "scope": "TOOL_AND_TENANT",
+          "retention": "PROVIDER_DEFINED",
+          "duplicate_behavior": "RETURN_ORIGINAL_RESULT",
+          "payload_conflict_behavior": "IDEMPOTENCY_CONFLICT"
+        },
+        "commit": {"confirmation": "EXPLICIT"},
+        "approval": {"required": true},
+        "preconditions": {"supported": true},
+        "verification": {
+          "tool_id": "PROJECT.MEMBERSHIP.LIST",
+          "reference_schema": {
+            "kind": "record",
+            "name": "ProjectMembership",
+            "fields": [
+              {"name": "project_membership_id", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "project_id", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "subject_id", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "member_role", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+              {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+            ]
+          },
+          "consistency_hint": "FILTERED_READ_AFTER_WRITE_STRONG"
+        }
+      }
+    }
+  ]
+}

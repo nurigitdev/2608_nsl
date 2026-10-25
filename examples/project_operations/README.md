@@ -13,3 +13,16 @@ collection Skills enforce a maximum of 100 returned rows.
 
 `artifact_manifest.json` binds every source digest, compiled semantic hash,
 and the shared Tool catalog digest without changing the admitted NSL wheel.
+
+## Canonical governed WRITE operations
+
+NSL v0.2.1 adds a separate governed WRITE artifact set without mutating the
+historical READ admission. `tools_write.json` and
+`write_artifact_manifest.json` bind PROJECT.PROJECT.CREATE,
+PROJECT.PROJECT.DEACTIVATE, PROJECT.MEMBERSHIP.ADD, and
+PROJECT.MEMBERSHIP.REMOVE.
+
+The CREATE operations use `OperationKind.CREATE`; logical deactivation and
+membership removal use `OperationKind.UPDATE`. Every Skill has exactly one
+approved WRITE. RuntimePolicy, current OA authorization, durable idempotency,
+EOS commit, and post-WRITE verification remain Platform-owned controls.

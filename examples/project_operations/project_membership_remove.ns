@@ -1,0 +1,44 @@
+language NSL "0.2";
+
+skill PROJECT.MEMBERSHIP.REMOVE {
+    version "1.0.0";
+    risk WRITE;
+    requires { tool PROJECT.MEMBERSHIP.REMOVE version "1.0.0"; }
+    limits {
+        tool_calls 1;
+        loop_iterations 1;
+        emitted_rows 1;
+        collection_size 1;
+    }
+    input {
+        tenant_id: String classification INTERNAL;
+        requester_subject_id: String classification INTERNAL;
+        project_id: String classification INTERNAL;
+        target_subject_id: String classification INTERNAL;
+    }
+    output {
+        project_membership_id: String classification INTERNAL;
+        project_id: String classification INTERNAL;
+        subject_id: String classification INTERNAL;
+        member_role: String classification INTERNAL;
+        status: String classification INTERNAL;
+        entity_version: Int classification INTERNAL;
+    }
+    approve MEMBERSHIP_REMOVE {
+        message "Remove the subject from the governed Project?";
+    }
+    let membership = write PROJECT.MEMBERSHIP.REMOVE(
+        tenant_id = tenant_id,
+        requester_subject_id = requester_subject_id,
+        project_id = project_id,
+        target_subject_id = target_subject_id
+    ) approved_by MEMBERSHIP_REMOVE;
+    emit {
+        project_membership_id: membership.project_membership_id;
+        project_id: membership.project_id;
+        subject_id: membership.subject_id;
+        member_role: membership.member_role;
+        status: membership.status;
+        entity_version: membership.entity_version;
+    }
+}
