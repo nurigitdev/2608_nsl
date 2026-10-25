@@ -3,7 +3,7 @@
   "subject_id": "employee-1001",
   "actor_type": "USER",
   "roles": ["EMPLOYEE"],
-  "scopes": ["nsl:skill:execute", "project:project:read"],
+  "scopes": ["nsl:skill:execute", "project:project:read", "project:nvt_project:read"],
   "auth_context_ref": "auth-p8-project-read-001",
   "verification": "VERIFIED"
 }

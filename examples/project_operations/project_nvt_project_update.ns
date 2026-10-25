@@ -1,0 +1,46 @@
+language NSL "0.2";
+
+skill PROJECT.NVT_PROJECT.UPDATE {
+    version "1.0.0";
+    risk WRITE;
+    requires { tool PROJECT.NVT_PROJECT.UPDATE version "1.0.0"; }
+    limits {
+        tool_calls 1;
+        loop_iterations 1;
+        emitted_rows 1;
+        collection_size 1;
+    }
+    input {
+        tenant_id: String classification INTERNAL;
+        requester_subject_id: String classification INTERNAL;
+        nvt_project_id: String classification INTERNAL;
+        expected_version: Int classification INTERNAL;
+        nvt_project_name: String classification INTERNAL;
+        status: String classification INTERNAL;
+    }
+    output {
+        nvt_project_id: String classification INTERNAL;
+        nvt_project_code: ProjectCode classification INTERNAL;
+        name: String classification INTERNAL;
+        status: String classification INTERNAL;
+        entity_version: Int classification INTERNAL;
+    }
+    approve NVT_PROJECT_UPDATE {
+        message "Update the governed NVTProject?";
+    }
+    let project = write PROJECT.NVT_PROJECT.UPDATE(
+        tenant_id = tenant_id,
+        requester_subject_id = requester_subject_id,
+        nvt_project_id = nvt_project_id,
+        expected_version = expected_version,
+        nvt_project_name = nvt_project_name,
+        status = status
+    ) approved_by NVT_PROJECT_UPDATE;
+    emit {
+        nvt_project_id: project.nvt_project_id;
+        nvt_project_code: project.nvt_project_code;
+        name: project.name;
+        status: project.status;
+        entity_version: project.entity_version;
+    }
+}

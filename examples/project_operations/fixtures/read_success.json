@@ -2,6 +2,44 @@
   "schema_version": "1.0",
   "tools": [
     {
+      "tool_id": "PROJECT.NVT_PROJECT.GET",
+      "version": "1.0.0",
+      "cases": [{
+        "arguments": {
+          "tenant_id": "p8-project-read",
+          "requester_subject_id": "employee-1001",
+          "nvt_project_id": "91000000-0000-4000-8000-000000000001"
+        },
+        "result": {
+          "nvt_project_id": "91000000-0000-4000-8000-000000000001",
+          "nvt_project_code": "NVT-DEMO",
+          "name": "NVT Demonstration",
+          "status": "ACTIVE",
+          "entity_version": 1
+        }
+      }]
+    },
+    {
+      "tool_id": "PROJECT.NVT_PROJECT.LIST",
+      "version": "1.0.0",
+      "cases": [{
+        "arguments": {
+          "tenant_id": "p8-project-read",
+          "requester_subject_id": "employee-1001",
+          "status": "ACTIVE",
+          "limit": 100,
+          "offset": 0
+        },
+        "result": [{
+          "nvt_project_id": "91000000-0000-4000-8000-000000000001",
+          "nvt_project_code": "NVT-DEMO",
+          "name": "NVT Demonstration",
+          "status": "ACTIVE",
+          "entity_version": 1
+        }]
+      }]
+    },
+    {
       "tool_id": "PROJECT.PROJECT.GET",
       "version": "1.0.0",
       "cases": [{

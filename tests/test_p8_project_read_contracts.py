@@ -25,8 +25,29 @@ CANONICAL_NAME = re.compile(
     r"^[A-Z][A-Z0-9_]*\.[A-Z][A-Z0-9_]*\.[A-Z][A-Z0-9_]*$"
 )
 PROJECT_ID = "92000000-0000-4000-8000-000000000001"
+NVT_PROJECT_ID = "91000000-0000-4000-8000-000000000001"
 
 CASES = (
+    (
+        "project_nvt_project_get.ns",
+        "PROJECT.NVT_PROJECT.GET",
+        {
+            "tenant_id": "p8-project-read",
+            "requester_subject_id": "employee-1001",
+            "nvt_project_id": NVT_PROJECT_ID,
+        },
+    ),
+    (
+        "project_nvt_project_list.ns",
+        "PROJECT.NVT_PROJECT.LIST",
+        {
+            "tenant_id": "p8-project-read",
+            "requester_subject_id": "employee-1001",
+            "status": "ACTIVE",
+            "limit": 100,
+            "offset": 0,
+        },
+    ),
     (
         "project_project_get.ns",
         "PROJECT.PROJECT.GET",
@@ -105,13 +126,15 @@ def test_project_read_sources_compile_and_execute_deterministically(
 def test_project_read_catalog_matches_canonical_scope() -> None:
     catalog = load_tool_catalog(EXAMPLE / "tools.json")
     identities = {
-        ("PROJECT.PROJECT.GET", "1.0.0"),
-        ("PROJECT.PROJECT.LIST", "1.0.0"),
-        ("PROJECT.MEMBERSHIP.LIST", "1.0.0"),
+        ("PROJECT.NVT_PROJECT.GET", "1.0.0", "project:nvt_project:read"),
+        ("PROJECT.NVT_PROJECT.LIST", "1.0.0", "project:nvt_project:read"),
+        ("PROJECT.PROJECT.GET", "1.0.0", "project:project:read"),
+        ("PROJECT.PROJECT.LIST", "1.0.0", "project:project:read"),
+        ("PROJECT.MEMBERSHIP.LIST", "1.0.0", "project:project:read"),
     }
-    for tool_id, version in identities:
+    for tool_id, version, required_scope in identities:
         contract = catalog.get(tool_id, version)
-        assert contract.required_scope == "project:project:read"
+        assert contract.required_scope == required_scope
         assert contract.capability is ToolCapability.READ
         assert CANONICAL_NAME.fullmatch(tool_id)
 
@@ -124,7 +147,7 @@ def test_project_read_artifact_manifest_matches_exact_sources() -> None:
     assert manifest["language_version"] == "0.2"
     assert manifest["runtime_package_version"] == "0.2.0"
     assert manifest["tool_catalog"]["sha256"] == _sha256(EXAMPLE / "tools.json")
-    assert len(manifest["skills"]) == 3
+    assert len(manifest["skills"]) == 5
     for artifact in manifest["skills"]:
         source_path = EXAMPLE / artifact["path"]
         compiled = NslCompiler(catalog).compile(

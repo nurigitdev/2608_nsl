@@ -19,6 +19,16 @@ CANONICAL_NAME = re.compile(
 )
 
 CASES = (
+    (
+        "project_nvt_project_create.ns",
+        "PROJECT.NVT_PROJECT.CREATE",
+        OperationKind.CREATE,
+    ),
+    (
+        "project_nvt_project_update.ns",
+        "PROJECT.NVT_PROJECT.UPDATE",
+        OperationKind.UPDATE,
+    ),
     ("project_project_create.ns", "PROJECT.PROJECT.CREATE", OperationKind.CREATE),
     (
         "project_project_deactivate.ns",
@@ -71,6 +81,14 @@ def test_project_write_sources_compile_with_strict_controlled_write_semantics(
 def test_project_write_catalog_has_exact_operation_and_scope_map() -> None:
     catalog = load_tool_catalog(EXAMPLE / "tools_write.json")
     expected = {
+        "PROJECT.NVT_PROJECT.CREATE": (
+            OperationKind.CREATE,
+            "project:nvt_project:create",
+        ),
+        "PROJECT.NVT_PROJECT.UPDATE": (
+            OperationKind.UPDATE,
+            "project:nvt_project:admin",
+        ),
         "PROJECT.PROJECT.CREATE": (OperationKind.CREATE, "project:project:create"),
         "PROJECT.PROJECT.DEACTIVATE": (
             OperationKind.UPDATE,
@@ -103,7 +121,7 @@ def test_project_write_artifact_manifest_matches_exact_sources() -> None:
     assert manifest["tool_catalog"]["sha256"] == _sha256(
         EXAMPLE / "tools_write.json"
     )
-    assert len(manifest["skills"]) == 4
+    assert len(manifest["skills"]) == 6
     for artifact in manifest["skills"]:
         source_path = EXAMPLE / artifact["path"]
         compiled = NslCompiler(catalog).compile(

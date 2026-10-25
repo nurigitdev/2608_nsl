@@ -1,13 +1,27 @@
 {
   "schema_version": "nsl_project_operation_artifact_set.v1",
-  "artifact_set_version": "1.0.0",
+  "artifact_set_version": "1.1.0",
   "language_version": "0.2",
   "runtime_package_version": "0.2.0",
   "tool_catalog": {
     "path": "tools.json",
-    "sha256": "sha256:9adee5c5c3a7edcadafb92de6ccca598c06ca249ca17254e79d5cc6aafa0ffa3"
+    "sha256": "sha256:55188c0975c5ecf19c5b15443dcd0fa0dfd48b3e22f080c2797043a11fc18a25"
   },
   "skills": [
+    {
+      "skill_id": "PROJECT.NVT_PROJECT.GET",
+      "skill_version": "1.0.0",
+      "path": "project_nvt_project_get.ns",
+      "source_sha256": "sha256:decae724ea091e25003969a36d2055af4c2b9a077d0db6f32343a7136c427c5f",
+      "semantic_hash": "sha256:e06e3104950f095cdfc2c50268a037248d2a7cc33571e782ec4b7b7500c00f11"
+    },
+    {
+      "skill_id": "PROJECT.NVT_PROJECT.LIST",
+      "skill_version": "1.0.0",
+      "path": "project_nvt_project_list.ns",
+      "source_sha256": "sha256:f9cd06844105d0488743275419cd427d7fb31d1fa9b0ba0d37865363d2e9ac6f",
+      "semantic_hash": "sha256:27d3aae4a6cd84e63e5c64fb470afbe16373c2c5c2bc4c6e0c9f59ab289cc19a"
+    },
     {
       "skill_id": "PROJECT.PROJECT.GET",
       "skill_version": "1.0.0",

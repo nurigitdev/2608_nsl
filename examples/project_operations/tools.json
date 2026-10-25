@@ -1,6 +1,59 @@
 {
   "tools": [
     {
+      "tool_id": "PROJECT.NVT_PROJECT.GET",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "nvt_project_id", "type": {"kind": "primitive", "name": "String"}}
+      ],
+      "output": {
+        "kind": "record",
+        "name": "NVTProject",
+        "fields": [
+          {"name": "nvt_project_id", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "nvt_project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+          {"name": "name", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+          {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+        ]
+      },
+      "required_scope": "project:nvt_project:read",
+      "risk_level": "R1",
+      "output_classification": "INTERNAL"
+    },
+    {
+      "tool_id": "PROJECT.NVT_PROJECT.LIST",
+      "version": "1.0.0",
+      "capability": "READ",
+      "inputs": [
+        {"name": "tenant_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "requester_subject_id", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+        {"name": "limit", "type": {"kind": "primitive", "name": "Int"}},
+        {"name": "offset", "type": {"kind": "primitive", "name": "Int"}}
+      ],
+      "output": {
+        "kind": "list",
+        "item": {
+          "kind": "record",
+          "name": "NVTProject",
+          "fields": [
+            {"name": "nvt_project_id", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "nvt_project_code", "type": {"kind": "domain", "name": "ProjectCode"}},
+            {"name": "name", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "status", "type": {"kind": "primitive", "name": "String"}},
+            {"name": "entity_version", "type": {"kind": "primitive", "name": "Int"}}
+          ]
+        }
+      },
+      "required_scope": "project:nvt_project:read",
+      "risk_level": "R1",
+      "output_classification": "INTERNAL"
+    },
+    {
       "tool_id": "PROJECT.PROJECT.GET",
       "version": "1.0.0",
       "capability": "READ",
