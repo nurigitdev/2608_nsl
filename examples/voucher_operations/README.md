@@ -8,3 +8,5 @@ membership, and the explicit finance-auditor override.
 
 The LIST input requires one authoritative Project ID and bounded pagination.
 The artifact manifest binds exact source, semantic, and Tool-catalog digests.
+Repository attributes keep the bound `.json` and `.ns` files on UTF-8 LF
+bytes so the recorded SHA-256 values are stable on Windows and Linux.

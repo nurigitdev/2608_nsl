@@ -1,0 +1,4 @@
+# Artifact manifests bind exact UTF-8 source bytes. Keep those bytes stable
+# across Windows and Linux checkouts.
+*.json text eol=lf
+*.ns text eol=lf
