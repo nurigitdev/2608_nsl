@@ -130,3 +130,22 @@ status_enum!(DataClassification {
     Confidential => "CONFIDENTIAL",
     Restricted => "RESTRICTED",
 });
+
+impl DataClassification {
+    pub const fn rank(self) -> u8 {
+        match self {
+            Self::Public => 0,
+            Self::Internal => 1,
+            Self::Confidential => 2,
+            Self::Restricted => 3,
+        }
+    }
+
+    pub const fn allows(self, actual: Self) -> bool {
+        actual.rank() <= self.rank()
+    }
+
+    pub fn highest(values: impl IntoIterator<Item = Self>) -> Option<Self> {
+        values.into_iter().max_by_key(|value| value.rank())
+    }
+}
