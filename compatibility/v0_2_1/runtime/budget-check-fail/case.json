@@ -1,0 +1,53 @@
+{
+  "case_id": "budget-check-fail",
+  "category": "runtime",
+  "classification": "CONFIDENTIAL",
+  "contract_refs": [
+    "NSL-RUST-RUN-004",
+    "NSL-RUST-RUN-006",
+    "NSL-RUST-RUN-009",
+    "NSL-RUST-RUN-016"
+  ],
+  "expected_artifacts": {
+    "runtime_result": {
+      "path": "result.json",
+      "sha256": "3c11e9f6ac9f41db2c2e093bd8516d428966e3ff476fa314ca8d73fe6bcc74b9"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {},
+  "expected_status": "COMPLETED",
+  "inputs": {
+    "context": {
+      "path": "context.json",
+      "sha256": "c7812eddc2884ddb7d0772e33241d2c6250d22956212dc6fcbbecb426dc2ad19"
+    },
+    "input": {
+      "path": "input.json",
+      "sha256": "facb0b88ee5999d54f8e78570b97ffb88a39b29ed363eede4b8b07155bfb6f9c"
+    },
+    "mock_tool_results": {
+      "path": "fixture.json",
+      "sha256": "8546e54b9941008d1118e64d6272314d83b3174ef9751e8bde187215de42d20c"
+    },
+    "nso": {
+      "path": "program.nso",
+      "sha256": "35c8201ff8e55f22cd55f3fa677182a800b5452099a79cfe9e450792bb33337c"
+    },
+    "principal": {
+      "path": "principal.json",
+      "sha256": "673aa6fba740834d2c3c687b7c89e1f7dae27ae67d5d6eb70db2a69c2d837e65"
+    },
+    "tool_catalog": {
+      "path": "tools.json",
+      "sha256": "d1d8c01142582622e037a3e58e733d1fd53502726de7b95deb26e22560270df3"
+    }
+  },
+  "notes": "Synthetic project budget data. Compare the runtime semantic view including checks, outputs and resource use.",
+  "source_refs": [
+    "examples/project_budget_check.ns",
+    "examples/project_budget_check_cli/fixtures/over_budget.json",
+    "tests/test_vertical_slice.py",
+    "tests/test_cli_local_execution.py"
+  ]
+}

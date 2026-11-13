@@ -1,0 +1,26 @@
+{
+  "case_id": "version-identity",
+  "category": "source",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-GOAL-002",
+    "NSL-RUST-COMPAT-002"
+  ],
+  "expected_artifacts": {
+    "versions": {
+      "path": "versions.json",
+      "sha256": "d23deaf4afdff49b30b3d22ca1fc91772a36ebbc98b8fcf92cfc95926502226a"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {},
+  "expected_status": null,
+  "inputs": {},
+  "notes": "",
+  "source_refs": [
+    "nsl/_version.py",
+    "nsl/compiler.py",
+    "examples/project_budget_check.ns",
+    "examples/project_operations/project_project_deactivate.ns"
+  ]
+}

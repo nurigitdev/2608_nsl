@@ -1,0 +1,47 @@
+{
+  "checks": [
+    {
+      "check_id": "BUDGET_LIMIT",
+      "completeness": "PARTIAL",
+      "condition_node_id": "expr0017",
+      "message": "자 프로젝트 지출 합계가 모 프로젝트 예산을 초과했습니다.",
+      "presence": "PRESENT",
+      "reason_code": "PARTIAL_INPUT",
+      "severity": "ERROR",
+      "status": "UNKNOWN"
+    }
+  ],
+  "completeness": "PARTIAL",
+  "error": null,
+  "outputs": [
+    {
+      "budget": {
+        "$type": "Money",
+        "amount": "100000000",
+        "currency": "KRW"
+      },
+      "parent_project": "PARENT-001",
+      "remaining": {
+        "$type": "Money",
+        "amount": "12500000",
+        "currency": "KRW"
+      },
+      "spent": {
+        "$type": "Money",
+        "amount": "87500000",
+        "currency": "KRW"
+      },
+      "status": "UNKNOWN"
+    }
+  ],
+  "resources": {
+    "emitted_rows": 1,
+    "loop_iterations": 1,
+    "max_collection_size_seen": 3,
+    "tool_calls": 2
+  },
+  "semantic_hash": "sha256:ba75f7b96d08f0a8bff6ff1917b127c36cf2a0c96f1d29b7dc883674a4678b56",
+  "skill_id": "FINANCE.PROJECT_BUDGET_CHECK",
+  "skill_version": "1.0.0",
+  "status": "COMPLETED"
+}

@@ -1,0 +1,33 @@
+{
+  "case_id": "read-tool-contract",
+  "category": "contracts",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-TOOL-001",
+    "NSL-RUST-TOOL-003",
+    "NSL-RUST-HASH-004"
+  ],
+  "expected_artifacts": {
+    "canonical_contract": {
+      "path": "contract.json",
+      "sha256": "f673bce4e17a04cdec1b829b4c9c56d3ce01e22a7434b97605af6362500f488c"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {
+    "tool_contract_hash": "f673bce4e17a04cdec1b829b4c9c56d3ce01e22a7434b97605af6362500f488c"
+  },
+  "expected_status": null,
+  "inputs": {
+    "tool_catalog": {
+      "path": "tools.json",
+      "sha256": "d1d8c01142582622e037a3e58e733d1fd53502726de7b95deb26e22560270df3"
+    }
+  },
+  "notes": "Select PROJECT.LIST_PARENT_PROJECTS version 1.0.0 from the catalog.",
+  "source_refs": [
+    "examples/project_budget_check_cli/tools.json",
+    "nsl/tools.py",
+    "tests/test_tool_contracts.py"
+  ]
+}

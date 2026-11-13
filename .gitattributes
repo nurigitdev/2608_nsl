@@ -2,3 +2,4 @@
 # across Windows and Linux checkouts.
 *.json text eol=lf
 *.ns text eol=lf
+*.nso -text

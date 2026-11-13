@@ -1,0 +1,30 @@
+{
+  "case_id": "decimal-money-exact",
+  "category": "values",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-MONEY-003",
+    "NSL-RUST-MONEY-007",
+    "NSL-RUST-MONEY-008"
+  ],
+  "expected_artifacts": {
+    "values": {
+      "path": "expected.json",
+      "sha256": "728d2bc0133bc48704bab979a6f1fa99d27474ae244103ef30bf5861c9eae557"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {},
+  "expected_status": null,
+  "inputs": {
+    "values": {
+      "path": "values.json",
+      "sha256": "3b320b6f33df6c1f3fce387ce990defcb9d9ecf5ad4719b7d8278aa6c57feb58"
+    }
+  },
+  "notes": "Round trip all values, then add the first pair as Decimals and the second pair as Money.",
+  "source_refs": [
+    "nsl/core.py",
+    "tests/test_money_semantics.py"
+  ]
+}

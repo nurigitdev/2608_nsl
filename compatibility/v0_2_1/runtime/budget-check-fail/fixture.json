@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "tools": [
+    {
+      "cases": [
+        {
+          "arguments": {
+            "team_id": "TEAM-FINANCE",
+            "year": 2026
+          },
+          "result": [
+            {
+              "budget": {
+                "$type": "Money",
+                "amount": "100000000",
+                "currency": "KRW"
+              },
+              "project_code": "PARENT-001"
+            }
+          ]
+        }
+      ],
+      "tool_id": "PROJECT.LIST_PARENT_PROJECTS",
+      "version": "1.0.0"
+    },
+    {
+      "cases": [
+        {
+          "arguments": {
+            "parent_project": "PARENT-001",
+            "year": 2026
+          },
+          "result": [
+            {
+              "expense_amount": {
+                "$type": "Money",
+                "amount": "100000001",
+                "currency": "KRW"
+              },
+              "parent_project": "PARENT-001",
+              "project_code": "CHILD-OVER"
+            }
+          ]
+        }
+      ],
+      "tool_id": "PROJECT.LIST_CHILD_PROJECTS",
+      "version": "1.0.0"
+    }
+  ]
+}

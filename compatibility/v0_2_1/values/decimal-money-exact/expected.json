@@ -1,0 +1,31 @@
+{
+  "decimal_sum": {
+    "$type": "Decimal",
+    "value": "0.001"
+  },
+  "money_sum": {
+    "$type": "Money",
+    "amount": "0.30",
+    "currency": "KRW"
+  },
+  "round_trip": [
+    {
+      "$type": "Decimal",
+      "value": "0.001"
+    },
+    {
+      "$type": "Decimal",
+      "value": "-0.00"
+    },
+    {
+      "$type": "Money",
+      "amount": "0.10",
+      "currency": "KRW"
+    },
+    {
+      "$type": "Money",
+      "amount": "0.20",
+      "currency": "KRW"
+    }
+  ]
+}

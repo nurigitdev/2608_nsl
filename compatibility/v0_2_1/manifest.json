@@ -1,0 +1,67 @@
+{
+  "cases": [
+    {
+      "case_id": "budget-check-fail",
+      "category": "runtime",
+      "path": "runtime/budget-check-fail/case.json",
+      "sha256": "d016260e546c04363ca6c7dc3faee733be9a04122a63d4690a31612ae77306a1"
+    },
+    {
+      "case_id": "budget-check-pass",
+      "category": "runtime",
+      "path": "runtime/budget-check-pass/case.json",
+      "sha256": "db7015b33bfc7957803775ffa371ee72fcb7fa281a31427678d919cb7d3cadfe"
+    },
+    {
+      "case_id": "budget-check-unknown",
+      "category": "runtime",
+      "path": "runtime/budget-check-unknown/case.json",
+      "sha256": "67c156958153a2c87f17d6d961fe74fbea8995b471a8aff255c790720aca2e10"
+    },
+    {
+      "case_id": "core-status-enums",
+      "category": "values",
+      "path": "values/core-status-enums/case.json",
+      "sha256": "34244a840095e5479255171bee1b2e75963eccc1681c0087a6b74f82b9629a33"
+    },
+    {
+      "case_id": "decimal-money-exact",
+      "category": "values",
+      "path": "values/decimal-money-exact/case.json",
+      "sha256": "b9961364f6d3f83116ff0810fdbe34aa417f44266305d999f3af9fe20a50f046"
+    },
+    {
+      "case_id": "ir-1-0-canonical",
+      "category": "nso",
+      "path": "nso/ir-1-0-canonical/case.json",
+      "sha256": "85e5882900d4c65a691dc81b3d54a5d02609653893b6b340ce531ac678e258be"
+    },
+    {
+      "case_id": "ir-1-1-canonical",
+      "category": "nso",
+      "path": "nso/ir-1-1-canonical/case.json",
+      "sha256": "95022abe190aa4e839e3db8eb8f3533061f42bb734e799abe8e36cdec5b38415"
+    },
+    {
+      "case_id": "read-tool-contract",
+      "category": "contracts",
+      "path": "contracts/read-tool-contract/case.json",
+      "sha256": "c6af13fe5881719f0740ecb84f6b7ee8d16e09d255c7f71b0985297056f75110"
+    },
+    {
+      "case_id": "undeclared-tool",
+      "category": "diagnostics",
+      "path": "diagnostics/undeclared-tool/case.json",
+      "sha256": "bbb234d59abb851c35fd0a3952729e0dce5f4421d5a2685fba15740994c0b8dd"
+    },
+    {
+      "case_id": "version-identity",
+      "category": "source",
+      "path": "source/version-identity/case.json",
+      "sha256": "c732b14e0dcbc12ee7380df3add223e74f110a28dd4257e7543695ec2030e36e"
+    }
+  ],
+  "corpus_version": "1.0.0",
+  "oracle_commit": "28a949ec96581cbdc52c8133527b23bb5b72ee0a",
+  "schema_version": "1.0"
+}

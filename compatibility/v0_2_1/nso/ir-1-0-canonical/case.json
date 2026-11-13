@@ -1,0 +1,41 @@
+{
+  "case_id": "ir-1-0-canonical",
+  "category": "nso",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-IR-006",
+    "NSL-RUST-IR-009",
+    "NSL-RUST-IR-010",
+    "NSL-RUST-IR-011",
+    "NSL-RUST-IR-012"
+  ],
+  "expected_artifacts": {
+    "nso": {
+      "path": "expected.nso",
+      "sha256": "35c8201ff8e55f22cd55f3fa677182a800b5452099a79cfe9e450792bb33337c"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {
+    "artifact_hash": "35c8201ff8e55f22cd55f3fa677182a800b5452099a79cfe9e450792bb33337c",
+    "semantic_hash": "ba75f7b96d08f0a8bff6ff1917b127c36cf2a0c96f1d29b7dc883674a4678b56",
+    "source_bundle_hash": "c01e330d1c06d9668bf8ec94cfc1b2221a620e338ba816d57e73c424729855d6"
+  },
+  "expected_status": null,
+  "inputs": {
+    "source": {
+      "path": "project_budget_check.ns",
+      "sha256": "9151a3e27f7284ee305489f256cca91d1e1c4d550d82d80dd765af1e5a72e103"
+    },
+    "tool_catalog": {
+      "path": "tools.json",
+      "sha256": "d1d8c01142582622e037a3e58e733d1fd53502726de7b95deb26e22560270df3"
+    }
+  },
+  "notes": "Compile as memory/root.ns, the Oracle compiler's logical path for a string input.",
+  "source_refs": [
+    "examples/project_budget_check.ns",
+    "examples/project_budget_check_cli/tools.json",
+    "tests/test_v0_2_ir_codec.py"
+  ]
+}

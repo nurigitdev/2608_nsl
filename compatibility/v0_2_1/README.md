@@ -38,4 +38,19 @@ Every case must assert at least one observation. Roles name inputs or observatio
 
 Use UTF-8 without a BOM, LF line endings, and a final LF for the manifest and case descriptors. For deterministic exports, sort the manifest entries by `case_id` and keep JSON key ordering and formatting stable. The SHA-256 of the exact `manifest.json` bytes identifies the corpus content, including its references to case and fixture hashes.
 
-`R0-S04` creates the first manifest and fixtures from the frozen Python Oracle.
+## Reproduce the first corpus
+
+From the repository root, use Python 3.12+ and a Git checkout containing the Oracle commit. The exporter reads the locked commit directly from Git. The verifier uses JSON Schema Draft 2020-12 and checks the recorded hashes and canonical NSO and Tool Contract bytes.
+
+```bash
+.venv/bin/python -m pip install -r tools/rust_transition/requirements.txt
+.venv/bin/python -m tools.rust_transition.export_compatibility_corpus test/corpus-a
+.venv/bin/python -m tools.rust_transition.export_compatibility_corpus test/corpus-b
+.venv/bin/python -m tools.rust_transition.verify_compatibility_corpus test/corpus-a
+.venv/bin/python -m tools.rust_transition.verify_compatibility_corpus test/corpus-b
+.venv/bin/python -m tools.rust_transition.verify_compatibility_corpus
+diff -r test/corpus-a test/corpus-b
+sha256sum test/corpus-a/manifest.json test/corpus-b/manifest.json compatibility/v0_2_1/manifest.json
+```
+
+Choose new destination directories for subsequent exports. The checked-in corpus includes version identity, Core enum values, exact Decimal and Money values, a READ Tool Contract, canonical IR 1.0 and 1.1, a compiler diagnostic, and READ/CHECK/EMIT with `PASS`, `FAIL`, and `UNKNOWN`. The NSO hash fields store lowercase hexadecimal digests. NSL artifacts retain any `sha256:` prefix required by their own wire contracts.

@@ -1,0 +1,60 @@
+{
+  "ApprovalStatus": [
+    "APPROVED",
+    "EXPIRED",
+    "NOT_REQUESTED",
+    "PENDING",
+    "REJECTED"
+  ],
+  "CheckStatus": [
+    "FAIL",
+    "PASS",
+    "UNKNOWN"
+  ],
+  "CommitState": [
+    "COMMITTED",
+    "NOT_COMMITTED",
+    "UNKNOWN_COMMIT_STATE"
+  ],
+  "Completeness": [
+    "COMPLETE",
+    "PARTIAL",
+    "UNKNOWN"
+  ],
+  "DataClassification": [
+    "CONFIDENTIAL",
+    "INTERNAL",
+    "PUBLIC",
+    "RESTRICTED"
+  ],
+  "ExecutionStatus": [
+    "CANCELLED",
+    "COMPLETED",
+    "CREATED",
+    "FAILED",
+    "LIMIT_EXCEEDED",
+    "RECONCILIATION_REQUIRED",
+    "RUNNING",
+    "TOOL_ERROR",
+    "VALIDATION_ERROR",
+    "WAITING_FOR_APPROVAL"
+  ],
+  "Presence": [
+    "EMPTY",
+    "PRESENT"
+  ],
+  "RiskLevel": [
+    "R0",
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5"
+  ],
+  "VerificationStatus": [
+    "FAILED",
+    "NOT_REQUESTED",
+    "UNKNOWN",
+    "VERIFIED"
+  ]
+}

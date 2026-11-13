@@ -1,0 +1,11 @@
+{
+  "code": "NSL-E2201",
+  "location": {
+    "column": 24,
+    "line": 41
+  },
+  "logical_path": "memory/root.ns",
+  "message": "tool not declared in requires: PROJECT.UNKNOWN_TOOL",
+  "phase": "SEMANTIC",
+  "snippet": "        let children = read PROJECT.UNKNOWN_TOOL("
+}

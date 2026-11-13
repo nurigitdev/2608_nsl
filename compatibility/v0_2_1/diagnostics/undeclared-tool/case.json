@@ -1,0 +1,36 @@
+{
+  "case_id": "undeclared-tool",
+  "category": "diagnostics",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-DIFF-001",
+    "NSL-RUST-DIFF-002"
+  ],
+  "expected_artifacts": {
+    "diagnostic": {
+      "path": "diagnostic.json",
+      "sha256": "36c6c272fe12bb278195c42c0aca9f452edf4e97501ca86f12f4d206f973a22f"
+    }
+  },
+  "expected_error": {
+    "code": "NSL-E2201",
+    "phase": "SEMANTIC"
+  },
+  "expected_hashes": {},
+  "expected_status": null,
+  "inputs": {
+    "source": {
+      "path": "invalid.ns",
+      "sha256": "4a151533a690473dd1104bfdead445e7be4ad5953dbd7e833e9d8840919d7885"
+    },
+    "tool_catalog": {
+      "path": "tools.json",
+      "sha256": "d1d8c01142582622e037a3e58e733d1fd53502726de7b95deb26e22560270df3"
+    }
+  },
+  "notes": "Compile as memory/root.ns and compare the structured, user-safe diagnostic.",
+  "source_refs": [
+    "examples/project_budget_check.ns",
+    "tests/test_vertical_slice.py::CompilerTests.test_compile_rejects_undeclared_tool"
+  ]
+}

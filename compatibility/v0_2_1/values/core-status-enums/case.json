@@ -1,0 +1,25 @@
+{
+  "case_id": "core-status-enums",
+  "category": "values",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-CORE-001",
+    "NSL-RUST-CORE-002",
+    "NSL-RUST-CORE-003",
+    "NSL-RUST-CORE-004"
+  ],
+  "expected_artifacts": {
+    "enum_values": {
+      "path": "enum-values.json",
+      "sha256": "2dbd8a3b9279eac835e767f8d384d54cfb7ac8b92d4d7fcb1cda91712e120909"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {},
+  "expected_status": null,
+  "inputs": {},
+  "notes": "",
+  "source_refs": [
+    "nsl/core.py"
+  ]
+}
