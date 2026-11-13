@@ -4,3 +4,4 @@
 *.ns text eol=lf
 *.nso -text
 *.nsp -text
+rust/crates/nsl-core/tests/fixtures/decimal-money.tsv text eol=lf

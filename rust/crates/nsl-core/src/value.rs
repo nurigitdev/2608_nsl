@@ -1,11 +1,10 @@
 use std::{collections::BTreeMap, fmt, str::FromStr};
 
-use crate::{Completeness, DataClassification, Presence, TypeRef};
+use crate::{Completeness, DataClassification, DecimalError, Money, NslDecimal, Presence, TypeRef};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ValueError {
     InvalidInteger,
-    InvalidDecimalText,
     InvalidCurrency,
 }
 
@@ -13,7 +12,6 @@ impl fmt::Display for ValueError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
             Self::InvalidInteger => "expected a canonical base-10 integer",
-            Self::InvalidDecimalText => "expected finite Decimal text in fixed-point form",
             Self::InvalidCurrency => "expected a 3-letter uppercase ASCII currency code",
         })
     }
@@ -49,31 +47,6 @@ impl FromStr for Integer {
     }
 }
 
-/// Fixed-point text emitted by the Oracle's Decimal encoder.
-/// This representation preserves scale and signed zero.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DecimalText(String);
-
-impl DecimalText {
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl FromStr for DecimalText {
-    type Err = ValueError;
-
-    fn from_str(text: &str) -> Result<Self, Self::Err> {
-        let digits = text.strip_prefix('-').unwrap_or(text);
-        let (whole, fraction) = digits.split_once('.').unwrap_or((digits, "0"));
-        if !is_digits(whole) || (whole.len() > 1 && whole.starts_with('0')) || !is_digits(fraction)
-        {
-            return Err(ValueError::InvalidDecimalText);
-        }
-        Ok(Self(text.to_owned()))
-    }
-}
-
 fn is_digits(text: &str) -> bool {
     !text.is_empty() && text.bytes().all(|byte| byte.is_ascii_digit())
 }
@@ -104,11 +77,8 @@ pub enum Value {
     Bool(bool),
     Int(Integer),
     String(String),
-    Decimal(DecimalText),
-    Money {
-        amount: DecimalText,
-        currency: CurrencyCode,
-    },
+    Decimal(NslDecimal),
+    Money(Money),
     /// Already-encoded ISO date text from the temporal boundary.
     Date(String),
     /// Already-encoded ISO date-time text from the temporal boundary.
@@ -144,35 +114,44 @@ impl Value {
         }
     }
 
-    pub fn to_data(&self) -> ValueData {
-        match self {
+    /// Encode canonical fields, bounding each expanded decimal token in bytes.
+    pub fn to_data(&self, max_decimal_bytes: usize) -> Result<ValueData, DecimalError> {
+        let encode = |value: &Self| value.to_data(max_decimal_bytes);
+        Ok(match self {
             Self::Null => ValueData::Null,
             Self::Bool(value) => ValueData::Bool(*value),
             Self::Int(value) => ValueData::Number(value.clone()),
             Self::String(value) => ValueData::String(value.clone()),
-            Self::Decimal(value) => tagged("Decimal", "value", value.as_str()),
-            Self::Money { amount, currency } => ValueData::Object(BTreeMap::from([
+            Self::Decimal(value) => {
+                tagged("Decimal", "value", value.to_fixed_point(max_decimal_bytes)?)
+            }
+            Self::Money(money) => ValueData::Object(BTreeMap::from([
                 ("$type".into(), "Money".into()),
-                ("amount".into(), amount.as_str().into()),
-                ("currency".into(), currency.as_str().into()),
+                (
+                    "amount".into(),
+                    ValueData::String(money.amount().to_fixed_point(max_decimal_bytes)?),
+                ),
+                ("currency".into(), money.currency().as_str().into()),
             ])),
-            Self::Date(value) => tagged("Date", "value", value),
-            Self::DateTime(value) => tagged("DateTime", "value", value),
-            Self::List(items) => ValueData::Array(items.iter().map(Self::to_data).collect()),
+            Self::Date(value) => tagged("Date", "value", value.clone()),
+            Self::DateTime(value) => tagged("DateTime", "value", value.clone()),
+            Self::List(items) => {
+                ValueData::Array(items.iter().map(encode).collect::<Result<_, _>>()?)
+            }
             Self::Record(fields) => ValueData::Object(
                 fields
                     .iter()
-                    .map(|(name, value)| (name.clone(), value.to_data()))
-                    .collect(),
+                    .map(|(name, value)| Ok((name.clone(), encode(value)?)))
+                    .collect::<Result<_, _>>()?,
             ),
-        }
+        })
     }
 }
 
-fn tagged(tag: &str, key: &str, value: &str) -> ValueData {
+fn tagged(tag: &str, key: &str, value: String) -> ValueData {
     ValueData::Object(BTreeMap::from([
         ("$type".into(), tag.into()),
-        (key.into(), value.into()),
+        (key.into(), ValueData::String(value)),
     ]))
 }
 

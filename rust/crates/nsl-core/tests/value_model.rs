@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use nsl_core::{
-    Completeness, DataClassification, Presence, TypeError, TypeKind, TypeRef, Value, ValueData,
-    ValueEnvelope, ValueError,
+    Completeness, DataClassification, Money, Presence, TypeError, TypeKind, TypeRef, Value,
+    ValueData, ValueEnvelope, ValueError,
 };
 
 const ORACLE_FIXTURE: &str = include_str!("fixtures/value-model.json");
@@ -47,10 +47,7 @@ fn sample_value() -> Value {
         ("decimal".into(), Value::Decimal("-0.00".parse().unwrap())),
         (
             "money".into(),
-            Value::Money {
-                amount: "1.250".parse().unwrap(),
-                currency: "KRW".parse().unwrap(),
-            },
+            Value::Money(Money::new("1.250".parse().unwrap(), "KRW".parse().unwrap())),
         ),
         ("date".into(), Value::Date("2026-10-20".into())),
         (
@@ -153,7 +150,7 @@ fn type_value_presence_and_classification_match_the_oracle() {
     });
     let observed = ValueData::Object(BTreeMap::from([
         ("type".into(), project_type().to_data().unwrap()),
-        ("value".into(), sample_value().to_data()),
+        ("value".into(), sample_value().to_data(1024).unwrap()),
         ("presence".into(), ValueData::Array(presence.into())),
         (
             "classifications".into(),
@@ -186,10 +183,7 @@ fn records_and_nested_lists_require_exact_types() {
         ("statuses".into(), Value::List(vec![])),
         (
             "amount".into(),
-            Value::Money {
-                amount: "0".parse().unwrap(),
-                currency: "KRW".parse().unwrap(),
-            },
+            Value::Money(Money::new("0".parse().unwrap(), "KRW".parse().unwrap())),
         ),
         ("code".into(), string("P-01")),
         ("year".into(), Value::Int(2026.into())),
@@ -200,10 +194,7 @@ fn records_and_nested_lists_require_exact_types() {
     fields.remove("extra");
     fields.remove("year");
     assert!(!project.accepts(&Value::Record(fields)));
-    let dollars = Value::Money {
-        amount: "0".parse().unwrap(),
-        currency: "USD".parse().unwrap(),
-    };
+    let dollars = Value::Money(Money::new("0".parse().unwrap(), "USD".parse().unwrap()));
     assert!(!project.field("amount").unwrap().accepts(&dollars));
 }
 
@@ -295,12 +286,6 @@ fn invalid_type_shapes_and_numeric_text_are_rejected() {
         assert_eq!(
             value.parse::<nsl_core::Integer>(),
             Err(ValueError::InvalidInteger)
-        );
-    }
-    for value in ["", "NaN", "Infinity", "1E-3", "0.", ".1", "01.0", "1.2.3"] {
-        assert_eq!(
-            value.parse::<nsl_core::DecimalText>(),
-            Err(ValueError::InvalidDecimalText)
         );
     }
 }

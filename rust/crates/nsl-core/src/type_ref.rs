@@ -118,7 +118,7 @@ impl TypeRef {
             }
             TypeKind::Optional(item) => matches!(value, Value::Null) || item.accepts(value),
             TypeKind::Money(currency) => {
-                matches!(value, Value::Money { currency: actual, .. } if actual == currency)
+                matches!(value, Value::Money(money) if money.currency() == currency)
             }
         }
     }
