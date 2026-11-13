@@ -29,3 +29,11 @@ sha256sum Cargo.lock
 ```
 
 The workspace build passed from an empty target directory and the lockfile digest matched before and after.
+
+## Architecture dependency guard
+
+From `rust/`, run `python tools/check_architecture.py` with Python 3.12 and the pinned Rust toolchain. The guard reads Cargo's locked, all-feature graph for all target platforms. It follows dependencies by resolved package ID, including build and development edges, so renaming a crate or depending on it indirectly still exposes the dependency chain.
+
+`nsl-core` has no permitted workspace dependencies. `nsl-ir` may depend on `nsl-core`. Both may reach only explicitly reviewed external sources and packages, and their external allowlists are currently empty. `nsl-compiler` cannot reach `nsl-runtime`. `nsl-runtime` cannot reach `nsl-compiler` or `nsl-source`, which owns the AST.
+
+Every member must inherit the workspace `unsafe_code = "forbid"` lint. Cargo's compile checks enforce that lint on workspace targets. Run `python -m unittest discover -s tools` to exercise the guard against temporary Cargo workspaces and verify compiler rejection of unsafe integration-test code.
