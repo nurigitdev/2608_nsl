@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 import unittest
 
-from check_architecture import WORKSPACE, check
+from check_architecture import WORKSPACE, check, dependency_violations
 
 
 PACKAGES = ("nsl-core", "nsl-ir", "nsl-compiler", "nsl-runtime", "nsl-source", "bridge")
@@ -41,6 +41,27 @@ class ArchitectureGuardTests(unittest.TestCase):
         self.workspace({"nsl-ir": '[dependencies]\nnsl-core = {path = "../nsl-core"}\n'})
         self.lock()
         self.assertEqual(check(self.root), [])
+
+    def test_ir_reaches_reviewed_decimal_dependencies_only_through_core(self):
+        source = "registry+https://github.com/rust-lang/crates.io-index"
+        edges = {"nsl-ir": ["nsl-core"], "nsl-core": ["bigdecimal"], "bigdecimal": ["num-traits"]}
+        metadata = {
+            "packages": [
+                {"id": name, "name": name, "source": registry}
+                for names, registry in ((PACKAGES, None), (("bigdecimal", "num-traits"), source))
+                for name in names
+            ],
+            "workspace_members": PACKAGES,
+            "resolve": {"nodes": [
+                {"id": name, "deps": [{"pkg": child} for child in edges.get(name, ())]}
+                for name in (*PACKAGES, "bigdecimal", "num-traits")
+            ]},
+        }
+        self.assertEqual(dependency_violations(metadata), [])
+        metadata["resolve"]["nodes"][1]["deps"].append({"pkg": "num-traits"})
+        self.assertEqual(dependency_violations(metadata), [
+            f"forbidden dependency: nsl-ir -> num-traits ({source})",
+        ])
 
     def test_core_rejects_runtime_and_external_path_dependencies(self):
         external = self.root.parent / "sql-driver"

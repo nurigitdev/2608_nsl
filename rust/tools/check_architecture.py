@@ -16,7 +16,10 @@ WORKSPACE = Path(__file__).resolve().parents[1]
 # external packages by (package name, Cargo source) when a Slice needs them.
 LOWER_LAYERS: dict[str, set[str]] = {"nsl-core": set(), "nsl-ir": {"nsl-core"}}
 APPROVED_EXTERNAL: dict[str, set[tuple[str, str]]] = {
-    "nsl-core": set(),
+    "nsl-core": {
+        (name, "registry+https://github.com/rust-lang/crates.io-index")
+        for name in ("autocfg", "bigdecimal", "libm", "num-bigint", "num-integer", "num-traits")
+    },
     "nsl-ir": set(),
 }
 FORBIDDEN_WORKSPACE = {
@@ -44,24 +47,26 @@ def dependency_violations(metadata: dict) -> list[str]:
             violations.append(f"required workspace crate is missing: {owner}")
             continue
         root = members[owner]
-        pending = deque([(root, (owner,))])
-        seen = {root}
+        pending = deque([(root, (owner,), owner)])
+        seen = {(root, owner)}
         while pending:
-            current, chain = pending.popleft()
+            current, chain, external_owner = pending.popleft()
             for key in graph[current]:
-                if key in seen:
-                    continue
-                seen.add(key)
                 package = packages[key]
                 name = package["name"]
                 source = package["source"]
                 path = (*chain, name)
+                next_owner = name if key in member_ids and name in LOWER_LAYERS else external_owner
+                visit = (key, next_owner)
+                if visit in seen:
+                    continue
+                seen.add(visit)
                 forbidden = False
                 if owner in LOWER_LAYERS:
                     if key in member_ids:
                         forbidden = name not in LOWER_LAYERS[owner]
                     else:
-                        forbidden = source is None or (name, source) not in APPROVED_EXTERNAL[owner]
+                        forbidden = source is None or (name, source) not in APPROVED_EXTERNAL[external_owner]
                 elif key in member_ids:
                     forbidden = name in FORBIDDEN_WORKSPACE[owner]
                 if forbidden:
@@ -69,7 +74,7 @@ def dependency_violations(metadata: dict) -> list[str]:
                     if key not in member_ids:
                         description += f" ({source or 'non-workspace path'})"
                     violations.append(f"forbidden dependency: {description}")
-                pending.append((key, path))
+                pending.append((key, path, next_owner))
     return violations
 
 

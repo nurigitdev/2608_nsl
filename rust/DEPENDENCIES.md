@@ -30,10 +30,30 @@ sha256sum Cargo.lock
 
 The workspace build passed from an empty target directory and the lockfile digest matched before and after.
 
+## R2-S03 Decimal dependency review
+
+`nsl-core` uses `bigdecimal =0.4.11` behind its private Decimal representation. Only `std` is enabled explicitly. Cargo resolves the following crates.io packages. The lockfile records the registry checksums.
+
+| Package | Version | SPDX | Upstream | Use |
+| --- | --- | --- | --- | --- |
+| `bigdecimal` | `0.4.11` | `MIT OR Apache-2.0` | [akubera/bigdecimal-rs](https://github.com/akubera/bigdecimal-rs) | Decimal storage and explicit rounding |
+| `num-bigint` | `0.4.8` | `MIT OR Apache-2.0` | [rust-num/num-bigint](https://github.com/rust-num/num-bigint) | Arbitrary-precision integer arithmetic |
+| `num-integer` | `0.1.47` | `MIT OR Apache-2.0` | [rust-num/num-integer](https://github.com/rust-num/num-integer) | Transitive integer operations |
+| `num-traits` | `0.2.19` | `MIT OR Apache-2.0` | [rust-num/num-traits](https://github.com/rust-num/num-traits) | Transitive numeric traits |
+| `autocfg` | `1.5.1` | `MIT OR Apache-2.0` | [cuviper/autocfg](https://github.com/cuviper/autocfg) | Build-time compiler probes |
+| `libm` | `0.2.16` | `MIT` | [rust-lang/compiler-builtins](https://github.com/rust-lang/compiler-builtins) | Unconditional upstream dependency with its default `arch` feature |
+
+Preserve the applicable license notices when redistributing these packages. The `bigdecimal` build script generates defaults and `num-traits` probes the compiler. NSL selects its own rounding rule. The resolved graph includes upstream unsafe code, including architecture-specific `libm` implementations and integer intrinsics in the numeric dependencies. The NSL wrapper uses integer operations and the workspace unsafe-code policy still applies to all NSL crates. The graph enables no `serde` support. The [RustSec snapshot](https://github.com/RustSec/advisory-db/tree/af7b3ec33460b8e2de8d422e16d628518891a519) contained no entries for the six resolved packages at review time.
+
+```text
+Cargo.lock SHA-256
+d63414cd359436c1992d238f3946fe584cd057dbb55f57f444588356171b15d1
+```
+
 ## Architecture dependency guard
 
 From `rust/`, run `python tools/check_architecture.py` with Python 3.12 and the pinned Rust toolchain. The guard reads Cargo's locked, all-feature graph for all target platforms. It follows dependencies by resolved package ID, including build and development edges, so renaming a crate or depending on it indirectly still exposes the dependency chain.
 
-`nsl-core` has no permitted workspace dependencies. `nsl-ir` may depend on `nsl-core`. Both may reach only explicitly reviewed external sources and packages, and their external allowlists are currently empty. `nsl-compiler` cannot reach `nsl-runtime`. `nsl-runtime` cannot reach `nsl-compiler` or `nsl-source`, which owns the AST.
+`nsl-core` has no permitted workspace dependencies. `nsl-ir` may depend on `nsl-core` and reach the reviewed Decimal packages through it. External packages are checked against the allowlist of the workspace crate that introduces them. `nsl-ir` currently has an empty allowlist of its own. `nsl-compiler` cannot reach `nsl-runtime`. `nsl-runtime` cannot reach `nsl-compiler` or `nsl-source`, which owns the AST.
 
 Every member must inherit the workspace `unsafe_code = "forbid"` lint. Cargo's compile checks enforce that lint on workspace targets. Run `python -m unittest discover -s tools` to exercise the guard against temporary Cargo workspaces and verify compiler rejection of unsafe integration-test code.
