@@ -1,0 +1,59 @@
+name: NSL Rust Quality Gate
+
+on:
+  push:
+    branches:
+      - master
+      - transition/nsl-rust-v0.2.1
+    paths:
+      - 'rust/**'
+      - '.github/workflows/nsl-rust-quality.yml'
+  pull_request:
+    branches:
+      - master
+      - transition/nsl-rust-v0.2.1
+    paths:
+      - 'rust/**'
+      - '.github/workflows/nsl-rust-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-quality:
+    name: Rust Quality Gate (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: rust
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Load pinned Rust toolchain
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Run Clippy
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run workspace tests
+        run: cargo test --locked --workspace --all-targets
+
+      # Coverage will use a dedicated pinned instrumentation toolchain when added.
+      # Fuzzing will run bounded campaigns when the workspace has fuzz targets.
