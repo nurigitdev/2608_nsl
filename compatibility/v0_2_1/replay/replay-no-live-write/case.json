@@ -1,0 +1,31 @@
+{
+  "case_id": "replay-no-live-write",
+  "category": "replay",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-REPLAY-001",
+    "NSL-RUST-REPLAY-002",
+    "NSL-RUST-REPLAY-006"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "aeac5b8a45ccad7703352af9e09dec10e42b89536c42a04432aeb69b3be86a9b"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {
+    "replay_manifest_hash": "450b3776f2f9106e9bedca83fc7363e2cfa9887f8ffe67e431fcd02c37720a70"
+  },
+  "expected_status": "RECORDED",
+  "inputs": {
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "6606b363a95f9e3b4aa2b9eef42af3b47e29558591912b1bb77261b9b5e9aae4"
+    }
+  },
+  "notes": "Use the synthetic protected snapshot contents for a recorded-only session with no live WRITE port.",
+  "source_refs": [
+    "tests/test_v0_2_write_replay_evidence.py::test_rpl_201_203_repeated_replay_has_zero_live_write_calls"
+  ]
+}

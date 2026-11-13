@@ -1,0 +1,36 @@
+{
+  "environment": "DEVELOPMENT",
+  "execution_request": {
+    "business_operation_id": "business-update",
+    "data_policy": {
+      "audit_retention_days": 90,
+      "max_trace_classification": "INTERNAL",
+      "snapshot_retention_days": 30
+    },
+    "execution_id": "mock-platform-update",
+    "inputs": {
+      "expected_version": 1,
+      "project_id": "project-rust-corpus",
+      "requester_subject_id": "user-finance-001",
+      "tenant_id": "tenant-rust-corpus"
+    },
+    "principal": {
+      "actor_type": "USER",
+      "auth_context_ref": "auth-context-demo-001",
+      "on_behalf_of": null,
+      "roles": [
+        "FINANCE_ANALYST"
+      ],
+      "scopes": [
+        "nsl:replay:read",
+        "nsl:skill:execute",
+        "project:budget:read",
+        "project:project:admin"
+      ],
+      "subject_id": "user-finance-001",
+      "tenant_id": "tenant-rust-corpus",
+      "verification": "VERIFIED"
+    },
+    "runtime_context": {}
+  }
+}

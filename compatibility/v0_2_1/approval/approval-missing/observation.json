@@ -1,0 +1,10 @@
+{
+  "approval_gate_passed": false,
+  "approval_validation": null,
+  "requires_reapproval": false,
+  "write_gate_error": "WRITE blocked: APPROVAL_REQUIRED",
+  "write_guard": {
+    "eligibility": "REQUIRES_APPROVAL",
+    "reason_code": "APPROVAL_REQUIRED"
+  }
+}

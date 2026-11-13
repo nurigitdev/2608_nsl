@@ -1,0 +1,29 @@
+{
+  "case_id": "verification-verified",
+  "category": "write",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-VER-002",
+    "NSL-RUST-VER-003",
+    "NSL-RUST-VER-004"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "04c241c53df94aa602bcec1aed06ae5a2a1fa026d274c8d968defaa216537978"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {},
+  "expected_status": "VERIFIED",
+  "inputs": {
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "22674ee59cc1efcc01fde8e7e7a7000c0e44e04adf97d3fe2d8b7d88ae610258"
+    }
+  },
+  "notes": "Run read-only post-WRITE verification on a confirmed commit.",
+  "source_refs": [
+    "tests/test_v0_2_post_write_verification.py"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "first_disposition": "CREATED",
+  "reservation_calls": 2,
+  "second_disposition": "REUSED",
+  "second_result_ref": "result:expense-draft-42",
+  "stored_reservation": {
+    "business_operation_id": "business-0051",
+    "contract_hash": "sha256:05200deeed70335bda82debcc69d1c102ec5778deb9165b17c95848e1213cd65",
+    "idempotency_key": "idem:sha256:5db8238b137dc75bb1067a5d7d4b26b3b4ee4e14580d387dadf2993127cb9147",
+    "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+    "provider_guarantee_ref": "provider-policy://finance/idempotency-v1",
+    "retained_until": "2026-11-19T01:00:00+00:00",
+    "tenant_id": "tenant-a",
+    "tool_id": "FINANCE.CREATE_DRAFT",
+    "write_node_id": "write0001"
+  }
+}

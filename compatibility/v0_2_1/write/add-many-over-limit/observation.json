@@ -1,0 +1,42 @@
+{
+  "approval_request": null,
+  "approval_request_persisted": false,
+  "checkpoint_available": false,
+  "runtime_result": {
+    "approval": null,
+    "checks": [],
+    "completeness": "UNKNOWN",
+    "error": {
+      "category": "RESOURCE",
+      "code": "NSL-E6001",
+      "detail_code": null,
+      "message": "collection size limit exceeded",
+      "node_id": null
+    },
+    "outputs": [],
+    "pre_write_eligibility": null,
+    "resources": {
+      "emitted_rows": 0,
+      "loop_iterations": 0,
+      "max_collection_size_seen": 51,
+      "tool_calls": 0
+    },
+    "semantic_hash": "sha256:9a3362e5906cf9d62d720d77369acc6e39d40afcb1f0ccb59726b0ea85e7af02",
+    "skill_id": "PROJECT.MEMBERSHIP.ADD_MANY",
+    "skill_version": "1.0.0",
+    "status": "LIMIT_EXCEEDED",
+    "suspension": null,
+    "validation": {
+      "fail_count": 0,
+      "failed_check_ids": [],
+      "pass_count": 0,
+      "status": "NO_CHECK",
+      "total_count": 0,
+      "unknown_check_ids": [],
+      "unknown_count": 0
+    },
+    "verification": null,
+    "write": null
+  },
+  "tool_calls": 0
+}

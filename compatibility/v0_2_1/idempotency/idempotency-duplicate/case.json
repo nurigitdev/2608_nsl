@@ -1,0 +1,28 @@
+{
+  "case_id": "idempotency-duplicate",
+  "category": "idempotency",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-IDEM-002",
+    "NSL-RUST-IDEM-004"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "f1d799db2d825e3897beea831f3dd3186d0c5b31f55fcb887cf0430a0d84a58a"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {},
+  "expected_status": "REUSED",
+  "inputs": {
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "298a2d9991dd940e4a57689c8bb0ed748fdbe1bef3dd3d670e70be37d68a613a"
+    }
+  },
+  "notes": "Reserve the first intent and record its result. Reserve the second intent in a fresh context with the same business identity.",
+  "source_refs": [
+    "tests/test_v0_2_idempotency.py"
+  ]
+}

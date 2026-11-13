@@ -1,0 +1,36 @@
+{
+  "approval_request": null,
+  "approval_request_persisted": false,
+  "checkpoint_available": true,
+  "runtime_result": {
+    "approval": null,
+    "checks": [],
+    "completeness": "COMPLETE",
+    "error": null,
+    "outputs": [],
+    "pre_write_eligibility": null,
+    "resources": {
+      "emitted_rows": 0,
+      "loop_iterations": 0,
+      "max_collection_size_seen": 0,
+      "tool_calls": 0
+    },
+    "semantic_hash": "sha256:52ea296addf61c508ea784ad329348488244ce8f8ec306d299f9deba7dc87a2d",
+    "skill_id": "PROJECT.PROJECT.DEACTIVATE",
+    "skill_version": "1.0.0",
+    "status": "COMPLETED",
+    "suspension": null,
+    "validation": {
+      "fail_count": 0,
+      "failed_check_ids": [],
+      "pass_count": 0,
+      "status": "NO_CHECK",
+      "total_count": 0,
+      "unknown_check_ids": [],
+      "unknown_count": 0
+    },
+    "verification": null,
+    "write": null
+  },
+  "tool_calls": 0
+}

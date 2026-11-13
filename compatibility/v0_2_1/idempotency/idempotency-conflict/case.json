@@ -1,0 +1,31 @@
+{
+  "case_id": "idempotency-conflict",
+  "category": "idempotency",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-IDEM-002",
+    "NSL-RUST-IDEM-005"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "cf4e237731be790d73179351d818e71e20737feb2545638ff718df07cc8ff9b0"
+    }
+  },
+  "expected_error": {
+    "code": "IDEMPOTENCY_CONFLICT",
+    "phase": "idempotency_reservation"
+  },
+  "expected_hashes": {},
+  "expected_status": "CONFLICT",
+  "inputs": {
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "47fbebc7d1c5dd423beff5bbde8897d924af93392ae5cbfa263438c172093cdb"
+    }
+  },
+  "notes": "Reserve the first intent and record its result. Reserve the second intent in a fresh context with the same business identity.",
+  "source_refs": [
+    "tests/test_v0_2_idempotency.py"
+  ]
+}

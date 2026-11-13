@@ -1,0 +1,191 @@
+{
+  "approval_validation": {
+    "approval_status": "APPROVED",
+    "reason_code": null,
+    "validation": "VALID"
+  },
+  "collection_limit": 1,
+  "durable_outcome": {
+    "business_reference": "project-rust-corpus",
+    "commit_state": "COMMITTED",
+    "evidence_refs": [
+      "mock-platform-commit:1"
+    ],
+    "identity": {
+      "approval_request_id": "mock-platform-approval-1",
+      "business_operation_id": "business-update",
+      "idempotency_key": "idem:sha256:a919cdbb87fb1a65219ad33b0cec6e178c4e63a2cc795e693475bd69c6e6e8fb",
+      "invocation_id": "mock-platform-invocation-1",
+      "node_id": "write0001",
+      "payload_hash": "sha256:b09bff506366fdb92b9faff1179077bea7bf1d011a645f7bb0320c280f5a7658",
+      "tenant_id": "tenant-rust-corpus",
+      "tool_id": "PROJECT.PROJECT.DEACTIVATE",
+      "write_intent_hash": "sha256:c0a30a580ad39b4545f2258929f12bb6c9e5a93663f106e3b154f17f39b45778"
+    },
+    "provider_transaction_id": "mock-platform-tx-1",
+    "reason_code": null,
+    "recorded_at": "2026-10-21T02:00:02+00:00",
+    "requested_record_hash": "sha256:864ca0321aafaa6271cdfd25920871f2178f25afc2cb1c3a3cac35bff561c758"
+  },
+  "events": [
+    "WRITE_REQUESTED",
+    "PROVIDER_WRITE"
+  ],
+  "guard": {
+    "eligibility": "ALLOWED",
+    "reason_code": null
+  },
+  "idempotency": {
+    "business_result_ref": null,
+    "disposition": "CREATED",
+    "evidence": {
+      "business_operation_id": "business-update",
+      "contract_hash": "sha256:bed62697be2ec05f0336e116ffcd315ed733a3617521729ed23d9feafee3c430",
+      "idempotency_key": "idem:sha256:a919cdbb87fb1a65219ad33b0cec6e178c4e63a2cc795e693475bd69c6e6e8fb",
+      "payload_hash": "sha256:b09bff506366fdb92b9faff1179077bea7bf1d011a645f7bb0320c280f5a7658",
+      "provider_guarantee_ref": "mock-platform-idempotency:1",
+      "retained_until": "2026-11-20T02:00:00+00:00",
+      "tenant_id": "tenant-rust-corpus",
+      "tool_id": "PROJECT.PROJECT.DEACTIVATE",
+      "write_node_id": "write0001"
+    }
+  },
+  "operation_kind": "UPDATE",
+  "provider_calls": 1,
+  "provider_request": {
+    "approval_id": "PROJECT_DEACTIVATE",
+    "approval_request_id": "mock-platform-approval-1",
+    "arguments": {
+      "expected_version": {
+        "classification": "INTERNAL",
+        "completeness": "COMPLETE",
+        "presence": "PRESENT",
+        "provenance_refs": [],
+        "type_info": {
+          "kind": "primitive",
+          "name": "Int"
+        },
+        "value": 1
+      },
+      "project_id": {
+        "classification": "INTERNAL",
+        "completeness": "COMPLETE",
+        "presence": "PRESENT",
+        "provenance_refs": [],
+        "type_info": {
+          "kind": "primitive",
+          "name": "String"
+        },
+        "value": "project-rust-corpus"
+      },
+      "requester_subject_id": {
+        "classification": "INTERNAL",
+        "completeness": "COMPLETE",
+        "presence": "PRESENT",
+        "provenance_refs": [],
+        "type_info": {
+          "kind": "primitive",
+          "name": "String"
+        },
+        "value": "user-finance-001"
+      },
+      "tenant_id": {
+        "classification": "INTERNAL",
+        "completeness": "COMPLETE",
+        "presence": "PRESENT",
+        "provenance_refs": [],
+        "type_info": {
+          "kind": "primitive",
+          "name": "String"
+        },
+        "value": "tenant-rust-corpus"
+      }
+    },
+    "business_operation_id": "business-update",
+    "business_preconditions": {
+      "business_operation_id": "business-update",
+      "contract_hash": "sha256:bed62697be2ec05f0336e116ffcd315ed733a3617521729ed23d9feafee3c430",
+      "evidence_id": "precondition-0063",
+      "evidence_ref": "etag:opaque:voucher-0063",
+      "expires_at": "2026-10-21T02:01:00+00:00",
+      "mechanism": "ETAG",
+      "observed_at": "2026-10-21T01:59:59+00:00",
+      "payload_hash": "sha256:b09bff506366fdb92b9faff1179077bea7bf1d011a645f7bb0320c280f5a7658",
+      "provider_atomic_enforcement": true,
+      "tenant_id": "tenant-rust-corpus",
+      "tool_id": "PROJECT.PROJECT.DEACTIVATE",
+      "write_intent_hash": "sha256:c0a30a580ad39b4545f2258929f12bb6c9e5a93663f106e3b154f17f39b45778",
+      "write_node_id": "write0001"
+    },
+    "contract_hash": "sha256:bed62697be2ec05f0336e116ffcd315ed733a3617521729ed23d9feafee3c430",
+    "execution_id": "mock-platform-update",
+    "idempotency_key": "idem:sha256:a919cdbb87fb1a65219ad33b0cec6e178c4e63a2cc795e693475bd69c6e6e8fb",
+    "invocation_id": "mock-platform-invocation-1",
+    "node_id": "write0001",
+    "payload_hash": "sha256:b09bff506366fdb92b9faff1179077bea7bf1d011a645f7bb0320c280f5a7658",
+    "tenant_id": "tenant-rust-corpus",
+    "tool_id": "PROJECT.PROJECT.DEACTIVATE",
+    "tool_ref": "tool0001",
+    "trace_refs": [],
+    "write_intent_hash": "sha256:c0a30a580ad39b4545f2258929f12bb6c9e5a93663f106e3b154f17f39b45778"
+  },
+  "runtime_result": {
+    "approval": {
+      "approval_id": "PROJECT_DEACTIVATE",
+      "approval_request_id": "mock-platform-approval-1",
+      "status": "APPROVED"
+    },
+    "checks": [],
+    "completeness": "COMPLETE",
+    "error": null,
+    "outputs": [
+      {
+        "entity_version": 2,
+        "name": "Synthetic project",
+        "project_code": "PROJECT-RUST",
+        "project_id": "project-rust-corpus",
+        "status": "INACTIVE"
+      }
+    ],
+    "pre_write_eligibility": "ALLOWED",
+    "resources": {
+      "emitted_rows": 1,
+      "loop_iterations": 0,
+      "max_collection_size_seen": 0,
+      "tool_calls": 0
+    },
+    "semantic_hash": "sha256:52ea296addf61c508ea784ad329348488244ce8f8ec306d299f9deba7dc87a2d",
+    "skill_id": "PROJECT.PROJECT.DEACTIVATE",
+    "skill_version": "1.0.0",
+    "status": "COMPLETED",
+    "suspension": null,
+    "validation": {
+      "fail_count": 0,
+      "failed_check_ids": [],
+      "pass_count": 0,
+      "status": "NO_CHECK",
+      "total_count": 0,
+      "unknown_check_ids": [],
+      "unknown_count": 0
+    },
+    "verification": {
+      "evidence_ref": "verification:0063",
+      "reason_code": null,
+      "status": "VERIFIED"
+    },
+    "write": {
+      "business_reference": "project-rust-corpus",
+      "commit_state": "COMMITTED",
+      "idempotency_key": "idem:sha256:a919cdbb87fb1a65219ad33b0cec6e178c4e63a2cc795e693475bd69c6e6e8fb",
+      "node_id": "write0001",
+      "payload_hash": "sha256:b09bff506366fdb92b9faff1179077bea7bf1d011a645f7bb0320c280f5a7658",
+      "provider_transaction_id": "mock-platform-tx-1",
+      "tool_id": "PROJECT.PROJECT.DEACTIVATE"
+    }
+  },
+  "static_loop_bound": 0,
+  "static_tool_call_bound": 1,
+  "validation": "NO_CHECK",
+  "verification_calls": 1,
+  "write_node": "write0001"
+}

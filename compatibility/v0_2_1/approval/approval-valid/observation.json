@@ -1,0 +1,14 @@
+{
+  "approval_gate_passed": true,
+  "approval_validation": {
+    "approval_status": "APPROVED",
+    "reason_code": null,
+    "validation": "VALID"
+  },
+  "requires_reapproval": false,
+  "write_gate_error": null,
+  "write_guard": {
+    "eligibility": "ALLOWED",
+    "reason_code": null
+  }
+}

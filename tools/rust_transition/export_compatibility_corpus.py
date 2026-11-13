@@ -249,8 +249,12 @@ def export_cases(oracle: Path, destination: Path) -> None:
             notes="Synthetic project budget data. Compare the runtime semantic view including checks, outputs and resource use.",
         )
 
+    sys.path.append(str(Path(__file__).resolve().parent))
+    from controlled_write_cases import add_controlled_write_cases
+
+    add_controlled_write_cases(corpus, oracle, json_bytes)
     (destination / "manifest.json").write_bytes(json_bytes({
-        "schema_version": "1.0", "corpus_version": "1.0.0", "oracle_commit": lock["commit"],
+        "schema_version": "1.0", "corpus_version": "1.1.0", "oracle_commit": lock["commit"],
         "cases": sorted(corpus.entries, key=lambda entry: entry["case_id"]),
     }))
 
@@ -267,7 +271,9 @@ def export(destination: Path) -> None:
         workspace = Path(temporary)
         source = workspace / "source"
         generated = workspace / "corpus"
-        archive = subprocess.check_output(["git", "archive", commit, "nsl", "examples"], cwd=ROOT)
+        archive = subprocess.check_output(
+            ["git", "archive", commit, "nsl", "examples", "tests"], cwd=ROOT,
+        )
         with tarfile.open(fileobj=BytesIO(archive)) as files:
             files.extractall(source, filter="data")
         subprocess.run(

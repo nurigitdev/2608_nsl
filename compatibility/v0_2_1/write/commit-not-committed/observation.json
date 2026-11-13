@@ -1,0 +1,44 @@
+{
+  "automatic_retry_allowed": false,
+  "durable_outcome": {
+    "business_reference": null,
+    "commit_state": "NOT_COMMITTED",
+    "evidence_refs": [
+      "provider:rejection:0054"
+    ],
+    "identity": {
+      "approval_request_id": "approval-request-0053",
+      "business_operation_id": "business-0053",
+      "idempotency_key": "idem:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "invocation_id": "invoke-0053",
+      "node_id": "write0001",
+      "payload_hash": "sha256:65a40406e742fe7c1d7e09d9a71009d95ebe41487c00beed005a4cbb8717c029",
+      "tenant_id": "tenant-a",
+      "tool_id": "FINANCE.CREATE_DRAFT",
+      "write_intent_hash": "sha256:07e3376f0f0c21ba69737fcb02926966ec24eee1bc34ce6937966ed46ecfd9e8"
+    },
+    "provider_transaction_id": "tx-rejected-0054",
+    "reason_code": "BUSINESS_PRECONDITION_REJECTED",
+    "recorded_at": "2026-10-20T03:00:02+00:00",
+    "requested_record_hash": "sha256:fecbcbccd1c037af1eeeeea86badc8a69261c92140b06b73415e506a7f43eb6a"
+  },
+  "durable_outcome_hash": "sha256:6e5d2b203ee8a2f81bba8feed6b428ec54491d18ad0297b1ee53641aa4e3cdb1",
+  "events": [
+    "WRITE_REQUESTED",
+    "PROVIDER_WRITE",
+    "WRITE_OUTCOME"
+  ],
+  "execution_status": "FAILED",
+  "provider_calls": 1,
+  "reason_code": "BUSINESS_PRECONDITION_REJECTED",
+  "reconciliation_required": false,
+  "write_summary": {
+    "business_reference": null,
+    "commit_state": "NOT_COMMITTED",
+    "idempotency_key": "idem:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "node_id": "write0001",
+    "payload_hash": "sha256:65a40406e742fe7c1d7e09d9a71009d95ebe41487c00beed005a4cbb8717c029",
+    "provider_transaction_id": "tx-rejected-0054",
+    "tool_id": "FINANCE.CREATE_DRAFT"
+  }
+}

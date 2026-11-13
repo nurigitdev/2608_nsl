@@ -12,7 +12,7 @@ Categories are `source`, `contracts`, `compile`, `diagnostics`, `nso`, `values`,
 
 ## Manifest and case fields
 
-`schema_version` identifies the manifest and case format. `corpus_version` identifies the corpus content release and starts at `1.0.0`. `oracle_commit` must equal `commit` in the Oracle lock. A case ID is stable and unique across the entire corpus. Each entry records the case ID, category, path to `case.json`, and SHA-256 of its exact bytes.
+`schema_version` identifies the manifest and case format. `corpus_version` identifies the corpus content release. Version `1.0.0` introduced the initial cases. Version `1.1.0` adds Controlled WRITE and Trust cases. `oracle_commit` must equal `commit` in the Oracle lock. A case ID is stable and unique across the entire corpus. Each entry records the case ID, category, path to `case.json`, and SHA-256 of its exact bytes.
 
 | Case field | Meaning |
 | --- | --- |
@@ -38,9 +38,15 @@ Every case must assert at least one observation. Roles name inputs or observatio
 
 Use UTF-8 without a BOM, LF line endings, and a final LF for the manifest and case descriptors. For deterministic exports, sort the manifest entries by `case_id` and keep JSON key ordering and formatting stable. The SHA-256 of the exact `manifest.json` bytes identifies the corpus content, including its references to case and fixture hashes.
 
-## Reproduce the first corpus
+## Controlled WRITE and Trust
 
-From the repository root, use Python 3.12+ and a Git checkout containing the Oracle commit. The exporter reads the locked commit directly from Git. The verifier uses JSON Schema Draft 2020-12 and checks the recorded hashes and canonical NSO and Tool Contract bytes.
+`scenario.json` records the synthetic inputs to the named boundary, including the mock port response or failure where applicable. `observation.json` records the actual Oracle outcome. The tampered NSO is identified by the input role `untrusted_nso`. Its file digest covers the tampered bytes and its expected outcome is an integrity rejection during NSO decoding.
+
+The local `ADD_MANY` and `UPDATE` cases record `NO_CHECK`, a checkpoint, no approval publication, and zero tool calls. The mock Platform cases use the same frozen skills with bound approval proof, current policy, idempotency, package trust, durable request evidence, and in-memory providers. `ADD_MANY` submits 50 subject IDs in one provider call. The 51-subject case stops at the runtime collection limit. The signed NSP fixtures use a public test vector and only export public trust keys.
+
+## Reproduce the corpus
+
+From the repository root, use Python 3.12+, the project's development dependencies, and a Git checkout containing the Oracle commit. The exporter reads the locked code, examples, and test support directly from Git. It uses fixed timestamps and test ports to exercise the Oracle. The verifier uses JSON Schema Draft 2020-12 and checks the recorded hashes and canonical NSO and Tool Contract bytes.
 
 ```bash
 .venv/bin/python -m pip install -r tools/rust_transition/requirements.txt

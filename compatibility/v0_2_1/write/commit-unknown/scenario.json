@@ -1,0 +1,63 @@
+{
+  "outcome_recorded_at": "2026-10-20T03:00:02+00:00",
+  "provider_fault": "timeout",
+  "provider_response": null,
+  "request": {
+    "approval_id": "APPROVE_DRAFT",
+    "approval_request_id": "approval-request-0053",
+    "arguments": {
+      "detail": {
+        "classification": "CONFIDENTIAL",
+        "completeness": "COMPLETE",
+        "presence": "PRESENT",
+        "provenance_refs": [],
+        "type_info": {
+          "kind": "domain",
+          "name": "DraftPayload"
+        },
+        "value": {
+          "amount": {
+            "$type": "Decimal",
+            "value": "84000"
+          },
+          "description": "KTX",
+          "lines": [
+            {
+              "sequence": 1
+            }
+          ]
+        }
+      }
+    },
+    "business_operation_id": "business-0053",
+    "business_preconditions": {
+      "business_operation_id": "business-0053",
+      "contract_hash": "sha256:05200deeed70335bda82debcc69d1c102ec5778deb9165b17c95848e1213cd65",
+      "evidence_id": "precondition-0053",
+      "evidence_ref": "etag:opaque:0053",
+      "expires_at": "2026-10-20T03:00:01+00:00",
+      "mechanism": "ETAG",
+      "observed_at": "2026-10-20T02:59:59+00:00",
+      "payload_hash": "sha256:65a40406e742fe7c1d7e09d9a71009d95ebe41487c00beed005a4cbb8717c029",
+      "provider_atomic_enforcement": true,
+      "tenant_id": "tenant-a",
+      "tool_id": "FINANCE.CREATE_DRAFT",
+      "write_intent_hash": "sha256:07e3376f0f0c21ba69737fcb02926966ec24eee1bc34ce6937966ed46ecfd9e8",
+      "write_node_id": "write0001"
+    },
+    "contract_hash": "sha256:05200deeed70335bda82debcc69d1c102ec5778deb9165b17c95848e1213cd65",
+    "execution_id": "exec-0053",
+    "idempotency_key": "idem:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "invocation_id": "invoke-0053",
+    "node_id": "write0001",
+    "payload_hash": "sha256:65a40406e742fe7c1d7e09d9a71009d95ebe41487c00beed005a4cbb8717c029",
+    "tenant_id": "tenant-a",
+    "tool_id": "FINANCE.CREATE_DRAFT",
+    "tool_ref": "write_tool",
+    "trace_refs": [
+      "trace:0053"
+    ],
+    "write_intent_hash": "sha256:07e3376f0f0c21ba69737fcb02926966ec24eee1bc34ce6937966ed46ecfd9e8"
+  },
+  "requested_at": "2026-10-20T03:00:00+00:00"
+}

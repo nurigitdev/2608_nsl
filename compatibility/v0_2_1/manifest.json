@@ -1,6 +1,60 @@
 {
   "cases": [
     {
+      "case_id": "add-many-local-no-check",
+      "category": "write",
+      "path": "write/add-many-local-no-check/case.json",
+      "sha256": "56cb7a4182afc50e78ee3a114d5fec8beb3dd8b8107004619ed1d790eb998a1d"
+    },
+    {
+      "case_id": "add-many-mock-platform",
+      "category": "write",
+      "path": "write/add-many-mock-platform/case.json",
+      "sha256": "d62549bd3570a33927fe102dedd187bcaf8a216fe586ddd5228c82e64213df91"
+    },
+    {
+      "case_id": "add-many-over-limit",
+      "category": "write",
+      "path": "write/add-many-over-limit/case.json",
+      "sha256": "901c84f3c5d2531c1dadfe0f7ae0e48e69d154d28a374d9c4668fb909757e21c"
+    },
+    {
+      "case_id": "approval-expired",
+      "category": "approval",
+      "path": "approval/approval-expired/case.json",
+      "sha256": "2e0a599bc7429ea5ac31f47d1a25c3247be4d5c33d7064860dfe08d9162f7045"
+    },
+    {
+      "case_id": "approval-intent-mismatch",
+      "category": "approval",
+      "path": "approval/approval-intent-mismatch/case.json",
+      "sha256": "a0aa8ae7574fe1585e9757af39f7919f7ca45c229452d0782aaa0a983f5c4966"
+    },
+    {
+      "case_id": "approval-missing",
+      "category": "approval",
+      "path": "approval/approval-missing/case.json",
+      "sha256": "cd96d088240286b3f6f75371b4c27e7f721735caf491998061a9e41789663c4e"
+    },
+    {
+      "case_id": "approval-payload-mismatch",
+      "category": "approval",
+      "path": "approval/approval-payload-mismatch/case.json",
+      "sha256": "19042b837f63249082c48ac502a14c745a056f87b13a45dd07f8dc3bc045d707"
+    },
+    {
+      "case_id": "approval-rejected",
+      "category": "approval",
+      "path": "approval/approval-rejected/case.json",
+      "sha256": "61921d05620898ff7fe7c9f32581fe210fedb48ae531d70b2d4707eb99ef9331"
+    },
+    {
+      "case_id": "approval-valid",
+      "category": "approval",
+      "path": "approval/approval-valid/case.json",
+      "sha256": "459bd44ffcd05cbfc4057b23cecee5f07d5e42aaa13939cd113654dd57ff419f"
+    },
+    {
       "case_id": "budget-check-fail",
       "category": "runtime",
       "path": "runtime/budget-check-fail/case.json",
@@ -19,6 +73,24 @@
       "sha256": "67c156958153a2c87f17d6d961fe74fbea8995b471a8aff255c790720aca2e10"
     },
     {
+      "case_id": "commit-committed",
+      "category": "write",
+      "path": "write/commit-committed/case.json",
+      "sha256": "98002f92d9223588a7a79bd4ec3c443c41da57b90d8a23c97c72c27db381437b"
+    },
+    {
+      "case_id": "commit-not-committed",
+      "category": "write",
+      "path": "write/commit-not-committed/case.json",
+      "sha256": "7cfb54a4451c0e6622a013955d05d11285126ee0e3be1c94dd8396340ce2644c"
+    },
+    {
+      "case_id": "commit-unknown",
+      "category": "write",
+      "path": "write/commit-unknown/case.json",
+      "sha256": "e3bfb867a174ef110ce715036243b16a794019d7c3632ea0f47be77f836c1eb6"
+    },
+    {
       "case_id": "core-status-enums",
       "category": "values",
       "path": "values/core-status-enums/case.json",
@@ -29,6 +101,18 @@
       "category": "values",
       "path": "values/decimal-money-exact/case.json",
       "sha256": "b9961364f6d3f83116ff0810fdbe34aa417f44266305d999f3af9fe20a50f046"
+    },
+    {
+      "case_id": "idempotency-conflict",
+      "category": "idempotency",
+      "path": "idempotency/idempotency-conflict/case.json",
+      "sha256": "2ff70d81fb53d0b1de71fe01bb486f94f7d406f069e4b20a4fa2c779f51079fa"
+    },
+    {
+      "case_id": "idempotency-duplicate",
+      "category": "idempotency",
+      "path": "idempotency/idempotency-duplicate/case.json",
+      "sha256": "0bb778e2c8e7abac8c2c35568469185f86bbbc8dc14c993ec66ae2005efc69cb"
     },
     {
       "case_id": "ir-1-0-canonical",
@@ -43,10 +127,28 @@
       "sha256": "95022abe190aa4e839e3db8eb8f3533061f42bb734e799abe8e36cdec5b38415"
     },
     {
+      "case_id": "nso-semantic-tamper",
+      "category": "trust",
+      "path": "trust/nso-semantic-tamper/case.json",
+      "sha256": "fcede9a62dd810ce6493670b673d67d828f13fb7cb6e4f9d6ef49aa25eaaa655"
+    },
+    {
+      "case_id": "package-untrusted-signer",
+      "category": "trust",
+      "path": "trust/package-untrusted-signer/case.json",
+      "sha256": "0e60b38e516a01e4a8f4456a09baf85580c9ba46cd51aeca4c4f9b0500f65b64"
+    },
+    {
       "case_id": "read-tool-contract",
       "category": "contracts",
       "path": "contracts/read-tool-contract/case.json",
       "sha256": "c6af13fe5881719f0740ecb84f6b7ee8d16e09d255c7f71b0985297056f75110"
+    },
+    {
+      "case_id": "replay-no-live-write",
+      "category": "replay",
+      "path": "replay/replay-no-live-write/case.json",
+      "sha256": "c351d30e5754d57342a78bf82e7ded210c831eefd2fdcf4c16fb2d698050a535"
     },
     {
       "case_id": "undeclared-tool",
@@ -55,13 +157,49 @@
       "sha256": "bbb234d59abb851c35fd0a3952729e0dce5f4421d5a2685fba15740994c0b8dd"
     },
     {
+      "case_id": "update-local-no-check",
+      "category": "write",
+      "path": "write/update-local-no-check/case.json",
+      "sha256": "4ac70e305298d348e9bb5fd12ca5a6a4102b5c6677da5011c620286f2ef0a1af"
+    },
+    {
+      "case_id": "update-mock-platform",
+      "category": "write",
+      "path": "write/update-mock-platform/case.json",
+      "sha256": "439cfb352e84c950175a56365a3028cdddd78a5bd8a9ebd764d67abcd6037021"
+    },
+    {
+      "case_id": "verification-failed",
+      "category": "write",
+      "path": "write/verification-failed/case.json",
+      "sha256": "803c5bda3e0f3a7c0736b7e10f5f9df63da53a504b16e0b9372a1b7d3328029d"
+    },
+    {
+      "case_id": "verification-unknown",
+      "category": "write",
+      "path": "write/verification-unknown/case.json",
+      "sha256": "f0ad0cdeaa72f2d378605a0d99dafcef862bbe14feced24df27f2b79fbb9e21f"
+    },
+    {
+      "case_id": "verification-verified",
+      "category": "write",
+      "path": "write/verification-verified/case.json",
+      "sha256": "2a586f41f70d1fabf4198af5d68a0138df79c6eb110abdd26f312ba7daef4908"
+    },
+    {
       "case_id": "version-identity",
       "category": "source",
       "path": "source/version-identity/case.json",
       "sha256": "c732b14e0dcbc12ee7380df3add223e74f110a28dd4257e7543695ec2030e36e"
+    },
+    {
+      "case_id": "write-cross-tenant",
+      "category": "trust",
+      "path": "trust/write-cross-tenant/case.json",
+      "sha256": "c13de9a4bb8ce3ab0dbe182ee0593bac3f1f96e2aace283d1f69ae43f9e07577"
     }
   ],
-  "corpus_version": "1.0.0",
+  "corpus_version": "1.1.0",
   "oracle_commit": "28a949ec96581cbdc52c8133527b23bb5b72ee0a",
   "schema_version": "1.0"
 }

@@ -1,0 +1,49 @@
+{
+  "bindings": {
+    "approval_id": "APPROVE_BUDGET",
+    "approval_request_id": "approval-request-0049",
+    "business_operation_id": "business-0049",
+    "execution_id": "exec-0049",
+    "payload_hash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "skill_semantic_hash": "sha256:ba75f7b96d08f0a8bff6ff1917b127c36cf2a0c96f1d29b7dc883674a4678b56",
+    "tenant_id": "tenant-nex",
+    "write_intent_hash": "write-intent-0049"
+  },
+  "checked_at": "2026-10-20T01:02:03+00:00",
+  "evidence": {
+    "approval_id": "APPROVE_BUDGET",
+    "approval_request_id": "approval-request-0049",
+    "approver_id": "approver-0049",
+    "business_operation_id": "business-0049",
+    "decided_at": "2026-10-20T01:02:03+00:00",
+    "decision": "APPROVED",
+    "evidence_integrity": "opaque-signed-evidence-0049",
+    "execution_id": "exec-0049",
+    "expires_at": "2026-10-20T02:02:03+00:00",
+    "payload_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "skill_semantic_hash": "sha256:ba75f7b96d08f0a8bff6ff1917b127c36cf2a0c96f1d29b7dc883674a4678b56",
+    "tenant_id": "tenant-nex",
+    "write_intent_hash": "write-intent-0049"
+  },
+  "mock_verifier_result": true,
+  "other_controls": {
+    "business_preconditions_passed": true,
+    "current_policy_allowed": true,
+    "durability_ready": true,
+    "idempotency_ready": true,
+    "intent_binding_valid": false,
+    "replay_live_write_allowed": true,
+    "runtime_preflight_passed": true,
+    "tool_preconditions_passed": true,
+    "trust_valid": true
+  },
+  "validation": {
+    "fail_count": 0,
+    "failed_check_ids": [],
+    "pass_count": 1,
+    "status": "ALL_PASS",
+    "total_count": 1,
+    "unknown_check_ids": [],
+    "unknown_count": 0
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "code": "NSP_INVALID_SIGNATURE",
+  "message": "NSP package signature is invalid or untrusted"
+}

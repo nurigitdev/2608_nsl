@@ -1,0 +1,14 @@
+{
+  "approval_gate_passed": false,
+  "approval_validation": {
+    "approval_status": "EXPIRED",
+    "reason_code": "APPROVAL_EXPIRED",
+    "validation": "EXPIRED"
+  },
+  "requires_reapproval": true,
+  "write_gate_error": "WRITE blocked: APPROVAL_REQUIRED",
+  "write_guard": {
+    "eligibility": "REQUIRES_APPROVAL",
+    "reason_code": "APPROVAL_REQUIRED"
+  }
+}

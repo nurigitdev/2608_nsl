@@ -1,0 +1,43 @@
+{
+  "case_id": "write-cross-tenant",
+  "category": "trust",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-TRUST-009",
+    "NSL-RUST-SEC-006"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "c277dcde0ea30097919642dc750f653f5d53c3bfd9b8a41bd8d7d7309c2fa83b"
+    }
+  },
+  "expected_error": {
+    "code": "TRUST_TENANT_BINDING_MISMATCH",
+    "phase": "trust_preflight"
+  },
+  "expected_hashes": {},
+  "expected_status": null,
+  "inputs": {
+    "package": {
+      "path": "signed.nsp",
+      "sha256": "5f280bc7ee7b60dde701783605df042e6a4b515d70a2ef37486675a1d0b2417e"
+    },
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "1f75b76537ab0d1f5f9cf3940bec74765b5506951709f702f8ccc5466f865ded"
+    },
+    "source": {
+      "path": "project_membership_add_many.ns",
+      "sha256": "723f5683a4b6a9baa458874878d3b4956ecb259feca9077629c86500a127efe5"
+    },
+    "tool_catalog": {
+      "path": "tools.json",
+      "sha256": "22b38babd932d9003440c8eb04a26dbde777ef2f74ae2ddd448a2f7924e98cc9"
+    }
+  },
+  "notes": "",
+  "source_refs": [
+    "tests/test_v0_2_production_write_trust.py::test_trusted_write_rejects_cross_tenant_and_context_skill_binding"
+  ]
+}

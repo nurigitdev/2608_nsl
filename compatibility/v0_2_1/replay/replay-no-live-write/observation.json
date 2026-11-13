@@ -1,0 +1,104 @@
+{
+  "runs": [
+    {
+      "decision": {
+        "automatic_retry_allowed": false,
+        "outcome": {
+          "business_reference": "DRAFT-0060",
+          "commit_state": "COMMITTED",
+          "evidence_refs": [
+            "commit:evidence:0060"
+          ],
+          "identity": {
+            "approval_request_id": "approval-request-0060",
+            "business_operation_id": "business-0060",
+            "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+            "invocation_id": "invoke-0060",
+            "node_id": "write0001",
+            "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+            "tenant_id": "tenant-a",
+            "tool_id": "FINANCE.CREATE_DRAFT",
+            "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+          },
+          "provider_transaction_id": "provider-tx-0060",
+          "reason_code": null,
+          "recorded_at": "2026-10-20T09:00:00+00:00",
+          "requested_record_hash": "sha256:91db50cb0f1f61bc21006025a44e4f81de3efba2d7fb338f2a2da18186cfb834"
+        },
+        "side_effect_performed": false,
+        "source": "RECORDED"
+      },
+      "recorded_calls": 1,
+      "verification": {
+        "business_reference": "DRAFT-0060",
+        "commit_state": "COMMITTED",
+        "evidence_ref": "verification:evidence:0060",
+        "identity": {
+          "approval_request_id": "approval-request-0060",
+          "business_operation_id": "business-0060",
+          "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+          "invocation_id": "invoke-0060",
+          "node_id": "write0001",
+          "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+          "tenant_id": "tenant-a",
+          "tool_id": "FINANCE.CREATE_DRAFT",
+          "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+        },
+        "observed_at": "2026-10-20T09:00:00+00:00",
+        "reason_code": null,
+        "status": "VERIFIED",
+        "verification_tool_id": "FINANCE.GET_DRAFT"
+      }
+    },
+    {
+      "decision": {
+        "automatic_retry_allowed": false,
+        "outcome": {
+          "business_reference": "DRAFT-0060",
+          "commit_state": "COMMITTED",
+          "evidence_refs": [
+            "commit:evidence:0060"
+          ],
+          "identity": {
+            "approval_request_id": "approval-request-0060",
+            "business_operation_id": "business-0060",
+            "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+            "invocation_id": "invoke-0060",
+            "node_id": "write0001",
+            "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+            "tenant_id": "tenant-a",
+            "tool_id": "FINANCE.CREATE_DRAFT",
+            "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+          },
+          "provider_transaction_id": "provider-tx-0060",
+          "reason_code": null,
+          "recorded_at": "2026-10-20T09:00:00+00:00",
+          "requested_record_hash": "sha256:91db50cb0f1f61bc21006025a44e4f81de3efba2d7fb338f2a2da18186cfb834"
+        },
+        "side_effect_performed": false,
+        "source": "RECORDED"
+      },
+      "recorded_calls": 1,
+      "verification": {
+        "business_reference": "DRAFT-0060",
+        "commit_state": "COMMITTED",
+        "evidence_ref": "verification:evidence:0060",
+        "identity": {
+          "approval_request_id": "approval-request-0060",
+          "business_operation_id": "business-0060",
+          "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+          "invocation_id": "invoke-0060",
+          "node_id": "write0001",
+          "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+          "tenant_id": "tenant-a",
+          "tool_id": "FINANCE.CREATE_DRAFT",
+          "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+        },
+        "observed_at": "2026-10-20T09:00:00+00:00",
+        "reason_code": null,
+        "status": "VERIFIED",
+        "verification_tool_id": "FINANCE.GET_DRAFT"
+      }
+    }
+  ]
+}

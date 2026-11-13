@@ -1,0 +1,7 @@
+{
+  "message": "trust profile tenant does not match the execution context",
+  "outcomes_persisted": 0,
+  "provider_calls": 0,
+  "reason_code": "TRUST_TENANT_BINDING_MISMATCH",
+  "write_requests_persisted": 0
+}

@@ -1,0 +1,38 @@
+{
+  "case_id": "add-many-local-no-check",
+  "category": "write",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-COMPAT-004"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "a6df6349620a6162883dbf025aca95527031cc55b3f4d5080d9e52149d5707f2"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {},
+  "expected_status": "COMPLETED",
+  "inputs": {
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "38949d0657ebbe4c4f3862f41c15a17d7d6b39db3463e2bf185b54ad55d8cc39"
+    },
+    "source": {
+      "path": "project_membership_add_many.ns",
+      "sha256": "723f5683a4b6a9baa458874878d3b4956ecb259feca9077629c86500a127efe5"
+    },
+    "tool_catalog": {
+      "path": "tools.json",
+      "sha256": "22b38babd932d9003440c8eb04a26dbde777ef2f74ae2ddd448a2f7924e98cc9"
+    }
+  },
+  "notes": "Run the local controlled CLI path through its approval-publication boundary.",
+  "source_refs": [
+    "examples/project_operations/project_membership_add_many.ns",
+    "examples/project_operations/tools_write.json",
+    "tests/test_p8_project_write_contracts.py",
+    "nsl/cli_controlled.py"
+  ]
+}

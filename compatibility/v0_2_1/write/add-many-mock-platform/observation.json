@@ -1,0 +1,272 @@
+{
+  "approval_validation": {
+    "approval_status": "APPROVED",
+    "reason_code": null,
+    "validation": "VALID"
+  },
+  "collection_limit": 50,
+  "durable_outcome": {
+    "business_reference": "membership-result-1",
+    "commit_state": "COMMITTED",
+    "evidence_refs": [
+      "mock-platform-commit:1"
+    ],
+    "identity": {
+      "approval_request_id": "mock-platform-approval-1",
+      "business_operation_id": "business-add-many",
+      "idempotency_key": "idem:sha256:26714db888c8df00fd621e4299316e8f7f735d4975bf99e2004a5fba8f9a6b40",
+      "invocation_id": "mock-platform-invocation-1",
+      "node_id": "write0001",
+      "payload_hash": "sha256:f9b636af21dac055132f91d6641a53e4fda87308634137477ee6b40ab0c8e4ac",
+      "tenant_id": "tenant-rust-corpus",
+      "tool_id": "PROJECT.MEMBERSHIP.ADD_MANY",
+      "write_intent_hash": "sha256:119bbb129784d8088f1ff55aa4cbeb5ab6f790c93b40743908e0af1c2d38af50"
+    },
+    "provider_transaction_id": "mock-platform-tx-1",
+    "reason_code": null,
+    "recorded_at": "2026-10-21T02:00:02+00:00",
+    "requested_record_hash": "sha256:e327c01d4f796be928ca43080e7925af69a1a8050e8b6c369f29ace8c11583ba"
+  },
+  "events": [
+    "WRITE_REQUESTED",
+    "PROVIDER_WRITE"
+  ],
+  "guard": {
+    "eligibility": "ALLOWED",
+    "reason_code": null
+  },
+  "idempotency": {
+    "business_result_ref": null,
+    "disposition": "CREATED",
+    "evidence": {
+      "business_operation_id": "business-add-many",
+      "contract_hash": "sha256:1046307e6082e7bc636eba2f6d05a7a8fef251c147fc5b8f65996c93ce264b65",
+      "idempotency_key": "idem:sha256:26714db888c8df00fd621e4299316e8f7f735d4975bf99e2004a5fba8f9a6b40",
+      "payload_hash": "sha256:f9b636af21dac055132f91d6641a53e4fda87308634137477ee6b40ab0c8e4ac",
+      "provider_guarantee_ref": "mock-platform-idempotency:1",
+      "retained_until": "2026-11-20T02:00:00+00:00",
+      "tenant_id": "tenant-rust-corpus",
+      "tool_id": "PROJECT.MEMBERSHIP.ADD_MANY",
+      "write_node_id": "write0001"
+    }
+  },
+  "operation_kind": "CREATE",
+  "provider_calls": 1,
+  "provider_request": {
+    "approval_id": "MEMBERSHIP_ADD_MANY",
+    "approval_request_id": "mock-platform-approval-1",
+    "arguments": {
+      "member_role": {
+        "classification": "INTERNAL",
+        "completeness": "COMPLETE",
+        "presence": "PRESENT",
+        "provenance_refs": [],
+        "type_info": {
+          "kind": "primitive",
+          "name": "String"
+        },
+        "value": "MEMBER"
+      },
+      "project_id": {
+        "classification": "INTERNAL",
+        "completeness": "COMPLETE",
+        "presence": "PRESENT",
+        "provenance_refs": [],
+        "type_info": {
+          "kind": "primitive",
+          "name": "String"
+        },
+        "value": "project-rust-corpus"
+      },
+      "requester_subject_id": {
+        "classification": "INTERNAL",
+        "completeness": "COMPLETE",
+        "presence": "PRESENT",
+        "provenance_refs": [],
+        "type_info": {
+          "kind": "primitive",
+          "name": "String"
+        },
+        "value": "user-finance-001"
+      },
+      "resolution_evidence_hash": {
+        "classification": "INTERNAL",
+        "completeness": "COMPLETE",
+        "presence": "PRESENT",
+        "provenance_refs": [],
+        "type_info": {
+          "kind": "primitive",
+          "name": "String"
+        },
+        "value": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "target_subject_ids": {
+        "classification": "INTERNAL",
+        "completeness": "COMPLETE",
+        "presence": "PRESENT",
+        "provenance_refs": [],
+        "type_info": {
+          "item": {
+            "kind": "primitive",
+            "name": "String"
+          },
+          "kind": "list"
+        },
+        "value": [
+          "subject-00",
+          "subject-01",
+          "subject-02",
+          "subject-03",
+          "subject-04",
+          "subject-05",
+          "subject-06",
+          "subject-07",
+          "subject-08",
+          "subject-09",
+          "subject-10",
+          "subject-11",
+          "subject-12",
+          "subject-13",
+          "subject-14",
+          "subject-15",
+          "subject-16",
+          "subject-17",
+          "subject-18",
+          "subject-19",
+          "subject-20",
+          "subject-21",
+          "subject-22",
+          "subject-23",
+          "subject-24",
+          "subject-25",
+          "subject-26",
+          "subject-27",
+          "subject-28",
+          "subject-29",
+          "subject-30",
+          "subject-31",
+          "subject-32",
+          "subject-33",
+          "subject-34",
+          "subject-35",
+          "subject-36",
+          "subject-37",
+          "subject-38",
+          "subject-39",
+          "subject-40",
+          "subject-41",
+          "subject-42",
+          "subject-43",
+          "subject-44",
+          "subject-45",
+          "subject-46",
+          "subject-47",
+          "subject-48",
+          "subject-49"
+        ]
+      },
+      "tenant_id": {
+        "classification": "INTERNAL",
+        "completeness": "COMPLETE",
+        "presence": "PRESENT",
+        "provenance_refs": [],
+        "type_info": {
+          "kind": "primitive",
+          "name": "String"
+        },
+        "value": "tenant-rust-corpus"
+      }
+    },
+    "business_operation_id": "business-add-many",
+    "business_preconditions": {
+      "business_operation_id": "business-add-many",
+      "contract_hash": "sha256:1046307e6082e7bc636eba2f6d05a7a8fef251c147fc5b8f65996c93ce264b65",
+      "evidence_id": "precondition-0063",
+      "evidence_ref": "etag:opaque:voucher-0063",
+      "expires_at": "2026-10-21T02:01:00+00:00",
+      "mechanism": "ETAG",
+      "observed_at": "2026-10-21T01:59:59+00:00",
+      "payload_hash": "sha256:f9b636af21dac055132f91d6641a53e4fda87308634137477ee6b40ab0c8e4ac",
+      "provider_atomic_enforcement": true,
+      "tenant_id": "tenant-rust-corpus",
+      "tool_id": "PROJECT.MEMBERSHIP.ADD_MANY",
+      "write_intent_hash": "sha256:119bbb129784d8088f1ff55aa4cbeb5ab6f790c93b40743908e0af1c2d38af50",
+      "write_node_id": "write0001"
+    },
+    "contract_hash": "sha256:1046307e6082e7bc636eba2f6d05a7a8fef251c147fc5b8f65996c93ce264b65",
+    "execution_id": "mock-platform-add-many",
+    "idempotency_key": "idem:sha256:26714db888c8df00fd621e4299316e8f7f735d4975bf99e2004a5fba8f9a6b40",
+    "invocation_id": "mock-platform-invocation-1",
+    "node_id": "write0001",
+    "payload_hash": "sha256:f9b636af21dac055132f91d6641a53e4fda87308634137477ee6b40ab0c8e4ac",
+    "tenant_id": "tenant-rust-corpus",
+    "tool_id": "PROJECT.MEMBERSHIP.ADD_MANY",
+    "tool_ref": "tool0001",
+    "trace_refs": [],
+    "write_intent_hash": "sha256:119bbb129784d8088f1ff55aa4cbeb5ab6f790c93b40743908e0af1c2d38af50"
+  },
+  "runtime_result": {
+    "approval": {
+      "approval_id": "MEMBERSHIP_ADD_MANY",
+      "approval_request_id": "mock-platform-approval-1",
+      "status": "APPROVED"
+    },
+    "checks": [],
+    "completeness": "COMPLETE",
+    "error": null,
+    "outputs": [
+      {
+        "added_count": 50,
+        "business_result_ref": "membership-result-1",
+        "member_role": "MEMBER",
+        "operation_status": "COMPLETED",
+        "project_id": "project-rust-corpus",
+        "reactivated_count": 0,
+        "rejected_count": 0,
+        "requested_count": 50,
+        "resolved_count": 50,
+        "unchanged_count": 0
+      }
+    ],
+    "pre_write_eligibility": "ALLOWED",
+    "resources": {
+      "emitted_rows": 1,
+      "loop_iterations": 0,
+      "max_collection_size_seen": 50,
+      "tool_calls": 0
+    },
+    "semantic_hash": "sha256:9a3362e5906cf9d62d720d77369acc6e39d40afcb1f0ccb59726b0ea85e7af02",
+    "skill_id": "PROJECT.MEMBERSHIP.ADD_MANY",
+    "skill_version": "1.0.0",
+    "status": "COMPLETED",
+    "suspension": null,
+    "validation": {
+      "fail_count": 0,
+      "failed_check_ids": [],
+      "pass_count": 0,
+      "status": "NO_CHECK",
+      "total_count": 0,
+      "unknown_check_ids": [],
+      "unknown_count": 0
+    },
+    "verification": {
+      "evidence_ref": "verification:0063",
+      "reason_code": null,
+      "status": "VERIFIED"
+    },
+    "write": {
+      "business_reference": "membership-result-1",
+      "commit_state": "COMMITTED",
+      "idempotency_key": "idem:sha256:26714db888c8df00fd621e4299316e8f7f735d4975bf99e2004a5fba8f9a6b40",
+      "node_id": "write0001",
+      "payload_hash": "sha256:f9b636af21dac055132f91d6641a53e4fda87308634137477ee6b40ab0c8e4ac",
+      "provider_transaction_id": "mock-platform-tx-1",
+      "tool_id": "PROJECT.MEMBERSHIP.ADD_MANY"
+    }
+  },
+  "static_loop_bound": 0,
+  "static_tool_call_bound": 1,
+  "validation": "NO_CHECK",
+  "verification_calls": 1,
+  "write_node": "write0001"
+}

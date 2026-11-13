@@ -1,0 +1,97 @@
+{
+  "committed_result": {
+    "business_reference": "DRAFT-0057",
+    "committed_at": "2026-10-20T04:59:58+00:00",
+    "evidence_refs": [
+      "write:commit:0057"
+    ],
+    "identity": {
+      "approval_request_id": "approval-request-0057",
+      "business_operation_id": "business-0057",
+      "idempotency_key": "idem:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "invocation_id": "invoke-0057",
+      "node_id": "write0001",
+      "payload_hash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "tenant_id": "tenant-a",
+      "tool_id": "FINANCE.CREATE_DRAFT",
+      "write_intent_hash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "provider_transaction_id": "tx-0057",
+    "value": {
+      "classification": "CONFIDENTIAL",
+      "completeness": "COMPLETE",
+      "presence": "PRESENT",
+      "provenance_refs": [],
+      "type_info": {
+        "kind": "domain",
+        "name": "DraftRecord"
+      },
+      "value": {
+        "amount": {
+          "$type": "Decimal",
+          "value": "84000"
+        },
+        "draft_id": "DRAFT-0057"
+      }
+    }
+  },
+  "contract": {
+    "capability": "WRITE",
+    "empty_is_valid": true,
+    "inputs": [
+      {
+        "name": "detail",
+        "type": {
+          "kind": "primitive",
+          "name": "String"
+        }
+      }
+    ],
+    "operation_kind": "CREATE",
+    "output": {
+      "kind": "domain",
+      "name": "DraftRecord"
+    },
+    "output_classification": "CONFIDENTIAL",
+    "required_scope": "finance:draft:write",
+    "risk": "READ_ONLY",
+    "risk_level": "R3",
+    "timeout_ms": 30000,
+    "tool_id": "FINANCE.CREATE_DRAFT",
+    "version": "1.0.0",
+    "write_semantics": {
+      "approval": {
+        "required": true
+      },
+      "atomicity": "ATOMIC",
+      "commit": {
+        "confirmation": "EXPLICIT"
+      },
+      "idempotency": {
+        "duplicate_behavior": "RETURN_ORIGINAL_RESULT",
+        "payload_conflict_behavior": "IDEMPOTENCY_CONFLICT",
+        "required": true,
+        "retention": "PROVIDER_DEFINED",
+        "scope": "TOOL_AND_TENANT"
+      },
+      "preconditions": {
+        "supported": true
+      },
+      "side_effect": true,
+      "verification": {
+        "consistency_hint": "READ_AFTER_WRITE_STRONG",
+        "reference_schema": {
+          "kind": "primitive",
+          "name": "String"
+        },
+        "tool_id": "FINANCE.GET_DRAFT"
+      }
+    }
+  },
+  "observation": {
+    "matched": true,
+    "observed_at": "2026-10-20T05:00:00+00:00",
+    "reason_code": null
+  },
+  "read_fault": null
+}

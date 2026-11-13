@@ -1,0 +1,149 @@
+{
+  "tools": [
+    {
+      "capability": "WRITE",
+      "inputs": [
+        {
+          "name": "tenant_id",
+          "type": {
+            "kind": "primitive",
+            "name": "String"
+          }
+        },
+        {
+          "name": "requester_subject_id",
+          "type": {
+            "kind": "primitive",
+            "name": "String"
+          }
+        },
+        {
+          "name": "project_id",
+          "type": {
+            "kind": "primitive",
+            "name": "String"
+          }
+        },
+        {
+          "name": "expected_version",
+          "type": {
+            "kind": "primitive",
+            "name": "Int"
+          }
+        }
+      ],
+      "operation_kind": "UPDATE",
+      "output": {
+        "fields": [
+          {
+            "name": "project_id",
+            "type": {
+              "kind": "primitive",
+              "name": "String"
+            }
+          },
+          {
+            "name": "project_code",
+            "type": {
+              "kind": "domain",
+              "name": "ProjectCode"
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "kind": "primitive",
+              "name": "String"
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "kind": "primitive",
+              "name": "String"
+            }
+          },
+          {
+            "name": "entity_version",
+            "type": {
+              "kind": "primitive",
+              "name": "Int"
+            }
+          }
+        ],
+        "kind": "record",
+        "name": "Project"
+      },
+      "output_classification": "INTERNAL",
+      "required_scope": "project:project:admin",
+      "risk_level": "R3",
+      "tool_id": "PROJECT.PROJECT.DEACTIVATE",
+      "version": "1.0.0",
+      "write_semantics": {
+        "approval": {
+          "required": true
+        },
+        "atomicity": "ATOMIC",
+        "commit": {
+          "confirmation": "EXPLICIT"
+        },
+        "idempotency": {
+          "duplicate_behavior": "RETURN_ORIGINAL_RESULT",
+          "payload_conflict_behavior": "IDEMPOTENCY_CONFLICT",
+          "required": true,
+          "retention": "PROVIDER_DEFINED",
+          "scope": "TOOL_AND_TENANT"
+        },
+        "preconditions": {
+          "supported": true
+        },
+        "side_effect": true,
+        "verification": {
+          "consistency_hint": "READ_AFTER_WRITE_STRONG",
+          "reference_schema": {
+            "fields": [
+              {
+                "name": "project_id",
+                "type": {
+                  "kind": "primitive",
+                  "name": "String"
+                }
+              },
+              {
+                "name": "project_code",
+                "type": {
+                  "kind": "domain",
+                  "name": "ProjectCode"
+                }
+              },
+              {
+                "name": "name",
+                "type": {
+                  "kind": "primitive",
+                  "name": "String"
+                }
+              },
+              {
+                "name": "status",
+                "type": {
+                  "kind": "primitive",
+                  "name": "String"
+                }
+              },
+              {
+                "name": "entity_version",
+                "type": {
+                  "kind": "primitive",
+                  "name": "Int"
+                }
+              }
+            ],
+            "kind": "record",
+            "name": "Project"
+          },
+          "tool_id": "PROJECT.PROJECT.GET"
+        }
+      }
+    }
+  ]
+}

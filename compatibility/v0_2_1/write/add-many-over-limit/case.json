@@ -1,0 +1,40 @@
+{
+  "case_id": "add-many-over-limit",
+  "category": "write",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-RUN-011"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "e660c365ecfb154c0cad40a18f1626482068e825951cf05ff06d792f15a4267f"
+    }
+  },
+  "expected_error": {
+    "code": "NSL-E6001",
+    "phase": "runtime_input"
+  },
+  "expected_hashes": {},
+  "expected_status": "LIMIT_EXCEEDED",
+  "inputs": {
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "7b7d752f8ab0d7e285820c46560084e4bf205447d8598e969aaaa8a8585f64cf"
+    },
+    "source": {
+      "path": "project_membership_add_many.ns",
+      "sha256": "723f5683a4b6a9baa458874878d3b4956ecb259feca9077629c86500a127efe5"
+    },
+    "tool_catalog": {
+      "path": "tools.json",
+      "sha256": "22b38babd932d9003440c8eb04a26dbde777ef2f74ae2ddd448a2f7924e98cc9"
+    }
+  },
+  "notes": "",
+  "source_refs": [
+    "examples/project_operations/project_membership_add_many.ns",
+    "examples/project_operations/tools_write.json",
+    "tests/test_p8_project_write_contracts.py"
+  ]
+}

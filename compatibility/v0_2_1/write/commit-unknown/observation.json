@@ -1,0 +1,44 @@
+{
+  "automatic_retry_allowed": false,
+  "durable_outcome": {
+    "business_reference": null,
+    "commit_state": "UNKNOWN_COMMIT_STATE",
+    "evidence_refs": [
+      "trace:0053"
+    ],
+    "identity": {
+      "approval_request_id": "approval-request-0053",
+      "business_operation_id": "business-0053",
+      "idempotency_key": "idem:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "invocation_id": "invoke-0053",
+      "node_id": "write0001",
+      "payload_hash": "sha256:65a40406e742fe7c1d7e09d9a71009d95ebe41487c00beed005a4cbb8717c029",
+      "tenant_id": "tenant-a",
+      "tool_id": "FINANCE.CREATE_DRAFT",
+      "write_intent_hash": "sha256:07e3376f0f0c21ba69737fcb02926966ec24eee1bc34ce6937966ed46ecfd9e8"
+    },
+    "provider_transaction_id": null,
+    "reason_code": "PROVIDER_TIMEOUT",
+    "recorded_at": "2026-10-20T03:00:02+00:00",
+    "requested_record_hash": "sha256:fecbcbccd1c037af1eeeeea86badc8a69261c92140b06b73415e506a7f43eb6a"
+  },
+  "durable_outcome_hash": "sha256:0091c44c08e607352714b5d54de330e1cc6c9eb758049c0b73cf41b6ac770b94",
+  "events": [
+    "WRITE_REQUESTED",
+    "PROVIDER_WRITE",
+    "WRITE_OUTCOME"
+  ],
+  "execution_status": "RECONCILIATION_REQUIRED",
+  "provider_calls": 1,
+  "reason_code": "PROVIDER_TIMEOUT",
+  "reconciliation_required": true,
+  "write_summary": {
+    "business_reference": null,
+    "commit_state": "UNKNOWN_COMMIT_STATE",
+    "idempotency_key": "idem:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "node_id": "write0001",
+    "payload_hash": "sha256:65a40406e742fe7c1d7e09d9a71009d95ebe41487c00beed005a4cbb8717c029",
+    "provider_transaction_id": null,
+    "tool_id": "FINANCE.CREATE_DRAFT"
+  }
+}

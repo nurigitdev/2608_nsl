@@ -1,0 +1,236 @@
+{
+  "tools": [
+    {
+      "capability": "WRITE",
+      "inputs": [
+        {
+          "name": "tenant_id",
+          "type": {
+            "kind": "primitive",
+            "name": "String"
+          }
+        },
+        {
+          "name": "requester_subject_id",
+          "type": {
+            "kind": "primitive",
+            "name": "String"
+          }
+        },
+        {
+          "name": "project_id",
+          "type": {
+            "kind": "primitive",
+            "name": "String"
+          }
+        },
+        {
+          "name": "target_subject_ids",
+          "type": {
+            "item": {
+              "kind": "primitive",
+              "name": "String"
+            },
+            "kind": "list"
+          }
+        },
+        {
+          "name": "member_role",
+          "type": {
+            "kind": "primitive",
+            "name": "String"
+          }
+        },
+        {
+          "name": "resolution_evidence_hash",
+          "type": {
+            "kind": "primitive",
+            "name": "String"
+          }
+        }
+      ],
+      "operation_kind": "CREATE",
+      "output": {
+        "fields": [
+          {
+            "name": "operation_status",
+            "type": {
+              "kind": "primitive",
+              "name": "String"
+            }
+          },
+          {
+            "name": "requested_count",
+            "type": {
+              "kind": "primitive",
+              "name": "Int"
+            }
+          },
+          {
+            "name": "resolved_count",
+            "type": {
+              "kind": "primitive",
+              "name": "Int"
+            }
+          },
+          {
+            "name": "added_count",
+            "type": {
+              "kind": "primitive",
+              "name": "Int"
+            }
+          },
+          {
+            "name": "reactivated_count",
+            "type": {
+              "kind": "primitive",
+              "name": "Int"
+            }
+          },
+          {
+            "name": "unchanged_count",
+            "type": {
+              "kind": "primitive",
+              "name": "Int"
+            }
+          },
+          {
+            "name": "rejected_count",
+            "type": {
+              "kind": "primitive",
+              "name": "Int"
+            }
+          },
+          {
+            "name": "project_id",
+            "type": {
+              "kind": "primitive",
+              "name": "String"
+            }
+          },
+          {
+            "name": "member_role",
+            "type": {
+              "kind": "primitive",
+              "name": "String"
+            }
+          },
+          {
+            "name": "business_result_ref",
+            "type": {
+              "kind": "primitive",
+              "name": "String"
+            }
+          }
+        ],
+        "kind": "record",
+        "name": "ProjectMembershipBatch"
+      },
+      "output_classification": "INTERNAL",
+      "required_scope": "project:membership:manage",
+      "risk_level": "R3",
+      "tool_id": "PROJECT.MEMBERSHIP.ADD_MANY",
+      "version": "1.0.0",
+      "write_semantics": {
+        "approval": {
+          "required": true
+        },
+        "atomicity": "ATOMIC",
+        "commit": {
+          "confirmation": "EXPLICIT"
+        },
+        "idempotency": {
+          "duplicate_behavior": "RETURN_ORIGINAL_RESULT",
+          "payload_conflict_behavior": "IDEMPOTENCY_CONFLICT",
+          "required": true,
+          "retention": "PROVIDER_DEFINED",
+          "scope": "TOOL_AND_TENANT"
+        },
+        "preconditions": {
+          "supported": true
+        },
+        "side_effect": true,
+        "verification": {
+          "consistency_hint": "FILTERED_READ_AFTER_WRITE_STRONG",
+          "reference_schema": {
+            "fields": [
+              {
+                "name": "operation_status",
+                "type": {
+                  "kind": "primitive",
+                  "name": "String"
+                }
+              },
+              {
+                "name": "requested_count",
+                "type": {
+                  "kind": "primitive",
+                  "name": "Int"
+                }
+              },
+              {
+                "name": "resolved_count",
+                "type": {
+                  "kind": "primitive",
+                  "name": "Int"
+                }
+              },
+              {
+                "name": "added_count",
+                "type": {
+                  "kind": "primitive",
+                  "name": "Int"
+                }
+              },
+              {
+                "name": "reactivated_count",
+                "type": {
+                  "kind": "primitive",
+                  "name": "Int"
+                }
+              },
+              {
+                "name": "unchanged_count",
+                "type": {
+                  "kind": "primitive",
+                  "name": "Int"
+                }
+              },
+              {
+                "name": "rejected_count",
+                "type": {
+                  "kind": "primitive",
+                  "name": "Int"
+                }
+              },
+              {
+                "name": "project_id",
+                "type": {
+                  "kind": "primitive",
+                  "name": "String"
+                }
+              },
+              {
+                "name": "member_role",
+                "type": {
+                  "kind": "primitive",
+                  "name": "String"
+                }
+              },
+              {
+                "name": "business_result_ref",
+                "type": {
+                  "kind": "primitive",
+                  "name": "String"
+                }
+              }
+            ],
+            "kind": "record",
+            "name": "ProjectMembershipBatch"
+          },
+          "tool_id": "PROJECT.MEMBERSHIP.LIST"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "approval_gate_passed": false,
+  "approval_validation": {
+    "approval_status": "PENDING",
+    "reason_code": "APPROVAL_INTENT_MISMATCH",
+    "validation": "INTENT_MISMATCH"
+  },
+  "requires_reapproval": false,
+  "write_gate_error": "WRITE blocked: WRITE_BINDING_INVALID",
+  "write_guard": {
+    "eligibility": "BLOCKED",
+    "reason_code": "WRITE_BINDING_INVALID"
+  }
+}

@@ -11,7 +11,7 @@ from typing import Any
 from jsonschema import Draft202012Validator, ValidationError
 from referencing import Registry, Resource
 
-from nsl.ir import NsoCodec, canonical_json
+from nsl.ir import NsoCodec, NsoIntegrityError, canonical_json
 from nsl.ir_schema import load_nso_json
 
 
@@ -79,7 +79,16 @@ def verify(root: Path) -> tuple[int, str]:
         for group in ("inputs", "expected_artifacts"):
             for role, reference in case[group].items():
                 data = read_reference(case_root, reference)
-                if reference["path"].endswith(".nso"):
+                if group == "inputs" and role == "untrusted_nso":
+                    try:
+                        NsoCodec.decode(data)
+                    except NsoIntegrityError as error:
+                        expected = {"code": "NSO_INTEGRITY_ERROR", "phase": "nso_decode"}
+                        if expected != case["expected_error"] or str(error) != "semantic hash mismatch":
+                            raise ValueError(f"unexpected NSO rejection in {case_id}") from error
+                    else:
+                        raise ValueError(f"untrusted NSO was accepted in {case_id}")
+                elif reference["path"].endswith(".nso"):
                     if NsoCodec.encode(NsoCodec.decode(data)) != data:
                         raise ValueError(f"noncanonical NSO in {case_id}: {reference['path']}")
                 if group == "expected_artifacts":

@@ -1,0 +1,48 @@
+{
+  "case_id": "update-mock-platform",
+  "category": "write",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-WRITE-009",
+    "NSL-RUST-WRITE-010",
+    "NSL-RUST-COMPAT-005"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "830eb98ebbdceb22ec636234d95976b0c554f7f84bfd1c2d73347a468865336f"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {
+    "package_hash": "6d1a97b8d7802a9c047138dcc4a1dfff04c7aea00d46d88937ae811148e9d926",
+    "payload_hash": "b09bff506366fdb92b9faff1179077bea7bf1d011a645f7bb0320c280f5a7658",
+    "write_intent_hash": "c0a30a580ad39b4545f2258929f12bb6c9e5a93663f106e3b154f17f39b45778"
+  },
+  "expected_status": "COMPLETED",
+  "inputs": {
+    "package": {
+      "path": "signed.nsp",
+      "sha256": "04da16271457fbe03739e166874d9b60ecc7b5efd56a223caad0f5da27371394"
+    },
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "4bcde22ba150fa37c864090389346a5531287e4c97541bbe4bb889c6b2ca1e7f"
+    },
+    "source": {
+      "path": "project_project_deactivate.ns",
+      "sha256": "fbbd7f491843c52b43f93821e73c6f23596c48767e52014ba8bc9e5a07c98aaa"
+    },
+    "tool_catalog": {
+      "path": "tools.json",
+      "sha256": "ed4cb031e16c98fc35d1fc350cbb846d1e9745fe26e158727736e40fa96c6663"
+    }
+  },
+  "notes": "Mock Platform supplies bound approval proof and current policy. Verify trust, durable request order, a single provider call, and read-only post-WRITE verification.",
+  "source_refs": [
+    "examples/project_operations/project_project_deactivate.ns",
+    "examples/project_operations/tools_write.json",
+    "tests/test_p8_project_write_contracts.py",
+    "tests/test_v0_2_controlled_runtime.py"
+  ]
+}

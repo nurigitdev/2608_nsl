@@ -1,0 +1,29 @@
+{
+  "case_id": "approval-missing",
+  "category": "approval",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-GATE-003",
+    "NSL-RUST-WRITE-008"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "517ee2f6e840a6b3c8e1e3e5a3b1aa4707187f1f1b70ad22fee5140dadb9104d"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {},
+  "expected_status": "REQUIRES_APPROVAL",
+  "inputs": {
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "cf528067225949abdd072d281ade5248e7410786b4e739f50aeef2a468e6f1ee"
+    }
+  },
+  "notes": "Validate supplied proof with a recorded clock and a mock verifier, then evaluate WRITE eligibility.",
+  "source_refs": [
+    "tests/test_v0_2_approval_resume_validation.py",
+    "tests/test_v0_2_prewrite_eligibility.py"
+  ]
+}

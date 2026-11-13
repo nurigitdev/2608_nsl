@@ -1,0 +1,121 @@
+{
+  "checked_at": "2026-10-20T01:00:00+00:00",
+  "contract": {
+    "capability": "WRITE",
+    "empty_is_valid": true,
+    "inputs": [
+      {
+        "name": "detail",
+        "type": {
+          "kind": "domain",
+          "name": "DraftPayload"
+        }
+      }
+    ],
+    "operation_kind": "CREATE",
+    "output": {
+      "kind": "domain",
+      "name": "DraftRecord"
+    },
+    "output_classification": "CONFIDENTIAL",
+    "required_scope": "finance:draft:write",
+    "risk": "READ_ONLY",
+    "risk_level": "R3",
+    "timeout_ms": 30000,
+    "tool_id": "FINANCE.CREATE_DRAFT",
+    "version": "1.0.0",
+    "write_semantics": {
+      "approval": {
+        "required": true
+      },
+      "atomicity": "ATOMIC",
+      "commit": {
+        "confirmation": "EXPLICIT"
+      },
+      "idempotency": {
+        "duplicate_behavior": "RETURN_ORIGINAL_RESULT",
+        "payload_conflict_behavior": "IDEMPOTENCY_CONFLICT",
+        "required": true,
+        "retention": "PROVIDER_DEFINED",
+        "scope": "TOOL_AND_TENANT"
+      },
+      "preconditions": {
+        "supported": true
+      },
+      "side_effect": true
+    }
+  },
+  "intents": [
+    {
+      "approval_id": "APPROVE_DRAFT",
+      "business_operation_id": "business-0051",
+      "canonical_arguments": {
+        "detail": {
+          "classification": "CONFIDENTIAL",
+          "completeness": "COMPLETE",
+          "presence": "PRESENT",
+          "provenance_refs": [],
+          "type_info": {
+            "kind": "domain",
+            "name": "DraftPayload"
+          },
+          "value": {
+            "amount": {
+              "$type": "Decimal",
+              "value": "84000"
+            },
+            "description": "KTX"
+          }
+        }
+      },
+      "node_id": "write0001",
+      "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+      "skill_semantic_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "tenant_id": "tenant-a",
+      "tool_id": "FINANCE.CREATE_DRAFT",
+      "tool_ref": "write_tool",
+      "write_intent_hash": "sha256:2e0e9f38a00834ae779ee7b9b8d50e867e3a40446dc0b2dd679645044738903a"
+    },
+    {
+      "approval_id": "APPROVE_DRAFT",
+      "business_operation_id": "business-0051",
+      "canonical_arguments": {
+        "detail": {
+          "classification": "CONFIDENTIAL",
+          "completeness": "COMPLETE",
+          "presence": "PRESENT",
+          "provenance_refs": [],
+          "type_info": {
+            "kind": "domain",
+            "name": "DraftPayload"
+          },
+          "value": {
+            "amount": {
+              "$type": "Decimal",
+              "value": "84000"
+            },
+            "description": "KTX"
+          }
+        }
+      },
+      "node_id": "write0001",
+      "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+      "skill_semantic_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "tenant_id": "tenant-a",
+      "tool_id": "FINANCE.CREATE_DRAFT",
+      "tool_ref": "write_tool",
+      "write_intent_hash": "sha256:2e0e9f38a00834ae779ee7b9b8d50e867e3a40446dc0b2dd679645044738903a"
+    }
+  ],
+  "original_result_ref": "result:expense-draft-42",
+  "provider_evidence": {
+    "contract_hash": "sha256:05200deeed70335bda82debcc69d1c102ec5778deb9165b17c95848e1213cd65",
+    "durable_duplicate_guarantee": true,
+    "guaranteed_until": "2026-11-19T01:00:00+00:00",
+    "provider_guarantee_ref": "provider-policy://finance/idempotency-v1",
+    "retention_policy": "PROVIDER_DEFINED",
+    "tool_id": "FINANCE.CREATE_DRAFT",
+    "verified_at": "2026-10-20T01:00:00+00:00"
+  },
+  "required_until": "2026-10-27T01:00:00+00:00"
+}

@@ -1,0 +1,38 @@
+{
+  "case_id": "update-local-no-check",
+  "category": "write",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-COMPAT-004"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "c1e54ba10954a542ebe2940fb7caf4d5e832ef45853337436e8355ce59ac3b17"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {},
+  "expected_status": "COMPLETED",
+  "inputs": {
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "4e833324b30173d4270e7a1b0b89712a5cf96b0cc45c53cdb5660c661ff3406c"
+    },
+    "source": {
+      "path": "project_project_deactivate.ns",
+      "sha256": "fbbd7f491843c52b43f93821e73c6f23596c48767e52014ba8bc9e5a07c98aaa"
+    },
+    "tool_catalog": {
+      "path": "tools.json",
+      "sha256": "ed4cb031e16c98fc35d1fc350cbb846d1e9745fe26e158727736e40fa96c6663"
+    }
+  },
+  "notes": "Run the local controlled CLI path through its approval-publication boundary.",
+  "source_refs": [
+    "examples/project_operations/project_project_deactivate.ns",
+    "examples/project_operations/tools_write.json",
+    "tests/test_p8_project_write_contracts.py",
+    "nsl/cli_controlled.py"
+  ]
+}

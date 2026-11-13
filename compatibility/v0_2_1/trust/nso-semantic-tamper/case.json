@@ -1,0 +1,35 @@
+{
+  "case_id": "nso-semantic-tamper",
+  "category": "trust",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-IR-014",
+    "NSL-RUST-TRUST-003"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "8a908702ce061db8f58270834d19951b9a91499624b440d18d6d4fcbd3236e87"
+    }
+  },
+  "expected_error": {
+    "code": "NSO_INTEGRITY_ERROR",
+    "phase": "nso_decode"
+  },
+  "expected_hashes": {},
+  "expected_status": null,
+  "inputs": {
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "a6065eb66068f1eb56842d69bbaaa985be60761b56cb04755d199a04beeb7573"
+    },
+    "untrusted_nso": {
+      "path": "tampered.nso",
+      "sha256": "92e3b3832b71bfd94d2136ed9d77cf7be9a2c2e953f378415b560d4eda154636"
+    }
+  },
+  "notes": "",
+  "source_refs": [
+    "tests/test_nso_trust_boundary.py::test_sec_009_untrusted_nso_requires_schema_and_semantic_integrity"
+  ]
+}

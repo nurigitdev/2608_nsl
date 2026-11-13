@@ -1,0 +1,14 @@
+{
+  "approval_gate_passed": false,
+  "approval_validation": {
+    "approval_status": "REJECTED",
+    "reason_code": "APPROVAL_REJECTED",
+    "validation": "VALID"
+  },
+  "requires_reapproval": false,
+  "write_gate_error": "WRITE blocked: APPROVAL_REJECTED",
+  "write_guard": {
+    "eligibility": "BLOCKED",
+    "reason_code": "APPROVAL_REJECTED"
+  }
+}

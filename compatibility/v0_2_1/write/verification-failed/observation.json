@@ -1,0 +1,44 @@
+{
+  "read_calls": 1,
+  "read_request": {
+    "business_reference": "DRAFT-0057",
+    "consistency_hint": "READ_AFTER_WRITE_STRONG",
+    "identity": {
+      "approval_request_id": "approval-request-0057",
+      "business_operation_id": "business-0057",
+      "idempotency_key": "idem:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "invocation_id": "invoke-0057",
+      "node_id": "write0001",
+      "payload_hash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "tenant_id": "tenant-a",
+      "tool_id": "FINANCE.CREATE_DRAFT",
+      "write_intent_hash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "provider_transaction_id": "tx-0057",
+    "reference_schema": {
+      "kind": "primitive",
+      "name": "String"
+    },
+    "verification_tool_id": "FINANCE.GET_DRAFT"
+  },
+  "result": {
+    "business_reference": "DRAFT-0057",
+    "commit_state": "COMMITTED",
+    "evidence_ref": "verification:0057",
+    "identity": {
+      "approval_request_id": "approval-request-0057",
+      "business_operation_id": "business-0057",
+      "idempotency_key": "idem:sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "invocation_id": "invoke-0057",
+      "node_id": "write0001",
+      "payload_hash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "tenant_id": "tenant-a",
+      "tool_id": "FINANCE.CREATE_DRAFT",
+      "write_intent_hash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "observed_at": "2026-10-20T05:00:00+00:00",
+    "reason_code": "PROVIDER_STATE_MISMATCH",
+    "status": "FAILED",
+    "verification_tool_id": "FINANCE.GET_DRAFT"
+  }
+}

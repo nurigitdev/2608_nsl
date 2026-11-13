@@ -1,0 +1,32 @@
+{
+  "case_id": "approval-intent-mismatch",
+  "category": "approval",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-GATE-005",
+    "NSL-RUST-WRITE-008"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "165a49a966751fe63b9b345a2fbb4fc6eed784b0d30ff22ea53fc87542da2456"
+    }
+  },
+  "expected_error": {
+    "code": "APPROVAL_INTENT_MISMATCH",
+    "phase": "approval_validation"
+  },
+  "expected_hashes": {},
+  "expected_status": "BLOCKED",
+  "inputs": {
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "ae8b0869f78a2371aeb0b71baae17ed887970fafc0718ed600279ea6c9a0ba8e"
+    }
+  },
+  "notes": "Validate supplied proof with a recorded clock and a mock verifier, then evaluate WRITE eligibility.",
+  "source_refs": [
+    "tests/test_v0_2_approval_resume_validation.py",
+    "tests/test_v0_2_prewrite_eligibility.py"
+  ]
+}

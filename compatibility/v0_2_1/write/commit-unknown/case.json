@@ -1,0 +1,29 @@
+{
+  "case_id": "commit-unknown",
+  "category": "write",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-COMMIT-001",
+    "NSL-RUST-COMMIT-003",
+    "NSL-RUST-COMMIT-004"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "c432c0ebf014d0a8382a21116a3b454a34399bb9b9cd6e3c251691ef43974082"
+    }
+  },
+  "expected_error": null,
+  "expected_hashes": {},
+  "expected_status": "RECONCILIATION_REQUIRED",
+  "inputs": {
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "668e885aa849c0b88296c74205a7520f00edeef69b4b8844cbc935bbbd3a28e9"
+    }
+  },
+  "notes": "Use the recorded provider response or inject a timeout after the durable WRITE_REQUESTED event.",
+  "source_refs": [
+    "tests/test_v0_2_write_execution.py"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "case_id": "approval-expired",
+  "category": "approval",
+  "classification": "INTERNAL",
+  "contract_refs": [
+    "NSL-RUST-GATE-004",
+    "NSL-RUST-WRITE-008"
+  ],
+  "expected_artifacts": {
+    "observation": {
+      "path": "observation.json",
+      "sha256": "b88e2780833deaeb6169528738b82cd2ae0ad4bac512037894b9cf17d2a8b3d8"
+    }
+  },
+  "expected_error": {
+    "code": "APPROVAL_EXPIRED",
+    "phase": "approval_validation"
+  },
+  "expected_hashes": {},
+  "expected_status": "REQUIRES_APPROVAL",
+  "inputs": {
+    "scenario": {
+      "path": "scenario.json",
+      "sha256": "5c87eb4e11398de0b2f19ee87e63ef38feea4de61156a6a3d78df0c1b9fa9a1e"
+    }
+  },
+  "notes": "Validate supplied proof with a recorded clock and a mock verifier, then evaluate WRITE eligibility.",
+  "source_refs": [
+    "tests/test_v0_2_approval_resume_validation.py",
+    "tests/test_v0_2_prewrite_eligibility.py"
+  ]
+}

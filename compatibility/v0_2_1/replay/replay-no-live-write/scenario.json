@@ -1,0 +1,254 @@
+{
+  "bundle": {
+    "manifest_hash": "sha256:450b3776f2f9106e9bedca83fc7363e2cfa9887f8ffe67e431fcd02c37720a70",
+    "records": [
+      {
+        "identity": {
+          "approval_request_id": "approval-request-0060",
+          "business_operation_id": "business-0060",
+          "execution_id": "exec-0060",
+          "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+          "node_id": "write0001",
+          "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+          "skill_semantic_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "tenant_id": "tenant-a",
+          "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+        },
+        "kind": "APPROVAL",
+        "record_hash": "sha256:82797ce04443fd976f9fe2fe26129058ab11e9d143e773097b92a246f0f27494",
+        "sequence": 1,
+        "snapshot_ref": {
+          "classification": "CONFIDENTIAL",
+          "expires_at": "2026-11-19T09:00:00+00:00",
+          "snapshot_id": "protected-snapshot-000001",
+          "tenant_id": "tenant-a",
+          "value_hash": "sha256:cf0d4594449384e86db2c8395978797fb9f3f981c56d7acae98f236ed725f1ee"
+        }
+      },
+      {
+        "identity": {
+          "approval_request_id": "approval-request-0060",
+          "business_operation_id": "business-0060",
+          "execution_id": "exec-0060",
+          "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+          "node_id": "write0001",
+          "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+          "skill_semantic_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "tenant_id": "tenant-a",
+          "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+        },
+        "kind": "WRITE_REQUEST",
+        "record_hash": "sha256:e4b480b63d5f926a149addbf1866e303948914d65515fab89c745f5036f7b820",
+        "sequence": 2,
+        "snapshot_ref": {
+          "classification": "CONFIDENTIAL",
+          "expires_at": "2026-11-19T09:00:00+00:00",
+          "snapshot_id": "protected-snapshot-000002",
+          "tenant_id": "tenant-a",
+          "value_hash": "sha256:8821eb8b09798f540a8acc64fde0022e3c64f9591241d5bc228c294efeb6198b"
+        }
+      },
+      {
+        "identity": {
+          "approval_request_id": "approval-request-0060",
+          "business_operation_id": "business-0060",
+          "execution_id": "exec-0060",
+          "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+          "node_id": "write0001",
+          "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+          "skill_semantic_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "tenant_id": "tenant-a",
+          "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+        },
+        "kind": "COMMIT_OUTCOME",
+        "record_hash": "sha256:ab6a78343fe89f42f8bf0842c76328b4686f14073e315a05e87f2061192d577b",
+        "sequence": 3,
+        "snapshot_ref": {
+          "classification": "CONFIDENTIAL",
+          "expires_at": "2026-11-19T09:00:00+00:00",
+          "snapshot_id": "protected-snapshot-000003",
+          "tenant_id": "tenant-a",
+          "value_hash": "sha256:53e1bc83ebce25672e7315c40fae95e3db1119baf1de2d18fab1fea2200cad18"
+        }
+      },
+      {
+        "identity": {
+          "approval_request_id": "approval-request-0060",
+          "business_operation_id": "business-0060",
+          "execution_id": "exec-0060",
+          "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+          "node_id": "write0001",
+          "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+          "skill_semantic_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "tenant_id": "tenant-a",
+          "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+        },
+        "kind": "VERIFICATION_OUTCOME",
+        "record_hash": "sha256:5595c1d780754998d2bbd023d5317b18192b57478ce45b45b44d636045025aec",
+        "sequence": 4,
+        "snapshot_ref": {
+          "classification": "CONFIDENTIAL",
+          "expires_at": "2026-11-19T09:00:00+00:00",
+          "snapshot_id": "protected-snapshot-000004",
+          "tenant_id": "tenant-a",
+          "value_hash": "sha256:4fcdb65ae6662b3e833604ba7bb2c524a2eb5765dd04a5cf1b0b860fdffe8683"
+        }
+      }
+    ],
+    "schema_version": "1.0",
+    "source_identity": {
+      "approval_request_id": "approval-request-0060",
+      "business_operation_id": "business-0060",
+      "execution_id": "exec-0060",
+      "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "node_id": "write0001",
+      "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+      "skill_semantic_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "tenant_id": "tenant-a",
+      "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+    }
+  },
+  "principal": {
+    "actor_type": "USER",
+    "auth_context_ref": "auth-context-demo-001",
+    "on_behalf_of": null,
+    "roles": [
+      "FINANCE_ANALYST"
+    ],
+    "scopes": [
+      "nsl:replay:read",
+      "nsl:skill:execute",
+      "project:budget:read"
+    ],
+    "subject_id": "user-finance-001",
+    "tenant_id": "tenant-a",
+    "verification": "VERIFIED"
+  },
+  "repetitions": 2,
+  "request": {
+    "approval_id": "APPROVE_DRAFT",
+    "approval_request_id": "approval-request-0060",
+    "arguments": {
+      "detail": {
+        "classification": "CONFIDENTIAL",
+        "completeness": "COMPLETE",
+        "presence": "PRESENT",
+        "provenance_refs": [],
+        "type_info": {
+          "kind": "domain",
+          "name": "DraftPayload"
+        },
+        "value": {
+          "amount": {
+            "$type": "Decimal",
+            "value": "84000"
+          },
+          "description": "KTX"
+        }
+      }
+    },
+    "business_operation_id": "business-0060",
+    "business_preconditions": {
+      "business_operation_id": "business-0060",
+      "contract_hash": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "evidence_id": "precondition-0060",
+      "evidence_ref": "etag:opaque:0060",
+      "expires_at": "2026-10-20T10:00:00+00:00",
+      "mechanism": "ETAG",
+      "observed_at": "2026-10-20T09:00:00+00:00",
+      "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+      "provider_atomic_enforcement": true,
+      "tenant_id": "tenant-a",
+      "tool_id": "FINANCE.CREATE_DRAFT",
+      "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15",
+      "write_node_id": "write0001"
+    },
+    "contract_hash": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+    "execution_id": "exec-0060",
+    "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+    "invocation_id": "invoke-0060",
+    "node_id": "write0001",
+    "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+    "tenant_id": "tenant-a",
+    "tool_id": "FINANCE.CREATE_DRAFT",
+    "tool_ref": "write_tool",
+    "trace_refs": [
+      "trace:0060"
+    ],
+    "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+  },
+  "synthetic_snapshot_evidence": {
+    "approval": {
+      "approval_id": "APPROVE_DRAFT",
+      "approval_request_id": "approval-request-0060",
+      "approver_id": "manager-0060",
+      "business_operation_id": "business-0060",
+      "decided_at": "2026-10-20T09:00:00+00:00",
+      "decision": "APPROVED",
+      "evidence_integrity": "approval:evidence:0060",
+      "execution_id": "exec-0060",
+      "expires_at": null,
+      "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+      "skill_semantic_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "tenant_id": "tenant-a",
+      "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+    },
+    "commit_outcome": {
+      "business_reference": "DRAFT-0060",
+      "commit_state": "COMMITTED",
+      "evidence_refs": [
+        "commit:evidence:0060"
+      ],
+      "identity": {
+        "approval_request_id": "approval-request-0060",
+        "business_operation_id": "business-0060",
+        "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "invocation_id": "invoke-0060",
+        "node_id": "write0001",
+        "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+        "tenant_id": "tenant-a",
+        "tool_id": "FINANCE.CREATE_DRAFT",
+        "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+      },
+      "provider_transaction_id": "provider-tx-0060",
+      "reason_code": null,
+      "recorded_at": "2026-10-20T09:00:00+00:00",
+      "requested_record_hash": "sha256:91db50cb0f1f61bc21006025a44e4f81de3efba2d7fb338f2a2da18186cfb834"
+    },
+    "verification_outcome": {
+      "business_reference": "DRAFT-0060",
+      "commit_state": "COMMITTED",
+      "evidence_ref": "verification:evidence:0060",
+      "identity": {
+        "approval_request_id": "approval-request-0060",
+        "business_operation_id": "business-0060",
+        "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "invocation_id": "invoke-0060",
+        "node_id": "write0001",
+        "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+        "tenant_id": "tenant-a",
+        "tool_id": "FINANCE.CREATE_DRAFT",
+        "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+      },
+      "observed_at": "2026-10-20T09:00:00+00:00",
+      "reason_code": null,
+      "status": "VERIFIED",
+      "verification_tool_id": "FINANCE.GET_DRAFT"
+    },
+    "write_request": {
+      "approval_request_id": "approval-request-0060",
+      "business_operation_id": "business-0060",
+      "contract_hash": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "execution_id": "exec-0060",
+      "idempotency_key": "idem:sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "invocation_id": "invoke-0060",
+      "node_id": "write0001",
+      "payload_hash": "sha256:355831a89ce6fbbf34b7259cf8446d541c3f489fecf4466b116c479b30535c2b",
+      "precondition_evidence_id": "precondition-0060",
+      "requested_at": "2026-10-20T09:00:00+00:00",
+      "tenant_id": "tenant-a",
+      "tool_id": "FINANCE.CREATE_DRAFT",
+      "write_intent_hash": "sha256:7d86a66b3ee389b8d9d88708bcd65f255349d6294079523b879ef58f6aaa8f15"
+    }
+  }
+}
