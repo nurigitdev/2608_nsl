@@ -6,6 +6,8 @@ use nsl_core::{
 };
 
 const ORACLE_FIXTURE: &str = include_str!("fixtures/value-model.json");
+const FROZEN_MONEY_CASE: &str =
+    include_str!("../../../../compatibility/v0_2_1/values/decimal-money-exact/expected.json");
 
 fn primitive(name: &str) -> TypeRef {
     TypeRef::new(TypeKind::Primitive(name.into())).unwrap()
@@ -103,6 +105,41 @@ fn render_fixture(data: &ValueData) -> String {
             format!("{{{}}}", pairs.join(","))
         }
     }
+}
+
+#[test]
+fn decimal_and_money_match_frozen_value_corpus() {
+    // Operands from compatibility/v0_2_1/values/decimal-money-exact/values.json.
+    let left = "1E-3".parse::<nsl_core::NslDecimal>().unwrap();
+    let right = "-0.00".parse().unwrap();
+    let money = |amount: &str| Money::new(amount.parse().unwrap(), "KRW".parse().unwrap());
+    let first = money("0.10");
+    let second = money("0.20");
+    let result = Value::Record(BTreeMap::from([
+        (
+            "decimal_sum".into(),
+            Value::Decimal(left.checked_add(&right).unwrap()),
+        ),
+        (
+            "money_sum".into(),
+            Value::Money(first.checked_add(&second).unwrap()),
+        ),
+        (
+            "round_trip".into(),
+            Value::List(vec![
+                Value::Decimal(left),
+                Value::Decimal(right),
+                Value::Money(first),
+                Value::Money(second),
+            ]),
+        ),
+    ]));
+    // The frozen document's strings contain no spaces or line breaks.
+    let expected: String = FROZEN_MONEY_CASE
+        .chars()
+        .filter(|c| !c.is_ascii_whitespace())
+        .collect();
+    assert_eq!(render_fixture(&result.to_data(1024).unwrap()), expected);
 }
 
 #[test]

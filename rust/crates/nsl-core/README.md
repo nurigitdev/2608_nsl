@@ -52,3 +52,24 @@ git archive 28a949ec96581cbdc52c8133527b23bb5b72ee0a nsl | tar -x -C "$oracle_di
 .venv/bin/python -I -B rust/crates/nsl-core/tests/fixtures/generate_decimal_money.py "$oracle_dir" > "$oracle_dir/decimal-money.tsv"
 cmp "$oracle_dir/decimal-money.tsv" rust/crates/nsl-core/tests/fixtures/decimal-money.tsv
 ```
+
+## R2-S04 Core differential gate
+
+Call `ensure_no_credential_material(&ValueData)` at a validation boundary. It checks nested arrays and object keys and values for the field names and text markers recognized by the Python Oracle. The error contains no input or field path. Core value construction and `Value::to_data` remain available for structural conversion. NSO admission will call the validator in `R3-S02`.
+
+| Rust SRS | R2-S04 evidence |
+| --- | --- |
+| `NSL-RUST-CORE-001`–`004`, `009`, `010` | [`status_oracle`](tests/status_oracle.rs) checks enum values. [`value_model`](tests/value_model.rs) checks structured values, classification, presence, optional values, and explicit null. |
+| `NSL-RUST-CORE-008` | [`credential_rejection_matches_frozen_oracle`](tests/core_gate.rs) verifies 62 rejected and 31 accepted cases. `credential_screening_is_explicit_and_errors_omit_input` checks invocation and the public error. The Core validator is implemented and its NSO integration is tracked in `R3-S02`. |
+| `NSL-RUST-CORE-011` | `canonical_dates_and_datetimes_match_frozen_oracle` verifies seven tagged ISO encodings, including UTC text and offset-bearing business values. These tests start with canonical text supplied by the temporal boundary. |
+| `NSL-RUST-MONEY-001`–`008`, `NSL-RUST-QUAL-007` | `decimal_and_money_match_frozen_value_corpus` checks the [frozen value case](../../../compatibility/v0_2_1/values/decimal-money-exact/expected.json). [`decimal_money`](tests/decimal_money.rs) checks exact Money and Decimal arithmetic, ordering, and fixed-point round-trips. Core parsing and arithmetic use Decimal and integer paths. |
+| `NSL-RUST-CORE-012` | The [architecture dependency guard](../../tools/check_architecture.py) verifies the resolved dependency graph and workspace unsafe policy. |
+
+Use the Oracle export procedure above and Python 3.12 to regenerate the differential fixtures. The generated word-character table pins the Oracle's Unicode 15.0 definition of regex word boundaries.
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-core/tests/fixtures/generate_core_gate.py "$oracle_dir" > "$oracle_dir/core-gate.tsv"
+cmp "$oracle_dir/core-gate.tsv" rust/crates/nsl-core/tests/fixtures/core-gate.tsv
+.venv/bin/python -I -B rust/crates/nsl-core/tests/fixtures/generate_core_gate.py --word-boundaries > "$oracle_dir/oracle_unicode.rs"
+cmp "$oracle_dir/oracle_unicode.rs" rust/crates/nsl-core/src/oracle_unicode.rs
+```

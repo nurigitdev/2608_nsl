@@ -1,0 +1,101 @@
+# Python Oracle 28a949ec96581cbdc52c8133527b23bb5b72ee0a
+key	accesskey	reject
+text	accesskey=demo-placeholder	reject
+key	accesstoken	reject
+text	accesstoken=demo-placeholder	reject
+key	apikey	reject
+text	apikey=demo-placeholder	reject
+key	authorization	reject
+text	authorization=demo-placeholder	reject
+key	clientsecret	reject
+text	clientsecret=demo-placeholder	reject
+key	cookie	reject
+text	cookie=demo-placeholder	reject
+key	credential	reject
+text	credential=demo-placeholder	reject
+key	credentials	reject
+text	credentials=demo-placeholder	reject
+key	idtoken	reject
+text	idtoken=demo-placeholder	reject
+key	passwd	reject
+text	passwd=demo-placeholder	reject
+key	password	reject
+text	password=demo-placeholder	reject
+key	privatekey	reject
+text	privatekey=demo-placeholder	reject
+key	pwd	reject
+text	pwd=demo-placeholder	reject
+key	refreshtoken	reject
+text	refreshtoken=demo-placeholder	reject
+key	secret	reject
+text	secret=demo-placeholder	reject
+key	sessiontoken	reject
+text	sessiontoken=demo-placeholder	reject
+key	token	reject
+text	token=demo-placeholder	reject
+key	API-Key	reject
+key	Client . Secret	reject
+key	private_Key	reject
+key	prİvate_key	reject
+key	páassword	reject
+key	public_key	accept
+null	api_key	accept
+empty	api_key	accept
+false	api_key	reject
+zero	api_key	reject
+array	api_key	reject
+record	api_key	reject
+null	password=demo-placeholder	reject
+text		accept
+text	ordinary demo-placeholder	accept
+text	api_key	accept
+text	api_key =   	accept
+text	api_key=;	accept
+text	api_key=]	accept
+text	api_key=	accept
+text	api_key= 	accept
+text	api_key=''	reject
+text	api_key=""	reject
+text	api_key=[REDACTED]	reject
+text	Authorization:\tBearer DEMO.STUB	reject
+text	bearer DEMO	reject
+text	basic\nDEMO-._~+/=	reject
+text	basİc K	reject
+text	bearer #	accept
+text	basic Æ	accept
+text	Bearer	accept
+text	unbearer DEMO	accept
+text	aBearer DEMO	accept
+text	éBearer DEMO	accept
+text	🐍Bearer DEMO	reject
+text	ͅBearer DEMO	reject
+text	₂password=x	accept
+text	猫password=x	accept
+text	⸺password=x	reject
+text	password😀=x	accept
+text	password_=x	accept
+text	api__key=x	accept
+text	api---key=x	accept
+text	APP_ACCESS_TOKEN=x	accept
+text	access-token=x	reject
+text	acceſs-tokeN=x	reject
+text	prıvate_key=\x1cX	reject
+text	eyJdemo.stub.signature	reject
+text	AeyJdemo.stub.signature	accept
+text	éeyJdemo.stub.signature	reject
+text	eyJ.stub.signature	accept
+text	eyJdemo..signature	accept
+text	eyJdemo.stub.	accept
+text	eyJdemo.stub.signature_	reject
+text	-----BEGIN PRIVATE KEY-----\nDEMO\n-----END PRIVATE KEY-----	reject
+text	------BEGIN RSA PRIVATE KEY-----\r\nDEMO\r\n------END OTHER 1 PRIVATE KEY-----	reject
+text	-----BEGIN RSA PRIVATE KEY-----\nDEMO only	accept
+text	-----begin PRIVATE KEY-----\nDEMO\n-----END PRIVATE KEY-----	accept
+text	-----BEGIN  RSA PRIVATE KEY-----\nDEMO\n-----END PRIVATE KEY-----	accept
+Date	0001-01-01
+Date	2024-02-29
+Date	9999-12-31
+DateTime	2026-11-16T00:00:00+00:00
+DateTime	2026-11-16T00:00:00.000001+00:00
+DateTime	2026-11-16T09:30:00.009000+09:30
+DateTime	2026-11-16T00:00:00.123456-05:00

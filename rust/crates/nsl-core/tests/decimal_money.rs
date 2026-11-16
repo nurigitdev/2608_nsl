@@ -161,6 +161,30 @@ fn addition_and_subtraction_are_exact_for_representable_values() {
 }
 
 #[test]
+fn same_currency_money_preserves_exact_amounts_and_currency() {
+    for currency in ["KRW", "USD", "ZZZ"] {
+        for left in [-10_000_i64, -1, 0, 1, 10_000] {
+            for right in [-10_000_i64, -1, 0, 1, 10_000] {
+                let first = money(&format!("{left}e-2"), currency);
+                let second = money(&format!("{right}e-2"), currency);
+                let sum = first.checked_add(&second).unwrap();
+                let difference = first.checked_sub(&second).unwrap();
+                assert_eq!(sum, money(&format!("{}e-2", left + right), currency));
+                assert_eq!(difference, money(&format!("{}e-2", left - right), currency));
+                assert_eq!(sum.checked_sub(&second).unwrap(), first);
+                assert_eq!(difference.checked_add(&second).unwrap(), first);
+                assert_eq!(first.checked_cmp(&second).unwrap(), left.cmp(&right));
+                for actual in [&sum, &difference] {
+                    let encoded = fixed(actual.amount());
+                    assert_eq!(&money(&encoded, currency), actual);
+                    assert_eq!(fixed(money(&encoded, currency).amount()), encoded);
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn exponent_limits_and_fixed_point_allocation_are_checked() {
     let one = decimal("1");
     let zero = decimal("0");

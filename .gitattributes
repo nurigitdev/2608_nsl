@@ -5,3 +5,4 @@
 *.nso -text
 *.nsp -text
 rust/crates/nsl-core/tests/fixtures/decimal-money.tsv text eol=lf
+rust/crates/nsl-core/tests/fixtures/core-gate.tsv text eol=lf

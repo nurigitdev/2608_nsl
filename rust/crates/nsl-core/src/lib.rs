@@ -1,12 +1,15 @@
 #![forbid(unsafe_code)]
 
+mod credentials;
 mod decimal;
 mod identity;
 mod money;
+mod oracle_unicode;
 mod status;
 mod type_ref;
 mod value;
 
+pub use credentials::{CredentialMaterialError, ensure_no_credential_material};
 pub use decimal::{DecimalError, NslDecimal};
 pub use identity::{
     ApprovalRequestId, BusinessOperationId, IdempotencyKey, IdentityError, PayloadHash,
