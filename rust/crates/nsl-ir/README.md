@@ -83,3 +83,19 @@ Regenerate the digest fixture using the same Oracle export as above.
 .venv/bin/python -I -B rust/crates/nsl-ir/tests/fixtures/generate_hashes.py "$oracle_dir" compatibility/v0_2_1/nso > "$oracle_dir/hash-oracle.tsv"
 cmp "$oracle_dir/hash-oracle.tsv" rust/crates/nsl-ir/tests/fixtures/hash-oracle.tsv
 ```
+
+## R3-S05 round-trip and tamper gate
+
+[`roundtrip_gate`](tests/roundtrip_gate.rs) tests the public codec against every frozen `.nso` in `compatibility/v0_2_1`. The inventory check covers the two NSO goldens, three runtime copies of the IR 1.0 document, and the frozen semantic tamper. Each admitted artifact round-trips to the exact frozen bytes and matches the Oracle's manifest, bundle, semantic, and artifact hashes.
+
+| R3 exit gate | Evidence |
+| --- | --- |
+| Frozen bytes, hash identities, and IR 1.0/1.1 round-trip | `all_admitted_frozen_nsos_roundtrip_with_oracle_bytes_and_hashes` |
+| Tamper and invalid artifact rejection | `public_decoder_matches_oracle_rejection_boundaries` covers the frozen tamper and 19 mutations. The expected outcomes distinguish malformed hash text, mismatched digests, invalid WRITE and approval metadata, credentials, and unsupported IR versions. |
+
+The [fixture](tests/fixtures/roundtrip-oracle.tsv) records the Oracle's public decode outcomes and the SHA-256 of the exact input bytes. Mutated inputs are reproduced with byte offsets and replacement bytes. Regenerate it using the same Oracle export as above.
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-ir/tests/fixtures/generate_roundtrip.py "$oracle_dir" compatibility/v0_2_1 > "$oracle_dir/roundtrip-oracle.tsv"
+cmp "$oracle_dir/roundtrip-oracle.tsv" rust/crates/nsl-ir/tests/fixtures/roundtrip-oracle.tsv
+```
