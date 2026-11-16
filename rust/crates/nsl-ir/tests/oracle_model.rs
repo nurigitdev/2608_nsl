@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+mod codec;
 mod schema;
 
 use nsl_core::{Integer, Money, TypeKind, TypeRef, Value, ValueData};

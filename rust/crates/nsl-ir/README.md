@@ -4,7 +4,7 @@
 
 `IrVersion` parses `1.0` and `1.1`. `RequiredToolKind::ReadV1_0` represents a READ tool with no risk field. `RequiredToolKind::V1_1` carries the tool capability and mandatory risk level. The 1.1 approval and WRITE nodes preserve result types, ordered arguments, and the static approval reference. Approval is required by definition and its TTL is optional. Exact Core integers preserve Oracle values before the execution boundary applies host-specific limits. Open text fields such as the CHECK severity and binary operator retain the strings accepted by the Oracle IR schema.
 
-The model carries supplied digests. `R3-S03` owns the production codec and `R3-S04` owns hash calculation. The test harness projects model fixtures into structured data for comparison.
+The model carries supplied digests. `R3-S04` owns hash calculation. The test harness projects model fixtures into structured data for comparison.
 
 | Rust SRS | R3-S01 evidence |
 | --- | --- |
@@ -27,7 +27,7 @@ cmp "$oracle_dir/oracle_models.rs" rust/crates/nsl-ir/tests/fixtures/oracle_mode
 
 IR 1.0 accepts READ tools without risk levels and the read-only node set. IR 1.1 requires tool risk levels, admits approval and WRITE nodes, and checks unique tool and approval references. Every WRITE refers to a declared WRITE tool and a preceding approval that is used exactly once. Under `NSL-0.2-STRICT` there is at most one WRITE. The validator uses the Oracle's statement order and loop-body rules. It also checks the nonblank fields and distinct WRITE argument names required by the Oracle's model constructors. Runtime profile admission remains a later execution check.
 
-The API starts after byte parsing, with a structured `ValueData` tree. JSON duplicate-key and encoding checks belong to `R3-S03`. Digest recomputation and cross-checks belong to `R3-S04`.
+The API starts after byte parsing, with a structured `ValueData` tree. The codec checks UTF-8, JSON grammar, and duplicate object keys before invoking it.
 
 | Rust SRS | R3-S02 evidence |
 | --- | --- |
@@ -40,4 +40,22 @@ Regenerate the admission fixture using the same Oracle export and pinned toolcha
 .venv/bin/python -I -B rust/crates/nsl-ir/tests/fixtures/generate_schema.py "$oracle_dir" compatibility/v0_2_1/nso > "$oracle_dir/schema_cases.rs"
 rustfmt +1.99.1 --edition 2024 "$oracle_dir/schema_cases.rs"
 cmp "$oracle_dir/schema_cases.rs" rust/crates/nsl-ir/tests/fixtures/schema_cases.rs
+```
+
+## R3-S03 canonical JSON codec
+
+`NsoCodec::decode(bytes, NsoLimits { max_bytes, max_depth, max_nodes })` checks the caller's inclusive limits while reading the input. The root is depth zero and counts as one node. Every JSON value counts as a node, including containers. Keys are strings within their parent object. Duplicate keys are rejected after escape decoding. The decoder constructs a typed `SkillObject` after credential and schema checks. It checks that the two supplied source bundle digest fields agree. Verify the actual digests before treating the model as admitted. Digest recomputation is `R3-S04`.
+
+`NsoCodec::encode(&skill, max_decimal_bytes)` validates the projected object and writes UTF-8 JSON with scalar-ordered keys, no extra whitespace, and the Oracle's escaping. List order is preserved. Decimal and Money use the Core fixed-point encoder and its caller-supplied budget per numeric string. JSON integer tokens keep their exact base-10 digits, with the frozen CPython 3.12 default of 4,300 digits in either direction. Noncanonical whitespace and valid string escapes are accepted on input and normalized by the encoder.
+
+| Rust SRS | R3-S03 evidence |
+| --- | --- |
+| `NSL-RUST-IR-006`–`009`, `NSL-RUST-DIFF-003` | [`codec` tests](tests/codec/mod.rs) compare both frozen NSOs against independent Rust models, then decode and re-encode those same bytes. The supplementary Oracle fixture verifies Unicode escaping, large integers, Decimal and Money. |
+| `NSL-RUST-SEC-011`, `NSL-RUST-IR-013` | The same tests exercise byte, depth, and node boundaries in both IR versions, including one unit below and above each exact limit. Credential screening runs on both codec paths. |
+
+Regenerate the scalar fixture using the same Oracle export as above.
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-ir/tests/fixtures/generate_codec.py "$oracle_dir" compatibility/v0_2_1/nso > "$oracle_dir/canonical-scalars.nso"
+cmp "$oracle_dir/canonical-scalars.nso" rust/crates/nsl-ir/tests/fixtures/canonical-scalars.nso
 ```
