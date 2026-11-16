@@ -108,6 +108,7 @@ name = "nsl-contract"
 version = "0.2.1"
 dependencies = [
  "nsl-core",
+ "sha2",
 ]
 
 [[package]]

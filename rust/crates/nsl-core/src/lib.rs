@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+mod canonical_json;
 mod credentials;
 mod decimal;
 mod identity;
@@ -9,6 +10,7 @@ mod status;
 mod type_ref;
 mod value;
 
+pub use canonical_json::{CanonicalJsonError, MAX_JSON_INTEGER_DIGITS, canonical_json};
 pub use credentials::{CredentialMaterialError, ensure_no_credential_material};
 pub use decimal::{DecimalError, NslDecimal};
 pub use identity::{

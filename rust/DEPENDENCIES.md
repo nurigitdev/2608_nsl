@@ -91,6 +91,15 @@ Cargo.lock SHA-256
 6ed77779be94a6555d6dac87951699825e4ed0e999a113d7004aaa42c70c8524
 ```
 
+## R5-S02 Tool Contract identity dependency
+
+`nsl-contract` hashes canonical Tool Contract bytes with the reviewed `sha2 =0.11.1` pin and default features disabled. The resolved external inventory is the [R3-S04 SHA-256 graph](#r3-s04-sha-256-dependency-review). Contract and NSO JSON encoding share the Core writer.
+
+```text
+Cargo.lock SHA-256
+b51495d0822b93a4de74258457a4c356fcac54188fa5c2b185ca5dbc684956d6
+```
+
 ## Architecture dependency guard
 
 From `rust/`, run `python tools/check_architecture.py` with Python 3.12 and the pinned Rust toolchain. The guard reads Cargo's locked, all-feature graph for all target platforms. It follows dependencies by resolved package ID, including build and development edges, so renaming a crate or depending on it indirectly still exposes the dependency chain.

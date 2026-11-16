@@ -3,6 +3,7 @@
 mod catalog;
 mod contract;
 mod error;
+mod identity;
 mod semantics;
 
 pub use nsl_core::ToolCapability;
@@ -12,6 +13,7 @@ pub use contract::{
     ContractCapability, MAX_TOOL_TIMEOUT_MS, ToolContract, ToolContractOptions, ToolContractSpec,
 };
 pub use error::ContractError;
+pub use identity::ContractEncodingError;
 pub use semantics::{
     Atomicity, CommitConfirmation, CommitSemantics, IdempotencySemantics, OperationKind,
     PostWriteVerification, WriteSemantics, WriteSemanticsSpec,

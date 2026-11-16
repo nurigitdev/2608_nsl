@@ -22,3 +22,21 @@ git archive 28a949ec96581cbdc52c8133527b23bb5b72ee0a nsl | tar -x -C "$oracle_di
 .venv/bin/python -I -B rust/crates/nsl-contract/tests/fixtures/generate_contract_model.py "$oracle_dir" > "$oracle_dir/contract-model-oracle.tsv"
 cmp "$oracle_dir/contract-model-oracle.tsv" rust/crates/nsl-contract/tests/fixtures/contract-model-oracle.tsv
 ```
+
+## R5-S02 canonical identity
+
+`ToolContract::canonical_bytes` encodes the validated model as compact UTF-8 JSON with sorted object keys and preserved list order. The encoder is shared with NSO through `nsl-core`. `contract_hash` hashes these exact bytes with SHA-256 and returns a Core `PayloadHash`. The `sha2` dependency reuses the workspace's existing pin and feature configuration.
+
+The model can hold internal `Optional<T>` types. Canonical projection, encoding, and hashing reject Optional anywhere in input types, output types, or verification reference schemas. `to_canonical_data` returns `TypeError::InternalOptional`, and the byte and hash methods expose that cause as `ContractEncodingError::Type`. This follows the frozen Oracle's external contract schema.
+
+| Rust SRS | Status and verification in R5-S02 |
+| --- | --- |
+| `NSL-RUST-TOOL-003`, `NSL-RUST-HASH-004` | Implemented. [Identity differential tests](tests/identity_oracle.rs) compare complete bytes and digests for the reference CREATE, CREATE_DRAFT, UPDATE, and READ contracts, three verification variants, and an unregistered Unicode capability. |
+| `NSL-RUST-TOOL-004` | Verified. The same tests compare unknown ID, version mismatch, and duplicate identity with different canonical hashes. |
+
+Generate the identity fixture with the same Oracle checkout and Python 3.12. The generator reads the repository's compatibility fixtures and voucher example, then checks each canonical result through the frozen CLI contract loader.
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-contract/tests/fixtures/generate_contract_identity.py "$oracle_dir" . > "$oracle_dir/contract-identity-oracle.tsv"
+cmp "$oracle_dir/contract-identity-oracle.tsv" rust/crates/nsl-contract/tests/fixtures/contract-identity-oracle.tsv
+```
