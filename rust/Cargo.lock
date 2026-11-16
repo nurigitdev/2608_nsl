@@ -135,6 +135,9 @@ version = "0.2.1"
 [[package]]
 name = "nsl-source"
 version = "0.2.1"
+dependencies = [
+ "sha2",
+]
 
 [[package]]
 name = "nsl-testkit"

@@ -82,6 +82,15 @@ Cargo.lock SHA-256
 d847b84574c4f686b3c07956a9a06c2738af0427a16efbe167e145ff3fd6746c
 ```
 
+## R4-S01 source identity dependency
+
+`nsl-source` also uses the reviewed `sha2 =0.11.1` with default features disabled. The SourceId calculation hashes the logical path and decoded text in the source crate. The graph adds one edge to the existing SHA-256 packages and resolves the same external versions and features as R3-S04.
+
+```text
+Cargo.lock SHA-256
+6ed77779be94a6555d6dac87951699825e4ed0e999a113d7004aaa42c70c8524
+```
+
 ## Architecture dependency guard
 
 From `rust/`, run `python tools/check_architecture.py` with Python 3.12 and the pinned Rust toolchain. The guard reads Cargo's locked, all-feature graph for all target platforms. It follows dependencies by resolved package ID, including build and development edges, so renaming a crate or depending on it indirectly still exposes the dependency chain.
