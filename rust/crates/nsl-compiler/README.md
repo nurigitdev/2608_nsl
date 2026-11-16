@@ -20,3 +20,24 @@ git archive 28a949ec96581cbdc52c8133527b23bb5b72ee0a nsl | tar -x -C "$oracle_di
 .venv/bin/python -I -B rust/crates/nsl-compiler/tests/fixtures/generate_includes.py "$oracle_dir" > "$oracle_dir/include-oracle.tsv"
 cmp "$oracle_dir/include-oracle.tsv" rust/crates/nsl-compiler/tests/fixtures/include-oracle.tsv
 ```
+
+## R5-S03 Symbol and scope resolution
+
+`resolve_symbols(&skill, sources)` runs on the composed AST. Normal symbol IDs start at `s0001` and follow inputs, composed contexts, and body declarations in that order. The resolver records declaration origins and binds each expression path to the symbol for its first segment. Skill scope is `scope0001`; foreach blocks receive sequential child scope IDs and reserve their iterator IDs upon entry, after resolving the collection.
+
+The resolver checks let initializers and CHECK conditions before declaring their names. INPUT, CONTEXT, VARIABLE, ITERATOR, and CHECK share the active name table. Duplicate declarations and active ancestor shadowing produce `NSL-E2002`. Unavailable names produce `NSL-E2001`. A completed foreach frees its active names for reuse while its bindings remain in the result. Semantic diagnostics preserve the originating `SourceSpan`, including declarations from Include fragments.
+
+NSL 0.2 skill-scope approvals use their own `ApprovalSymbolId` sequence starting at `s0001`. The approval namespace can hold the same names as the ordinary symbols. Duplicate approval IDs produce `NSL-E2002` at the second ID token. R5-S06 owns WRITE linkage, approval scope validation, and approval ordering and usage checks.
+
+| Rust SRS | Status and verification in R5-S03 |
+| --- | --- |
+| `NSL-RUST-COMP-002` | Implemented. The [symbol differential test](tests/symbol_oracle.rs) checks source declarations, scope and symbol IDs, expression references, and the independent approval namespace. |
+| `NSL-RUST-COMP-003` | Implemented. The same test checks duplicate declarations, use before declaration, shadowing, scope escape, and sibling name reuse in both language versions. |
+| `NSL-RUST-COMP-019` | Symbol-resolution evidence. The differential test checks codes, positions, messages and snippets, and the [boundary tests](tests/symbol_boundaries.rs) exercise deep scope traversal and error unwind. |
+
+Regenerate the 65-case fixture from the same Oracle checkout with Python 3.12. The generator observes SymbolTable calls made by the frozen compiler and approval analyzer.
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-compiler/tests/fixtures/generate_symbols.py "$oracle_dir" > "$oracle_dir/symbol-oracle.tsv"
+cmp "$oracle_dir/symbol-oracle.tsv" rust/crates/nsl-compiler/tests/fixtures/symbol-oracle.tsv
+```
