@@ -136,6 +136,7 @@ version = "0.2.1"
 name = "nsl-source"
 version = "0.2.1"
 dependencies = [
+ "nsl-core",
  "sha2",
 ]
 

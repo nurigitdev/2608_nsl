@@ -40,3 +40,24 @@ Regenerate the Lexer fixture and Unicode digit tables with the same Python 3.12 
 cmp "$oracle_dir/lexer-oracle.tsv" rust/crates/nsl-source/tests/fixtures/lexer-oracle.tsv
 cmp "$oracle_dir/unicode_digits.rs" rust/crates/nsl-source/src/lexer/unicode_digits.rs
 ```
+
+## Parser and AST
+
+`Parser::parse(&source, mode, limits)` takes a `SourceFile`, an explicit `ParseMode`, and `ParseLimits { max_nesting }`. Root mode validates the required header and uses its version. Fragment mode uses the version supplied by the caller and accepts include, requires, context, and limits declarations. The AST retains declaration and argument order, the full spans of WRITE and approval nodes, and the individual approval reference and declaration ID spans.
+
+The nesting budget counts simultaneously open grouping parentheses, calls (including READ and WRITE), `List` wrappers, and `foreach` statements, starting with the collection expression. A budget of zero permits flat syntax and binary operator chains. The first opening beyond the budget returns `NestingError` with that token's span. Heap-backed parser stacks and indexed AST children allow deeply nested inputs within the requested budget without recursive parsing or destruction.
+
+Integer conversions in expressions, limits, and `foreach max` accept Unicode decimal digits and up to 4,300 input digits, including leading zeros. The AST stores exact integers and decimals using Core types. Decimal source literals preserve scale and precision, and converted duration milliseconds may exceed 4,300 digits. `NumericError` reports integer or decimal conversion failures with the original token's span. Both `NumericError` and `NestingError` carry no NSL diagnostic code. Ordinary parser diagnostics preserve the Oracle code and token start position.
+
+| Rust SRS | Status and verification in R4-S03 |
+| --- | --- |
+| `NSL-RUST-SRC-004` | Implemented. [Parser Oracle differential test](tests/parser_oracle.rs) compares 122 cases including full AST projections, malformed productions, explicit modes, and numeric boundaries across NSL 0.1 and 0.2. |
+| `NSL-RUST-SRC-005` | Verified for Parser nodes and diagnostics. The same test compares node and metadata spans and diagnostic positions. |
+| `NSL-RUST-SRC-013` | Boundary evidence. [Parser boundary tests](tests/parser_boundaries.rs) verify exact nesting rejection spans, level reuse, and deeply nested input on a small thread stack. |
+
+Regenerate the Parser fixture with the same Python 3.12 environment and Oracle checkout.
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-source/tests/fixtures/generate_parser.py "$oracle_dir" > "$oracle_dir/parser-oracle.tsv"
+cmp "$oracle_dir/parser-oracle.tsv" rust/crates/nsl-source/tests/fixtures/parser-oracle.tsv
+```

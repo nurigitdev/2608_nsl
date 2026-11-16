@@ -1,6 +1,8 @@
 include!("unicode_digits.rs");
 
-pub(super) fn decimal_digit(character: char) -> Option<u8> {
+pub(crate) const MAX_INTEGER_DIGITS: usize = 4_300;
+
+pub(crate) fn decimal_digit(character: char) -> Option<u8> {
     if character.is_ascii_digit() {
         return Some(character as u8 - b'0');
     }

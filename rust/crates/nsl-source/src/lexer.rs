@@ -1,4 +1,4 @@
-mod digits;
+pub(crate) mod digits;
 
 use std::{borrow::Cow, fmt};
 
@@ -7,7 +7,7 @@ use crate::{
     SourcePosition, SourceSpan,
 };
 
-use self::digits::{decimal_digit, is_digit};
+use self::digits::{MAX_INTEGER_DIGITS, decimal_digit, is_digit};
 
 macro_rules! token_kinds {
     ($($kind:ident => $name:literal),+ $(,)?) => {
@@ -423,15 +423,14 @@ fn duration_unit(text: &str) -> Option<(&'static str, u32)> {
 }
 
 fn duration_milliseconds(text: &str, multiplier: u32) -> Result<String, DurationErrorKind> {
-    const MAX_DIGITS: usize = 4_300;
     let mut digits = Vec::new();
     for character in text.chars().rev() {
         let digit = decimal_digit(character).ok_or(DurationErrorKind::NonDecimalDigit)?;
-        if digits.len() <= MAX_DIGITS {
+        if digits.len() <= MAX_INTEGER_DIGITS {
             digits.push(digit);
         }
     }
-    if digits.len() > MAX_DIGITS {
+    if digits.len() > MAX_INTEGER_DIGITS {
         return Err(DurationErrorKind::TooManyDigits);
     }
     // Each step multiplies one digit and adds the bounded carry.
