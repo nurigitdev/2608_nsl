@@ -9,3 +9,4 @@ rust/crates/nsl-core/tests/fixtures/core-gate.tsv text eol=lf
 rust/crates/nsl-ir/tests/fixtures/hash-oracle.tsv text eol=lf
 rust/crates/nsl-ir/tests/fixtures/roundtrip-oracle.tsv text eol=lf
 rust/crates/nsl-source/tests/fixtures/source-oracle.tsv text eol=lf
+rust/crates/nsl-source/tests/fixtures/lexer-oracle.tsv text eol=lf

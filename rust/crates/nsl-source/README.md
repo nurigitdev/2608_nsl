@@ -20,3 +20,23 @@ git archive 28a949ec96581cbdc52c8133527b23bb5b72ee0a nsl | tar -x -C "$oracle_di
 .venv/bin/python -I -B rust/crates/nsl-source/tests/fixtures/generate_source.py "$oracle_dir" > "$oracle_dir/source-oracle.tsv"
 cmp "$oracle_dir/source-oracle.tsv" rust/crates/nsl-source/tests/fixtures/source-oracle.tsv
 ```
+
+## Version-aware lexer
+
+`Lexer::scan` takes an explicit language version and collects recoverable lexical diagnostics. `Lexer::tokenize` returns the first ordinary diagnostic if scanning completes. `Lexer::tokenize_root` obtains the version from the root header first. NSL 0.2 reserves `write`, `approve`, and `approved_by`. NSL 0.1 treats these words as identifiers. Tokens carry their kind, normalized value, original lexeme, and half-open `SourceSpan` with EOF at the final source position.
+
+Numeric tokens follow Python 3.12's Unicode 15.0 `str.isdigit()` classification. Duration conversion accepts Unicode decimal digits and permits at most 4,300 input digits, including leading zeros. The resulting milliseconds are stored as a canonical base-10 string so multiplication can produce the exact value at the input limit. The Oracle raises `ValueError` for `²s` and over-limit durations. Rust returns a fatal `DurationError` with the literal's span and no NSL diagnostic code, even if an ordinary diagnostic occurred earlier. Plain integer and decimal tokens retain their input spelling.
+
+| Rust SRS | Status and verification in R4-S02 |
+| --- | --- |
+| `NSL-RUST-SRC-003` | Implemented. [Lexer Oracle differential test](tests/lexer_oracle.rs) compares 58 cases across both language versions, including keyword handling, token values and lexemes, diagnostic codes, and duration failures. |
+| `NSL-RUST-SRC-005` | Verified for Lexer tokens and diagnostics. The same differential test compares source IDs, Unicode scalar coordinates, and EOF spans. |
+
+Regenerate the Lexer fixture and Unicode digit tables with the same Python 3.12 environment and Oracle checkout used above.
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-source/tests/fixtures/generate_lexer.py "$oracle_dir" > "$oracle_dir/lexer-oracle.tsv"
+.venv/bin/python -I -B rust/crates/nsl-source/tests/fixtures/generate_lexer.py --digit-tables > "$oracle_dir/unicode_digits.rs"
+cmp "$oracle_dir/lexer-oracle.tsv" rust/crates/nsl-source/tests/fixtures/lexer-oracle.tsv
+cmp "$oracle_dir/unicode_digits.rs" rust/crates/nsl-source/src/lexer/unicode_digits.rs
+```
