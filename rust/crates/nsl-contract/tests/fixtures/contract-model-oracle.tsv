@@ -1,0 +1,606 @@
+# Python Oracle 28a949ec96581cbdc52c8133527b23bb5b72ee0a
+case	contract	read_default
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	nondefault_exact_fields
+set	tool_id	20544fc3964c2eeca1b0ed9a8c20
+set	required_scope	2073636f70653aec9dbdeab8b020
+set	inputs	706164646564
+set	classification	52455354524943544544
+set	timeout_ms	393837
+set	risk	20435553544f4d20
+set	empty_is_valid	66616c7365
+expected
+contract	20544fc3964c2eeca1b0ed9a8c20	312e302e30	52454144	known	2073636f70653aec9dbdeab8b020	RESTRICTED	987	20435553544f4d20	false	~	~
+input	6e616d65	primitive:String
+input	206e616d6520	primitive:String
+output	domain:Draft
+case	contract	no_inputs
+set	inputs	656d707479
+set	classification	5055424c4943
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	746f6f6c3a72656164	PUBLIC	30000	524541445f4f4e4c59	true	~	~
+output	domain:Draft
+case	contract	blank_tool_id
+set	tool_id	-
+expected
+contract	-	312e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	blank_scope
+set	required_scope	-
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	-	INTERNAL	30000	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	padded_tool_id_and_scope
+set	tool_id	c2a0
+set	required_scope	20
+expected
+contract	c2a0	312e302e30	52454144	known	20	INTERNAL	30000	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	version_0
+set	version	302e302e30
+expected
+contract	544f4f4c2e4645544348	302e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	version_1
+set	version	312e393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939392e30
+expected
+contract	544f4f4c2e4645544348	312e393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939393939392e30	52454144	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	version_2
+set	version	-
+expected
+error	tool version must use canonical major.minor.patch form
+case	contract	version_3
+set	version	312e30
+expected
+error	tool version must use canonical major.minor.patch form
+case	contract	version_4
+set	version	302e302e312e30
+expected
+error	tool version must use canonical major.minor.patch form
+case	contract	version_5
+set	version	312e2e30
+expected
+error	tool version must use canonical major.minor.patch form
+case	contract	version_6
+set	version	30302e302e30
+expected
+error	tool version must use canonical major.minor.patch form
+case	contract	version_7
+set	version	312e30322e30
+expected
+error	tool version must use canonical major.minor.patch form
+case	contract	version_8
+set	version	312e302e3033
+expected
+error	tool version must use canonical major.minor.patch form
+case	contract	version_9
+set	version	efbc912e302e30
+expected
+error	tool version must use canonical major.minor.patch form
+case	contract	version_10
+set	version	2d312e302e30
+expected
+error	tool version must use canonical major.minor.patch form
+case	contract	version_11
+set	version	312e302e300a
+expected
+error	tool version must use canonical major.minor.patch form
+case	contract	capability_0
+set	capability	5452414e53414354494f4e
+expected
+contract	544f4f4c2e4645544348	312e302e30	5452414e53414354494f4e	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	capability_1
+set	capability	435553544f4d5f52454144
+expected
+contract	544f4f4c2e4645544348	312e302e30	435553544f4d5f52454144	unregistered	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	capability_2
+set	capability	7772697465
+expected
+contract	544f4f4c2e4645544348	312e302e30	7772697465	unregistered	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	capability_3
+set	capability	20575249544520
+expected
+contract	544f4f4c2e4645544348	312e302e30	20575249544520	unregistered	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	capability_4
+set	capability	eab480ecb0b0
+expected
+contract	544f4f4c2e4645544348	312e302e30	eab480ecb0b0	unregistered	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	capability_5
+set	capability	-
+expected
+error	tool capability must be a non-empty string
+case	contract	capability_6
+set	capability	091f
+expected
+error	tool capability must be a non-empty string
+case	contract	capability_7
+set	capability	c2a0
+expected
+error	tool capability must be a non-empty string
+case	contract	capability_8
+set	capability	5752497465
+expected
+contract	544f4f4c2e4645544348	312e302e30	5752497465	unregistered	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	timeout_0
+set	timeout_ms	2d31
+expected
+error	tool timeout_ms must be between 1 and 2147483647
+case	contract	timeout_1
+set	timeout_ms	30
+expected
+error	tool timeout_ms must be between 1 and 2147483647
+case	contract	timeout_2
+set	timeout_ms	31
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	1	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	timeout_3
+set	timeout_ms	32
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	2	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	timeout_4
+set	timeout_ms	32313437343833363436
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	2147483646	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	timeout_5
+set	timeout_ms	32313437343833363437
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	2147483647	524541445f4f4e4c59	true	~	~
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	timeout_6
+set	timeout_ms	32313437343833363438
+expected
+error	tool timeout_ms must be between 1 and 2147483647
+case	contract	timeout_7
+set	timeout_ms	39323233333732303336383534373735383037
+expected
+error	tool timeout_ms must be between 1 and 2147483647
+case	contract	input_duplicate
+set	inputs	6475706c6963617465
+expected
+error	tool input names must be unique
+case	contract	input_blank
+set	inputs	626c616e6b
+expected
+error	tool input names must be non-empty strings
+case	contract	input_duplicate_and_blank
+set	inputs	6475706c69636174655f616e645f626c616e6b
+expected
+error	tool input names must be non-empty strings
+case	contract	risk_blank
+set	risk	c2a01f
+expected
+error	tool risk must be a non-empty string
+case	contract	blank_before_timeout
+set	risk	-
+set	timeout_ms	30
+expected
+error	tool risk must be a non-empty string
+case	contract	invalid_version_first
+set	version	-
+set	capability	-
+expected
+error	tool version must use canonical major.minor.patch form
+case	contract	read_risk_R0
+set	risk_level	5230
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	R0
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	read_risk_R1
+set	risk_level	5231
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	R1
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	read_risk_R2
+set	risk_level	5232
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	R2
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	read_risk_R3
+set	risk_level	5233
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	R3
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	read_risk_R4
+set	risk_level	5234
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	R4
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	read_risk_R5
+set	risk_level	5235
+expected
+contract	544f4f4c2e4645544348	312e302e30	52454144	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	~	R5
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+case	contract	read_risk_R6
+set	risk_level	5236
+expected
+error	tool risk_level must be one of: R0, R1, R2, R3, R4, R5
+case	contract	read_risk_r3
+set	risk_level	7233
+expected
+error	tool risk_level must be one of: R0, R1, R2, R3, R4, R5
+case	contract	read_risk_
+set	risk_level	-
+expected
+error	tool risk_level must be one of: R0, R1, R2, R3, R4, R5
+case	contract	operation_CREATE
+set	capability	5752495445
+set	operation_kind	435245415445
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+contract	544f4f4c2e4645544348	312e302e30	5752495445	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	CREATE	R3
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+write	true	ATOMIC	true	true
+idempotency	true	544f4f4c5f414e445f54454e414e54	50524f56494445525f444546494e4544	52455455524e5f4f524947494e414c5f524553554c54	4944454d504f54454e43595f434f4e464c494354
+commit	EXPLICIT
+case	contract	operation_CREATE_DRAFT
+set	capability	5752495445
+set	operation_kind	4352454154455f4452414654
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+contract	544f4f4c2e4645544348	312e302e30	5752495445	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	CREATE_DRAFT	R3
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+write	true	ATOMIC	true	true
+idempotency	true	544f4f4c5f414e445f54454e414e54	50524f56494445525f444546494e4544	52455455524e5f4f524947494e414c5f524553554c54	4944454d504f54454e43595f434f4e464c494354
+commit	EXPLICIT
+case	contract	operation_UPDATE
+set	capability	5752495445
+set	operation_kind	555044415445
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+contract	544f4f4c2e4645544348	312e302e30	5752495445	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	UPDATE	R3
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+write	true	ATOMIC	true	true
+idempotency	true	544f4f4c5f414e445f54454e414e54	50524f56494445525f444546494e4544	52455455524e5f4f524947494e414c5f524553554c54	4944454d504f54454e43595f434f4e464c494354
+commit	EXPLICIT
+case	contract	operation_DELETE
+set	capability	5752495445
+set	operation_kind	44454c455445
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+error	WRITE operation_kind must be one of: CREATE, CREATE_DRAFT, UPDATE
+case	contract	operation_UPSERT
+set	capability	5752495445
+set	operation_kind	555053455254
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+error	WRITE operation_kind must be one of: CREATE, CREATE_DRAFT, UPDATE
+case	contract	operation_create
+set	capability	5752495445
+set	operation_kind	637265617465
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+error	WRITE operation_kind must be one of: CREATE, CREATE_DRAFT, UPDATE
+case	contract	operation_
+set	capability	5752495445
+set	operation_kind	-
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+error	WRITE operation_kind must be one of: CREATE, CREATE_DRAFT, UPDATE
+case	contract	operation_~
+set	capability	5752495445
+set	operation_kind	7e
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+error	WRITE tool must declare operation_kind
+case	contract	write_no_risk
+set	capability	5752495445
+set	operation_kind	4352454154455f4452414654
+set	risk_level	7e
+set	write	636f6d706c657465
+expected
+error	WRITE tool must declare risk_level
+case	contract	write_invalid_risk
+set	capability	5752495445
+set	operation_kind	4352454154455f4452414654
+set	risk_level	5236
+set	write	636f6d706c657465
+expected
+error	tool risk_level must be one of: R0, R1, R2, R3, R4, R5
+case	contract	write_no_semantics
+set	capability	5752495445
+set	operation_kind	4352454154455f4452414654
+set	risk_level	5233
+set	write	7e
+expected
+error	WRITE tool must declare write_semantics
+case	contract	write_endpoints_of_risk
+set	capability	5752495445
+set	operation_kind	4352454154455f4452414654
+set	risk_level	5235
+set	write	66756c6c
+expected
+contract	544f4f4c2e4645544348	312e302e30	5752495445	known	746f6f6c3a72656164	INTERNAL	30000	524541445f4f4e4c59	true	CREATE_DRAFT	R5
+input	7a5f6c6162656c	primitive:String
+input	615f616d6f756e7473	list:money:KRW
+output	domain:Draft
+write	true	ATOMIC	true	true
+idempotency	true	544f4f4c5f414e445f54454e414e54	50524f56494445525f444546494e4544	52455455524e5f4f524947494e414c5f524553554c54	4944454d504f54454e43595f434f4e464c494354
+commit	EXPLICIT
+verification	544f4f4c2e564552494659	domain:Draft	20524541445f41465445525f575249544520
+case	contract	case_sensitive_write
+set	capability	7772697465
+set	operation_kind	4352454154455f4452414654
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+error	operation_kind and write_semantics require capability=WRITE
+case	contract	write_space
+set	capability	20575249544520
+set	operation_kind	4352454154455f4452414654
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+error	operation_kind and write_semantics require capability=WRITE
+case	contract	transaction_with_write
+set	capability	5452414e53414354494f4e
+set	operation_kind	4352454154455f4452414654
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+error	operation_kind and write_semantics require capability=WRITE
+case	contract	read_with_operation
+set	capability	52454144
+set	operation_kind	4352454154455f4452414654
+set	risk_level	5233
+set	write	7e
+expected
+error	operation_kind and write_semantics require capability=WRITE
+case	contract	read_with_semantics
+set	capability	52454144
+set	operation_kind	7e
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+error	operation_kind and write_semantics require capability=WRITE
+case	contract	invalid_op_before_non_write_fields
+set	capability	5452414e53414354494f4e
+set	operation_kind	44454c455445
+set	risk_level	5233
+set	write	636f6d706c657465
+expected
+error	WRITE operation_kind must be one of: CREATE, CREATE_DRAFT, UPDATE
+case	contract	risk_checked_before_operation
+set	capability	5752495445
+set	operation_kind	44454c455445
+set	risk_level	5236
+set	write	636f6d706c657465
+expected
+error	tool risk_level must be one of: R0, R1, R2, R3, R4, R5
+case	idempotency	all_fields
+expected
+idempotency	true	544f4f4c5f414e445f54454e414e54	50524f56494445525f444546494e4544	52455455524e5f4f524947494e414c5f524553554c54	4944454d504f54454e43595f434f4e464c494354
+case	idempotency	preserve_raw_fields
+set	scope	20ebb294ec9c8420
+set	retention	2032346820
+set	duplicate_behavior	52455455524e
+set	payload_conflict_behavior	2044454e5920
+expected
+idempotency	true	20ebb294ec9c8420	2032346820	52455455524e	2044454e5920
+case	idempotency	not_required
+set	required	66616c7365
+set	scope	-
+expected
+error	WRITE idempotency.required must be true
+case	idempotency	blank_scope
+set	scope	20e280831f
+expected
+error	idempotency.scope must be a non-empty string
+case	idempotency	blank_retention
+set	retention	20e280831f
+expected
+error	idempotency.retention must be a non-empty string
+case	idempotency	blank_duplicate_behavior
+set	duplicate_behavior	20e280831f
+expected
+error	idempotency.duplicate_behavior must be a non-empty string
+case	idempotency	blank_payload_conflict_behavior
+set	payload_conflict_behavior	20e280831f
+expected
+error	idempotency.payload_conflict_behavior must be a non-empty string
+case	commit	confirmation_EXPLICIT
+set	confirmation	4558504c49434954
+expected
+commit	EXPLICIT
+case	commit	confirmation_IMPLICIT
+set	confirmation	494d504c49434954
+expected
+error	commit.confirmation must be one of: EXPLICIT
+case	commit	confirmation_explicit
+set	confirmation	6578706c69636974
+expected
+error	commit.confirmation must be one of: EXPLICIT
+case	commit	confirmation_
+set	confirmation	-
+expected
+error	commit.confirmation must be one of: EXPLICIT
+case	verification	no_hints
+expected
+error	verification must declare at least one hint
+case	verification	three_hints
+set	tool_id	544f4f4c2e564552494659
+set	reference_schema	646f6d61696e
+set	consistency_hint	20524541445f41465445525f575249544520
+expected
+verification	544f4f4c2e564552494659	domain:Draft	20524541445f41465445525f575249544520
+case	verification	tool_only
+set	tool_id	2056455249465920
+expected
+verification	2056455249465920	~	~
+case	verification	reference_only
+set	reference_schema	646f6d61696e
+expected
+verification	~	domain:Draft	~
+case	verification	internal_optional_ref
+set	reference_schema	6f7074696f6e616c
+expected
+verification	~	optional:primitive:String	~
+case	verification	hint_only
+set	consistency_hint	4556454e5455414c
+expected
+verification	~	~	4556454e5455414c
+case	verification	tool_blank
+set	tool_id	1f
+set	consistency_hint	6b656570
+expected
+error	verification.tool_id must be a non-empty string
+case	verification	hint_blank
+set	tool_id	746f6f6c
+set	consistency_hint	20
+expected
+error	verification.consistency_hint must be a non-empty string
+case	write	full
+set	verification	66756c6c
+expected
+write	true	ATOMIC	true	true
+idempotency	true	544f4f4c5f414e445f54454e414e54	50524f56494445525f444546494e4544	52455455524e5f4f524947494e414c5f524553554c54	4944454d504f54454e43595f434f4e464c494354
+commit	EXPLICIT
+verification	544f4f4c2e564552494659	domain:Draft	20524541445f41465445525f575249544520
+case	write	side_effect_false
+set	side_effect	66616c7365
+expected
+error	WRITE side_effect must be true
+case	write	atomicity_BEST_EFFORT
+set	atomicity	424553545f4546464f5254
+expected
+error	WRITE atomicity must be one of: ATOMIC
+case	write	atomicity_atomic
+set	atomicity	61746f6d6963
+expected
+error	WRITE atomicity must be one of: ATOMIC
+case	write	idempotency_~
+set	idempotency	7e
+expected
+error	WRITE idempotency semantics must be declared
+case	write	commit_~
+set	commit	7e
+expected
+error	WRITE commit semantics must be declared
+case	write	approval_required_false
+set	approval_required	66616c7365
+expected
+error	WRITE approval.required must be true
+case	write	preconditions_supported_false
+set	preconditions_supported	66616c7365
+expected
+error	WRITE preconditions.supported must be true
+case	write	side_effect_first
+set	side_effect	66616c7365
+set	atomicity	4e4f
+expected
+error	WRITE side_effect must be true
+case	catalog	exact
+expected
+lookup	544f4f4c2e4645544348	312e302e30	52454144
+case	catalog	later_exact
+set	version	322e302e31
+expected
+lookup	544f4f4c2e4645544348	322e302e31	52454144
+case	catalog	no_compatible_fallback
+set	version	312e302e31
+expected
+catalog_error	IncompatibleToolVersionError
+case	catalog	unknown_case
+set	tool_id	746f6f6c2e6665746368
+expected
+catalog_error	UnknownToolContractError
+case	catalog	missing_exact_version
+set	version	322e302e30
+set	method	676574
+expected
+catalog_error	KeyError
+case	catalog	missing_exact_id
+set	tool_id	4d495353494e47
+set	method	676574
+expected
+catalog_error	KeyError
+case	catalog	get_exact
+set	method	676574
+expected
+lookup	544f4f4c2e4645544348	312e302e30	52454144
+case	catalog	unregistered_capability
+set	tool_id	544f4f4c2e4f54484552
+expected
+lookup	544f4f4c2e4f54484552	312e302e30	4c65676163792e52656164
+case	catalog	empty
+set	layout	656d707479
+expected
+catalog_error	UnknownToolContractError
+case	catalog	duplicate
+set	layout	6475706c6963617465
+expected
+catalog_error	DuplicateToolContractError
+case	catalog	blank_identity
+set	layout	656d7074795f6964
+set	tool_id	-
+expected
+lookup	-	312e302e30	52454144

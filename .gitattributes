@@ -12,3 +12,4 @@ rust/crates/nsl-source/tests/fixtures/source-oracle.tsv text eol=lf
 rust/crates/nsl-source/tests/fixtures/lexer-oracle.tsv text eol=lf
 rust/crates/nsl-source/tests/fixtures/parser-oracle.tsv text eol=lf
 rust/crates/nsl-compiler/tests/fixtures/include-oracle.tsv text eol=lf
+rust/crates/nsl-contract/tests/fixtures/contract-model-oracle.tsv text eol=lf
