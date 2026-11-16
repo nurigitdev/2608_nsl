@@ -96,6 +96,12 @@ version = "0.2.1"
 [[package]]
 name = "nsl-compiler"
 version = "0.2.1"
+dependencies = [
+ "nsl-core",
+ "nsl-ir",
+ "nsl-source",
+ "sha2",
+]
 
 [[package]]
 name = "nsl-contract"
