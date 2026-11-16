@@ -50,6 +50,15 @@ Cargo.lock SHA-256
 d63414cd359436c1992d238f3946fe584cd057dbb55f57f444588356171b15d1
 ```
 
+## R3-S01 workspace dependency
+
+`nsl-ir` uses the existing `nsl-core` workspace member for its typed values and metadata. The resolved graph adds the permitted internal edge `nsl-ir → nsl-core`, with the same external packages, versions, and features as R2-S03.
+
+```text
+Cargo.lock SHA-256
+8d1716d47e289ee0ea3243bcf2feafc0f0b6df8b393509075c8b45fcfe5e3641
+```
+
 ## Architecture dependency guard
 
 From `rust/`, run `python tools/check_architecture.py` with Python 3.12 and the pinned Rust toolchain. The guard reads Cargo's locked, all-feature graph for all target platforms. It follows dependencies by resolved package ID, including build and development edges, so renaming a crate or depending on it indirectly still exposes the dependency chain.

@@ -57,6 +57,9 @@ version = "0.2.1"
 [[package]]
 name = "nsl-ir"
 version = "0.2.1"
+dependencies = [
+ "nsl-core",
+]
 
 [[package]]
 name = "nsl-package"
