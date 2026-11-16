@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+mod schema;
+
 use nsl_core::{Integer, Money, TypeKind, TypeRef, Value, ValueData};
 use nsl_ir::{
     ApprovalPolicy, ApprovalStatement, BuildMetadata, BuildSource, ContextSpec, Expression,
