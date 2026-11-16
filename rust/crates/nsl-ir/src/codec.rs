@@ -1,8 +1,11 @@
 mod decode;
 mod encode;
+mod hash;
 mod json;
 
 use std::fmt;
+
+pub use hash::{artifact_sha256, source_manifest_sha256};
 
 use nsl_core::{DecimalError, TypeError};
 
@@ -33,6 +36,8 @@ pub enum NsoCodecError {
     Type(TypeError),
     IntegerTooWide,
     InconsistentSourceBundle,
+    SourceManifestMismatch,
+    SemanticHashMismatch,
     InvalidModelField(&'static str),
 }
 
@@ -50,6 +55,10 @@ impl fmt::Display for NsoCodecError {
             Self::InconsistentSourceBundle => {
                 formatter.write_str("source bundle digest differs between hashes and build")
             }
+            Self::SourceManifestMismatch => {
+                formatter.write_str("source bundle manifest hash mismatch")
+            }
+            Self::SemanticHashMismatch => formatter.write_str("semantic hash mismatch"),
             Self::InvalidModelField(field) => write!(formatter, "invalid NSO model field {field}"),
         }
     }
@@ -66,8 +75,7 @@ impl std::error::Error for NsoCodecError {
     }
 }
 
-/// Canonical JSON codec for structured IR 1.0 and 1.1. Hash verification is
-/// separate from JSON and schema validation.
+/// Canonical JSON and integrity checks for IR 1.0 and 1.1.
 pub struct NsoCodec;
 
 impl NsoCodec {
@@ -79,11 +87,16 @@ impl NsoCodec {
     }
 
     /// Read UTF-8 JSON under the caller's bounds and construct the typed NSO.
-    /// The returned model still requires integrity verification before admission.
+    /// Source bundle and semantic digests are verified before returning the model.
     pub fn decode(bytes: &[u8], limits: NsoLimits) -> Result<SkillObject> {
         let document = json::parse(bytes, limits)?;
         validate_nso_document(&document).map_err(NsoCodecError::Validation)?;
-        decode::skill(&document)
+        let model = decode::skill(&document)?;
+        let budget = encode::DecimalBudget::Total(limits.max_bytes);
+        if hash::semantic_sha256(&model, budget)? != model.semantic_hash {
+            return Err(NsoCodecError::SemanticHashMismatch);
+        }
+        Ok(model)
     }
 }
 

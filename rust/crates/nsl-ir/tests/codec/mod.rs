@@ -1,4 +1,6 @@
-use nsl_core::{DecimalError, TypeError, TypeKind};
+use std::error::Error;
+
+use nsl_core::{DataClassification, DecimalError, TypeError, TypeKind};
 use nsl_ir::{
     ExpressionKind, LiteralValue, NsoCodec, NsoCodecError, NsoLimit, NsoLimits, NsoValidationError,
     StatementKind,
@@ -6,12 +8,12 @@ use nsl_ir::{
 
 use super::{ir_1_0, ir_1_1, literal_cases, ty};
 
-const READ: &[u8] =
+pub(super) const READ: &[u8] =
     include_bytes!("../../../../../compatibility/v0_2_1/nso/ir-1-0-canonical/expected.nso");
-const WRITE: &[u8] =
+pub(super) const WRITE: &[u8] =
     include_bytes!("../../../../../compatibility/v0_2_1/nso/ir-1-1-canonical/expected.nso");
-const SCALARS: &[u8] = include_bytes!("../fixtures/canonical-scalars.nso");
-const LIMITS: NsoLimits = NsoLimits {
+pub(super) const SCALARS: &[u8] = include_bytes!("../fixtures/canonical-scalars.nso");
+pub(super) const LIMITS: NsoLimits = NsoLimits {
     max_bytes: 24_000,
     max_depth: 64,
     max_nodes: 2_000,
@@ -244,12 +246,17 @@ fn decoder_rejects_inconsistent_source_bundle_fields() {
         NsoCodec::decode(&changed, LIMITS),
         Err(NsoCodecError::InconsistentSourceBundle)
     );
+    assert_eq!(
+        NsoCodec::decode(&changed, LIMITS).unwrap_err().to_string(),
+        "source bundle digest differs between hashes and build",
+    );
 }
 
 #[test]
 fn json_integer_boundary_matches_the_frozen_cpython_default() {
     let mut model = ir_1_0();
     model.limits.tool_calls = "9".repeat(4300).parse().unwrap();
+    model.semantic_hash = model.compute_semantic_sha256(1024).unwrap();
     let at_limit = NsoCodec::encode(&model, 1024).unwrap();
     assert_eq!(NsoCodec::decode(&at_limit, LIMITS).unwrap(), model);
     let too_wide = std::str::from_utf8(&at_limit)
@@ -264,4 +271,82 @@ fn json_integer_boundary_matches_the_frozen_cpython_default() {
         NsoCodec::encode(&model, 1024),
         Err(NsoCodecError::IntegerTooWide)
     );
+    assert_eq!(
+        NsoCodecError::IntegerTooWide.to_string(),
+        "NSO integer exceeds 4300 digits"
+    );
+}
+
+#[test]
+fn codec_diagnostics_keep_stable_causes_without_echoing_the_input() {
+    let error = NsoCodec::decode(br#"{"not-for-logs":"#, LIMITS).unwrap_err();
+    assert!(error.to_string().starts_with("invalid NSO JSON at byte "));
+    assert!(!error.to_string().contains("not-for-logs"));
+    assert!(error.source().is_none());
+    assert_eq!(
+        NsoCodec::decode(
+            b"{}",
+            NsoLimits {
+                max_bytes: 1,
+                ..LIMITS
+            }
+        )
+        .unwrap_err()
+        .to_string(),
+        "NSO exceeds the Bytes limit"
+    );
+
+    let error = NsoCodec::decode(br#"{"password":"fixture-input"}"#, LIMITS).unwrap_err();
+    assert_eq!(error.to_string(), "credential material is forbidden");
+    assert_eq!(
+        error.source().unwrap().source().unwrap().to_string(),
+        error.to_string()
+    );
+    let error = NsoCodec::decode(b"{}", LIMITS).unwrap_err();
+    assert_eq!(
+        error.source().unwrap().source().unwrap().to_string(),
+        error.to_string()
+    );
+
+    let error = NsoCodecError::Type(TypeError::InternalOptional);
+    assert_eq!(error.source().unwrap().to_string(), error.to_string());
+    let error = NsoCodecError::Decimal(DecimalError::EncodingLimit);
+    assert_eq!(error.source().unwrap().to_string(), error.to_string());
+    assert_eq!(
+        "undeclared"
+            .parse::<DataClassification>()
+            .unwrap_err()
+            .to_string(),
+        "unknown DataClassification value"
+    );
+    assert_eq!(
+        "0.9".parse::<nsl_ir::IrVersion>().unwrap_err().to_string(),
+        "unsupported NSO IR version"
+    );
+}
+
+#[test]
+fn near_miss_credential_markers_can_be_hashed_as_ordinary_nso_text() {
+    let mut model = ir_1_0();
+    model.skill_id = "eyJdemoé.stub.signature -----BEGIN RSA".into();
+    model.semantic_hash = model.compute_semantic_sha256(1024).unwrap();
+    let bytes = NsoCodec::encode(&model, 1024).unwrap();
+    assert_eq!(NsoCodec::decode(&bytes, LIMITS).unwrap(), model);
+}
+
+#[test]
+fn semantic_hash_rejects_internal_type_refs_in_each_spec() {
+    let optional = ty(TypeKind::Optional(Box::new(ty(TypeKind::Primitive(
+        "Int".into(),
+    )))));
+    let mut model = ir_1_0();
+    let original = std::mem::replace(&mut model.symbols[0].type_info, optional.clone());
+    let expected = Err(NsoCodecError::Type(TypeError::InternalOptional));
+    assert_eq!(model.compute_semantic_sha256(1024), expected);
+    model.symbols[0].type_info = original;
+    let original = std::mem::replace(&mut model.inputs[0].type_info, optional.clone());
+    assert_eq!(model.compute_semantic_sha256(1024), expected);
+    model.inputs[0].type_info = original;
+    model.contexts[0].type_info = optional;
+    assert_eq!(model.compute_semantic_sha256(1024), expected);
 }

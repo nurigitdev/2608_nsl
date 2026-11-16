@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
-use nsl_core::{Integer, Value, ValueData};
+use nsl_core::{Integer, NslDecimal, ValueData};
 
 use crate::{
-    Expression, ExpressionKind, LiteralValue, NamedExpression, SkillObject, Statement,
+    BuildSource, Expression, ExpressionKind, LiteralValue, NamedExpression, SkillObject, Statement,
     StatementKind,
 };
 
@@ -31,43 +31,62 @@ macro_rules! object {
     };
 }
 
-pub(super) fn literal(value: &LiteralValue, max_decimal_bytes: usize) -> Result<ValueData> {
-    let value = match value {
-        LiteralValue::Bool(value) => Value::Bool(*value),
-        LiteralValue::Int(value) => Value::Int(value.clone()),
-        LiteralValue::String(value) => Value::String(value.clone()),
-        LiteralValue::Decimal(value) => Value::Decimal(value.clone()),
-        LiteralValue::Money(value) => Value::Money(value.clone()),
-    };
-    value
-        .to_data(max_decimal_bytes)
-        .map_err(NsoCodecError::Decimal)
+pub(super) enum DecimalBudget {
+    PerToken(usize),
+    Total(usize),
 }
 
-fn named(values: &[NamedExpression], max_decimal_bytes: usize) -> Result<ValueData> {
+impl DecimalBudget {
+    fn fixed_point(&mut self, value: &NslDecimal) -> Result<ValueData> {
+        let limit = match *self {
+            Self::PerToken(limit) | Self::Total(limit) => limit,
+        };
+        let text = value
+            .to_fixed_point(limit)
+            .map_err(NsoCodecError::Decimal)?;
+        if let Self::Total(remaining) = self {
+            *remaining -= text.len();
+        }
+        Ok(ValueData::String(text))
+    }
+}
+
+fn literal(value: &LiteralValue, budget: &mut DecimalBudget) -> Result<ValueData> {
+    Ok(match value {
+        LiteralValue::Bool(value) => ValueData::Bool(*value),
+        LiteralValue::Int(value) => number(value),
+        LiteralValue::String(value) => text(value),
+        LiteralValue::Decimal(value) => ValueData::Object(object!(
+            "$type" => text("Decimal"), "value" => budget.fixed_point(value)?,
+        )),
+        LiteralValue::Money(value) => ValueData::Object(object!(
+            "$type" => text("Money"), "amount" => budget.fixed_point(value.amount())?,
+            "currency" => text(value.currency().as_str()),
+        )),
+    })
+}
+
+fn named(values: &[NamedExpression], budget: &mut DecimalBudget) -> Result<ValueData> {
     array(values, |item| {
         Ok(ValueData::Object(object!(
-            "name" => text(&item.name), "value" => expression(&item.value, max_decimal_bytes)?,
+            "name" => text(&item.name), "value" => expression(&item.value, budget)?,
         )))
     })
 }
 
-pub(super) fn expression(node: &Expression, max_decimal_bytes: usize) -> Result<ValueData> {
+fn expression(node: &Expression, budget: &mut DecimalBudget) -> Result<ValueData> {
     let (kind, mut fields) = match &node.kind {
-        ExpressionKind::Literal(value) => (
-            "literal",
-            object!("value" => literal(value, max_decimal_bytes)?),
-        ),
+        ExpressionKind::Literal(value) => ("literal", object!("value" => literal(value, budget)?)),
         ExpressionKind::SymbolRef { symbol_id } => {
             ("symbol_ref", object!("symbol_id" => text(symbol_id)))
         }
         ExpressionKind::Field { source, field } => (
             "field",
-            object!("source" => expression(source, max_decimal_bytes)?, "field" => text(field)),
+            object!("source" => expression(source, budget)?, "field" => text(field)),
         ),
         ExpressionKind::Projection { source, field } => (
             "project",
-            object!("source" => expression(source, max_decimal_bytes)?, "field" => text(field)),
+            object!("source" => expression(source, budget)?, "field" => text(field)),
         ),
         ExpressionKind::Call {
             function,
@@ -75,7 +94,7 @@ pub(super) fn expression(node: &Expression, max_decimal_bytes: usize) -> Result<
         } => (
             "call",
             object!(
-                "function" => text(function), "arguments" => array(arguments, |node| expression(node, max_decimal_bytes))?,
+                "function" => text(function), "arguments" => array(arguments, |node| expression(node, budget))?,
             ),
         ),
         ExpressionKind::Binary {
@@ -85,7 +104,7 @@ pub(super) fn expression(node: &Expression, max_decimal_bytes: usize) -> Result<
         } => (
             "binary",
             object!(
-                "operator" => text(operator), "left" => expression(left, max_decimal_bytes)?, "right" => expression(right, max_decimal_bytes)?,
+                "operator" => text(operator), "left" => expression(left, budget)?, "right" => expression(right, budget)?,
             ),
         ),
         ExpressionKind::Read {
@@ -95,7 +114,7 @@ pub(super) fn expression(node: &Expression, max_decimal_bytes: usize) -> Result<
         } => (
             "read",
             object!(
-                "tool_ref" => text(tool_ref), "arguments" => named(arguments, max_decimal_bytes)?,
+                "tool_ref" => text(tool_ref), "arguments" => named(arguments, budget)?,
                 "result_policy" => ValueData::Object(object!(
                     "required" => ValueData::Bool(result_policy.required),
                     "accept_partial" => ValueData::Bool(result_policy.accept_partial),
@@ -106,7 +125,7 @@ pub(super) fn expression(node: &Expression, max_decimal_bytes: usize) -> Result<
         ExpressionKind::Write(write) => (
             "write",
             object!(
-                "tool_ref" => text(&write.tool_ref), "arguments" => named(&write.arguments, max_decimal_bytes)?,
+                "tool_ref" => text(&write.tool_ref), "arguments" => named(&write.arguments, budget)?,
                 "approval_ref" => text(&write.approval_ref),
             ),
         ),
@@ -115,7 +134,7 @@ pub(super) fn expression(node: &Expression, max_decimal_bytes: usize) -> Result<
     Ok(ValueData::Object(fields))
 }
 
-pub(super) fn statement(node: &Statement, max_decimal_bytes: usize) -> Result<ValueData> {
+fn statement(node: &Statement, budget: &mut DecimalBudget) -> Result<ValueData> {
     let (kind, mut fields) = match &node.kind {
         StatementKind::Let {
             target_symbol_id,
@@ -123,7 +142,7 @@ pub(super) fn statement(node: &Statement, max_decimal_bytes: usize) -> Result<Va
         } => (
             "let",
             object!(
-                "target_symbol_id" => text(target_symbol_id), "value" => expression(value, max_decimal_bytes)?,
+                "target_symbol_id" => text(target_symbol_id), "value" => expression(value, budget)?,
             ),
         ),
         StatementKind::Foreach {
@@ -134,8 +153,8 @@ pub(super) fn statement(node: &Statement, max_decimal_bytes: usize) -> Result<Va
         } => (
             "foreach",
             object!(
-                "iterator_symbol_id" => text(iterator_symbol_id), "collection" => expression(collection, max_decimal_bytes)?,
-                "max_iterations" => number(max_iterations), "body" => array(body, |node| statement(node, max_decimal_bytes))?,
+                "iterator_symbol_id" => text(iterator_symbol_id), "collection" => expression(collection, budget)?,
+                "max_iterations" => number(max_iterations), "body" => array(body, |node| statement(node, budget))?,
             ),
         ),
         StatementKind::Check {
@@ -148,17 +167,14 @@ pub(super) fn statement(node: &Statement, max_decimal_bytes: usize) -> Result<Va
         } => (
             "check",
             object!(
-                "check_id" => text(check_id), "condition" => expression(condition, max_decimal_bytes)?, "severity" => text(severity),
+                "check_id" => text(check_id), "condition" => expression(condition, budget)?, "severity" => text(severity),
                 "on_fail" => text(on_fail), "message" => text(message), "result_symbol_id" => text(result_symbol_id),
                 "data_policy" => ValueData::Object(object!(
                     "require_complete" => ValueData::Bool(true), "on_partial" => text("UNKNOWN"), "on_unknown" => text("UNKNOWN"),
                 )),
             ),
         ),
-        StatementKind::Emit { fields } => (
-            "emit",
-            object!("fields" => named(fields, max_decimal_bytes)?),
-        ),
+        StatementKind::Emit { fields } => ("emit", object!("fields" => named(fields, budget)?)),
         StatementKind::Approval(approval) => {
             let mut policy = object!("required" => ValueData::Bool(true));
             if let Some(ttl) = &approval.policy.ttl_seconds {
@@ -176,7 +192,39 @@ pub(super) fn statement(node: &Statement, max_decimal_bytes: usize) -> Result<Va
 }
 
 pub(super) fn project(skill: &SkillObject, max_decimal_bytes: usize) -> Result<ValueData> {
-    Ok(ValueData::Object(object!(
+    let mut fields = semantic_fields(skill, &mut DecimalBudget::PerToken(max_decimal_bytes))?;
+    let source_hash = skill.build.source_bundle_sha256.as_str();
+    fields.extend(object!(
+        "hashes" => ValueData::Object(object!("semantic_sha256" => text(skill.semantic_hash.as_str()),
+            "source_bundle_sha256" => text(source_hash))),
+        "build" => ValueData::Object(object!("root_source" => text(&skill.build.root_source),
+            "source_bundle_sha256" => text(source_hash),
+            "sources" => source_manifest(&skill.build.sources))),
+    ));
+    Ok(ValueData::Object(fields))
+}
+
+pub(super) fn source_manifest(sources: &[BuildSource]) -> ValueData {
+    ValueData::Array(sources.iter().map(|source| {
+        ValueData::Object(object!(
+            "logical_path" => text(&source.logical_path), "sha256" => text(source.content_hash.as_str()),
+            "size_bytes" => number(&source.size_bytes), "is_root" => ValueData::Bool(source.is_root),
+        ))
+    }).collect())
+}
+
+pub(super) fn semantic_document(
+    skill: &SkillObject,
+    mut budget: DecimalBudget,
+) -> Result<ValueData> {
+    semantic_fields(skill, &mut budget).map(ValueData::Object)
+}
+
+fn semantic_fields(
+    skill: &SkillObject,
+    budget: &mut DecimalBudget,
+) -> Result<BTreeMap<String, ValueData>> {
+    Ok(object!(
         "format" => text("NSO"), "ir_version" => text(skill.ir_version.as_str()),
         "language" => ValueData::Object(object!("name" => text("NSL"), "version" => text(&skill.language_version))),
         "skill" => ValueData::Object(object!("id" => text(&skill.skill_id), "version" => text(&skill.skill_version), "risk" => text(&skill.risk))),
@@ -210,18 +258,9 @@ pub(super) fn project(skill: &SkillObject, max_decimal_bytes: usize) -> Result<V
         "output" => array(&skill.outputs, |s| Ok(ValueData::Object(object!(
             "name" => text(&s.name), "type" => s.type_info.to_data().map_err(NsoCodecError::Type)?, "classification" => text(s.classification.as_str()),
         ))))?,
-        "body" => array(&skill.body, |node| statement(node, max_decimal_bytes))?,
+        "body" => array(&skill.body, |node| statement(node, budget))?,
         "analysis" => ValueData::Object(object!("max_tool_calls" => number(&skill.analysis.max_tool_calls),
             "max_loop_iterations" => number(&skill.analysis.max_loop_iterations), "max_emit_records" => number(&skill.analysis.max_emit_records),
             "bounded" => ValueData::Bool(skill.analysis.bounded))),
-        "hashes" => ValueData::Object(object!("semantic_sha256" => text(skill.semantic_hash.as_str()),
-            "source_bundle_sha256" => text(skill.build.source_bundle_sha256.as_str()))),
-        "build" => ValueData::Object(object!("root_source" => text(&skill.build.root_source),
-            "source_bundle_sha256" => text(skill.build.source_bundle_sha256.as_str()),
-            "sources" => array(&skill.build.sources, |s| Ok(ValueData::Object(object!(
-                "logical_path" => text(&s.logical_path), "sha256" => text(s.content_hash.as_str()),
-                "size_bytes" => number(&s.size_bytes), "is_root" => ValueData::Bool(s.is_root),
-            ))))?,
-        )),
-    )))
+    ))
 }

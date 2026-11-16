@@ -97,6 +97,21 @@ pub(super) fn skill(document: &ValueData) -> Result<SkillObject> {
     if source_bundle_sha256 != hashes.get("source_bundle_sha256")?.parse::<PayloadHash>()? {
         return Err(NsoCodecError::InconsistentSourceBundle);
     }
+    let build = BuildMetadata {
+        source_bundle_sha256,
+        root_source: build.get("root_source")?.string()?,
+        sources: build.get("sources")?.list(|item| {
+            Ok(BuildSource {
+                logical_path: item.get("logical_path")?.string()?,
+                content_hash: item.get("sha256")?.parse()?,
+                size_bytes: item.get("size_bytes")?.integer()?,
+                is_root: item.get("is_root")?.boolean()?,
+            })
+        })?,
+    };
+    if build.compute_source_bundle_sha256()? != build.source_bundle_sha256 {
+        return Err(NsoCodecError::SourceManifestMismatch);
+    }
     let limits = root.get("limits")?;
     let analysis = root.get("analysis")?;
     Ok(SkillObject {
@@ -161,18 +176,7 @@ pub(super) fn skill(document: &ValueData) -> Result<SkillObject> {
             max_emit_records: analysis.get("max_emit_records")?.integer()?,
             bounded: analysis.get("bounded")?.boolean()?,
         },
-        build: BuildMetadata {
-            source_bundle_sha256,
-            root_source: build.get("root_source")?.string()?,
-            sources: build.get("sources")?.list(|item| {
-                Ok(BuildSource {
-                    logical_path: item.get("logical_path")?.string()?,
-                    content_hash: item.get("sha256")?.parse()?,
-                    size_bytes: item.get("size_bytes")?.integer()?,
-                    is_root: item.get("is_root")?.boolean()?,
-                })
-            })?,
-        },
+        build,
     })
 }
 
@@ -309,4 +313,102 @@ fn statement(node: Field<'_>) -> Result<Statement> {
         node_id: node.get("node_id")?.string()?,
         kind,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Field, expression, literal, statement};
+    use crate::NsoCodecError;
+    use nsl_core::ValueData;
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn conversion_defensively_rejects_invalid_internal_fields() {
+        let wrong = ValueData::String("fixture input".into());
+        let field = Field {
+            value: &wrong,
+            name: "test",
+        };
+        assert_eq!(field.object(), Err(field.error()));
+        assert!(matches!(
+            field.boolean(),
+            Err(NsoCodecError::InvalidModelField("test"))
+        ));
+        assert_eq!(field.integer(), Err(field.error()));
+        assert!(matches!(
+            field.items(),
+            Err(NsoCodecError::InvalidModelField("test"))
+        ));
+        assert_eq!(field.error().to_string(), "invalid NSO model field test");
+
+        let wrong = ValueData::Null;
+        let field = Field {
+            value: &wrong,
+            name: "test",
+        };
+        assert_eq!(field.text(), Err(field.error()));
+        let wrong = ValueData::Object(BTreeMap::from([
+            ("kind".into(), "future".into()),
+            ("$type".into(), "FutureLiteral".into()),
+        ]));
+        let node = Field {
+            value: &wrong,
+            name: "value",
+        };
+        assert_eq!(
+            expression(node),
+            Err(NsoCodecError::InvalidModelField("kind"))
+        );
+        assert_eq!(
+            statement(node),
+            Err(NsoCodecError::InvalidModelField("kind"))
+        );
+        assert_eq!(
+            literal(node),
+            Err(NsoCodecError::InvalidModelField("value"))
+        );
+    }
+
+    #[test]
+    fn corrupt_fields_cannot_enter_a_typed_semantic_hash() {
+        use super::super::json::parse;
+        use super::skill;
+        use crate::NsoLimits;
+
+        let bytes =
+            include_bytes!("../../../../../compatibility/v0_2_1/nso/ir-1-0-canonical/expected.nso");
+        for invalid in [ValueData::Null, ValueData::Array(vec![ValueData::Null])] {
+            let limits = NsoLimits {
+                max_bytes: bytes.len(),
+                max_depth: 14,
+                max_nodes: 620,
+            };
+            let mut document = parse(bytes, limits).unwrap();
+            let ValueData::Object(fields) = &mut document else {
+                panic!("expected an NSO document");
+            };
+            fields.insert("features".into(), invalid);
+            assert_eq!(
+                skill(&document),
+                Err(NsoCodecError::InvalidModelField("features"))
+            );
+        }
+        let approval = ValueData::Object(BTreeMap::from([
+            ("kind".into(), "approval".into()),
+            ("approval_id".into(), "fixture".into()),
+            ("message".into(), "".into()),
+            (
+                "policy".into(),
+                ValueData::Object(BTreeMap::from([("ttl_seconds".into(), ValueData::Null)])),
+            ),
+        ]));
+        let node = Field {
+            value: &approval,
+            name: "body",
+        };
+        assert_eq!(
+            statement(node),
+            Err(NsoCodecError::InvalidModelField("ttl_seconds"))
+        );
+    }
 }

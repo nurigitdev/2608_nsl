@@ -342,3 +342,21 @@ fn write_value(output: &mut String, value: &ValueData) -> Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{canonical, parse};
+    use crate::NsoLimits;
+
+    #[test]
+    fn canonical_json_normalizes_keys_and_integer_zero() {
+        let input = br#"{"z":null,"\u0061":-0}"#;
+        let limits = NsoLimits {
+            max_bytes: input.len(),
+            max_depth: 1,
+            max_nodes: 3,
+        };
+        let data = parse(input, limits).unwrap();
+        assert_eq!(canonical(&data).unwrap(), br#"{"a":0,"z":null}"#);
+    }
+}

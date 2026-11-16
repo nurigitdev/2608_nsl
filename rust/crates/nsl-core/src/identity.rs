@@ -60,6 +60,19 @@ identity_type!(ApprovalRequestId, validate_nonblank);
 identity_type!(IdempotencyKey, validate_idempotency_key);
 identity_type!(PayloadHash, validate_payload_hash);
 
+impl PayloadHash {
+    pub fn from_digest(digest: [u8; 32]) -> Self {
+        const HEX: &[u8; 16] = b"0123456789abcdef";
+        let mut text = String::with_capacity(PAYLOAD_PREFIX.len() + SHA256_LENGTH);
+        text.push_str(PAYLOAD_PREFIX);
+        for byte in digest {
+            text.push(char::from(HEX[usize::from(byte >> 4)]));
+            text.push(char::from(HEX[usize::from(byte & 15)]));
+        }
+        Self(text)
+    }
+}
+
 fn validate_nonblank(value: &str) -> Result<(), IdentityError> {
     // Python str.strip() also treats U+001C through U+001F as whitespace.
     let whitespace =

@@ -326,3 +326,115 @@ fn invalid_type_shapes_and_numeric_text_are_rejected() {
         );
     }
 }
+
+#[test]
+fn type_documents_distinguish_empty_metadata_and_malformed_members() {
+    let data = |items: &[(&str, ValueData)]| {
+        ValueData::Object(
+            items
+                .iter()
+                .cloned()
+                .map(|(name, v)| (name.into(), v))
+                .collect(),
+        )
+    };
+    for (kind, collection) in [("record", "fields"), ("enum", "values")] {
+        let valid = data(&[
+            ("kind", kind.into()),
+            ("name", "Empty".into()),
+            (collection, ValueData::Array(vec![])),
+        ]);
+        let ty = TypeRef::from_data(&valid).unwrap();
+        assert_eq!(
+            ty.to_data().unwrap(),
+            data(&[("kind", kind.into()), ("name", "Empty".into())])
+        );
+        assert_eq!(
+            TypeRef::from_data(&ty.to_data().unwrap()),
+            Err(TypeError::InvalidData)
+        );
+        assert_eq!(
+            TypeRef::from_data(&data(&[
+                ("kind", kind.into()),
+                ("name", "Empty".into()),
+                (collection, "wrong".into())
+            ])),
+            Err(TypeError::InvalidData),
+        );
+    }
+    for invalid_field in [ValueData::Null, data(&[("name", "a".into())])] {
+        let invalid = data(&[
+            ("kind", "record".into()),
+            ("name", "Bad".into()),
+            ("fields", ValueData::Array(vec![invalid_field])),
+        ]);
+        assert_eq!(TypeRef::from_data(&invalid), Err(TypeError::InvalidData));
+    }
+    let invalid_enum = data(&[
+        ("kind", "enum".into()),
+        ("name", "Bad".into()),
+        ("values", ValueData::Array(vec![ValueData::Null])),
+    ]);
+    assert_eq!(
+        TypeRef::from_data(&invalid_enum),
+        Err(TypeError::InvalidData)
+    );
+    assert_eq!(TypeRef::from_data(&data(&[])), Err(TypeError::InvalidData));
+    assert_eq!(
+        TypeRef::from_data(&data(&[
+            ("kind", "money".into()),
+            ("currency", "krw".into())
+        ])),
+        Err(TypeError::InvalidCurrency),
+    );
+    let ty = TypeRef::new(TypeKind::Record {
+        name: "Internal".into(),
+        fields: vec![(
+            "present".into(),
+            TypeRef::new(TypeKind::Optional(Box::new(primitive("Int")))).unwrap(),
+        )],
+    })
+    .unwrap();
+    assert_eq!(ty.to_data(), Err(TypeError::InternalOptional));
+    assert!(!ty.accepts(&Value::Null));
+    assert!(primitive("Int").field("present").is_none());
+    assert_eq!(
+        TypeRef::new(TypeKind::Enum {
+            name: String::new(),
+            values: vec!["READY".into()]
+        }),
+        Err(TypeError::EmptyTypeName),
+    );
+}
+
+#[test]
+fn type_and_value_errors_have_stable_diagnostics() {
+    for (error, message) in [
+        (TypeError::EmptyTypeName, "type name must not be empty"),
+        (
+            TypeError::EmptyFieldName,
+            "record field name must not be empty",
+        ),
+        (TypeError::EmptyEnumValue, "enum value must not be empty"),
+        (
+            TypeError::InternalOptional,
+            "optional is an internal type and has no NSO or Tool Contract representation",
+        ),
+        (TypeError::InvalidData, "invalid type document fields"),
+        (TypeError::UnknownKind, "unknown type document kind"),
+        (
+            TypeError::InvalidCurrency,
+            "expected a 3-letter uppercase ASCII currency code",
+        ),
+    ] {
+        assert_eq!(error.to_string(), message);
+    }
+    assert_eq!(
+        ValueError::InvalidInteger.to_string(),
+        "expected a canonical base-10 integer"
+    );
+    assert_eq!(
+        ValueError::InvalidCurrency.to_string(),
+        "expected a 3-letter uppercase ASCII currency code"
+    );
+}

@@ -4,7 +4,7 @@
 
 `IrVersion` parses `1.0` and `1.1`. `RequiredToolKind::ReadV1_0` represents a READ tool with no risk field. `RequiredToolKind::V1_1` carries the tool capability and mandatory risk level. The 1.1 approval and WRITE nodes preserve result types, ordered arguments, and the static approval reference. Approval is required by definition and its TTL is optional. Exact Core integers preserve Oracle values before the execution boundary applies host-specific limits. Open text fields such as the CHECK severity and binary operator retain the strings accepted by the Oracle IR schema.
 
-The model carries supplied digests. `R3-S04` owns hash calculation. The test harness projects model fixtures into structured data for comparison.
+The model carries the declared source bundle and semantic digests. The test harness projects model fixtures into structured data for comparison.
 
 | Rust SRS | R3-S01 evidence |
 | --- | --- |
@@ -44,7 +44,7 @@ cmp "$oracle_dir/schema_cases.rs" rust/crates/nsl-ir/tests/fixtures/schema_cases
 
 ## R3-S03 canonical JSON codec
 
-`NsoCodec::decode(bytes, NsoLimits { max_bytes, max_depth, max_nodes })` checks the caller's inclusive limits while reading the input. The root is depth zero and counts as one node. Every JSON value counts as a node, including containers. Keys are strings within their parent object. Duplicate keys are rejected after escape decoding. The decoder constructs a typed `SkillObject` after credential and schema checks. It checks that the two supplied source bundle digest fields agree. Verify the actual digests before treating the model as admitted. Digest recomputation is `R3-S04`.
+`NsoCodec::decode(bytes, NsoLimits { max_bytes, max_depth, max_nodes })` checks the caller's inclusive limits while reading the input. The root is depth zero and counts as one node. Every JSON value counts as a node, including containers. Keys are strings within their parent object. Duplicate keys are rejected after escape decoding. The decoder runs credential, schema, and digest checks before returning a typed `SkillObject`.
 
 `NsoCodec::encode(&skill, max_decimal_bytes)` validates the projected object and writes UTF-8 JSON with scalar-ordered keys, no extra whitespace, and the Oracle's escaping. List order is preserved. Decimal and Money use the Core fixed-point encoder and its caller-supplied budget per numeric string. JSON integer tokens keep their exact base-10 digits, with the frozen CPython 3.12 default of 4,300 digits in either direction. Noncanonical whitespace and valid string escapes are accepted on input and normalized by the encoder.
 
@@ -58,4 +58,28 @@ Regenerate the scalar fixture using the same Oracle export as above.
 ```bash
 .venv/bin/python -I -B rust/crates/nsl-ir/tests/fixtures/generate_codec.py "$oracle_dir" compatibility/v0_2_1/nso > "$oracle_dir/canonical-scalars.nso"
 cmp "$oracle_dir/canonical-scalars.nso" rust/crates/nsl-ir/tests/fixtures/canonical-scalars.nso
+```
+
+## R3-S04 hash identities
+
+| Identity | SHA-256 input |
+| --- | --- |
+| Source manifest and source bundle | The canonical JSON array of manifest entries in their supplied order. Each entry carries `logical_path`, `sha256`, `size_bytes`, and `is_root`. |
+| Semantic | The canonical JSON projection of the typed IR with `build` and `hashes` omitted. |
+| Artifact | The complete canonical NSO bytes emitted by `NsoCodec::encode`, including `build` and `hashes`. |
+
+These inputs use the unprefixed Oracle SHA-256 domains. `sha256:` prefixes the returned digest text. `artifact_sha256` hashes the exact byte slice it receives. Pass the complete output of the encoder for canonical artifact identity. Producers compute and assign the source bundle and semantic digests before encoding.
+
+The decoder compares the two declared source bundle digests, recomputes the manifest digest, and recomputes the semantic digest from the typed IR. It uses the decode byte budget as the aggregate limit for expanded Decimal and Money strings during semantic hashing. This bounds expansion even when multiple short exponent tokens occur in the input.
+
+| Rust SRS | R3-S04 evidence |
+| --- | --- |
+| `NSL-RUST-IR-010`, `011`, `012`, `015` | [`hash` tests](tests/hash/mod.rs) compare all four identities with the frozen Oracle for IR 1.0 and 1.1. They check manifest ordering, UTF-8 paths, build-only changes, and approval TTL. |
+| `NSL-RUST-IR-014`, `NSL-RUST-SEC-011` | The tests distinguish conflicting declarations, altered manifests, and semantic mismatches. Exponent expansion is checked against the caller's byte budget. |
+
+Regenerate the digest fixture using the same Oracle export as above.
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-ir/tests/fixtures/generate_hashes.py "$oracle_dir" compatibility/v0_2_1/nso > "$oracle_dir/hash-oracle.tsv"
+cmp "$oracle_dir/hash-oracle.tsv" rust/crates/nsl-ir/tests/fixtures/hash-oracle.tsv
 ```

@@ -59,6 +59,12 @@ fn payload_hash_requires_lowercase_ascii_hexadecimal() {
     let hash = input.parse::<PayloadHash>().unwrap();
     assert_eq!(hash.as_str(), input);
     assert_eq!(hash.to_string(), input);
+    let digest = [
+        0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd,
+        0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab,
+        0xcd, 0xef,
+    ];
+    assert_eq!(PayloadHash::from_digest(digest), hash);
     for input in [
         String::new(),
         "sha256:".to_owned(),
@@ -74,5 +80,25 @@ fn payload_hash_requires_lowercase_ascii_hexadecimal() {
             input.parse::<PayloadHash>(),
             Err(IdentityError::InvalidPayloadHash)
         );
+    }
+}
+
+#[test]
+fn identity_errors_omit_the_rejected_value() {
+    for (error, text) in [
+        (
+            " ".parse::<BusinessOperationId>().unwrap_err(),
+            "identifier must contain a non-whitespace character",
+        ),
+        (
+            "bad-key".parse::<IdempotencyKey>().unwrap_err(),
+            "idempotency key must start with idem:sha256: and contain a 64-character suffix",
+        ),
+        (
+            "bad-digest".parse::<PayloadHash>().unwrap_err(),
+            "payload hash must start with sha256: and contain 64 lowercase hexadecimal digits",
+        ),
+    ] {
+        assert_eq!(error.to_string(), text);
     }
 }

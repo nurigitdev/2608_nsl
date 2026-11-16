@@ -122,3 +122,38 @@ fn schema_error_does_not_echo_caller_controlled_fields() {
         "invalid NSO schema at $: unexpected fields"
     );
 }
+
+#[test]
+fn digest_admission_requires_structurally_valid_projection_inputs() {
+    for (edit, path, reason) in [
+        (
+            Edit::Remove("output/0/type/kind"),
+            "$.output[0].type.kind",
+            "missing required field",
+        ),
+        (
+            Edit::Set("limits/tool_calls", ValueData::Number((-1).into())),
+            "$.limits.tool_calls",
+            "must be at least 1",
+        ),
+        (
+            Edit::Set("body/1/body", ValueData::Null),
+            "$.body[1].body",
+            "expected array",
+        ),
+        (
+            Edit::Set("body/1/body/1/value/arguments", ValueData::Null),
+            "$.body[1].body[1].value.arguments",
+            "expected array",
+        ),
+    ] {
+        let mut doc = project(&ir_1_0());
+        apply(&mut doc, edit);
+        let error = validate_nso_document(&doc).unwrap_err();
+        let NsoValidationError::Schema(actual) = error else {
+            panic!("expected a schema error");
+        };
+        assert_eq!(actual.path, path);
+        assert_eq!(actual.reason, reason);
+    }
+}

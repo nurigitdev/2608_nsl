@@ -5,7 +5,9 @@ mod model;
 mod nodes;
 mod schema;
 
-pub use codec::{NsoCodec, NsoCodecError, NsoLimit, NsoLimits};
+pub use codec::{
+    NsoCodec, NsoCodecError, NsoLimit, NsoLimits, artifact_sha256, source_manifest_sha256,
+};
 pub use model::{
     BuildMetadata, BuildSource, ContextSpec, InputSpec, IrVersion, OutputField, RequiredTool,
     RequiredToolKind, ResourceLimits, SkillObject, StaticAnalysis, SymbolSpec,

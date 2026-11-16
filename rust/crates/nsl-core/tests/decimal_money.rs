@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
+use std::error::Error;
 
 use nsl_core::{
     CurrencyCode, DecimalError, Money, MoneyError, NslDecimal, Value, ValueData, ValueError,
@@ -7,6 +8,39 @@ use nsl_core::{
 
 const ORACLE_FIXTURE: &str = include_str!("fixtures/decimal-money.tsv");
 const TOKEN_BUDGET: usize = 1_048_576;
+
+#[test]
+fn decimal_and_money_errors_report_the_reason_without_input_text() {
+    for (error, message) in [
+        (DecimalError::InvalidText, "expected finite decimal text"),
+        (DecimalError::DivisionByZero, "decimal division by zero"),
+        (
+            DecimalError::Overflow,
+            "decimal result exceeds the arithmetic exponent range",
+        ),
+        (
+            DecimalError::EncodingLimit,
+            "decimal fixed-point encoding exceeds the byte budget",
+        ),
+    ] {
+        assert_eq!(error.to_string(), message);
+    }
+    let overflow = money("9E+999999", "KRW")
+        .checked_add(&money("1E+999999", "KRW"))
+        .unwrap_err();
+    assert_eq!(overflow, MoneyError::Decimal(DecimalError::Overflow));
+    assert_eq!(overflow.to_string(), DecimalError::Overflow.to_string());
+    assert_eq!(
+        overflow.source().unwrap().downcast_ref(),
+        Some(&DecimalError::Overflow)
+    );
+
+    let mismatch = money("1", "KRW")
+        .checked_add(&money("1", "USD"))
+        .unwrap_err();
+    assert_eq!(mismatch.to_string(), "money currencies must match");
+    assert!(mismatch.source().is_none());
+}
 
 fn decimal(text: &str) -> NslDecimal {
     text.parse().unwrap()
