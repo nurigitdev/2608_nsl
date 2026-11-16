@@ -59,10 +59,33 @@ Cargo.lock SHA-256
 8d1716d47e289ee0ea3243bcf2feafc0f0b6df8b393509075c8b45fcfe5e3641
 ```
 
+## R3-S04 SHA-256 dependency review
+
+`nsl-ir` pins `sha2 =0.11.1` with default features disabled. The resolved crates.io graph uses the digest block API and target-specific CPU detection. Cargo records the registry checksums. Redistributed packages carry the applicable license notices.
+
+| Package | Version | SPDX | Upstream |
+| --- | --- | --- | --- |
+| `sha2` | `0.11.1` | `MIT OR Apache-2.0` | [RustCrypto/hashes](https://github.com/RustCrypto/hashes) |
+| `digest` | `0.11.3` | `MIT OR Apache-2.0` | [RustCrypto/traits](https://github.com/RustCrypto/traits) |
+| `crypto-common` | `0.2.2` | `MIT OR Apache-2.0` | [RustCrypto/traits](https://github.com/RustCrypto/traits) |
+| `block-buffer` | `0.12.1` | `MIT OR Apache-2.0` | [RustCrypto/utils](https://github.com/RustCrypto/utils) |
+| `cpufeatures` | `0.3.1` | `MIT OR Apache-2.0` | [RustCrypto/utils](https://github.com/RustCrypto/utils) |
+| `hybrid-array` | `0.4.15` | `MIT OR Apache-2.0` | [RustCrypto/hybrid-array](https://github.com/RustCrypto/hybrid-array) |
+| `typenum` | `1.20.1` | `MIT OR Apache-2.0` | [paholg/typenum](https://github.com/paholg/typenum) |
+| `cfg-if` | `1.0.5` | `MIT OR Apache-2.0` | [rust-lang/cfg-if](https://github.com/rust-lang/cfg-if) |
+| `libc` | `0.2.191` | `MIT OR Apache-2.0` | [rust-lang/libc](https://github.com/rust-lang/libc) |
+
+The resolved implementation includes upstream unsafe code for fixed-size buffers, target-specific instructions and discovery, and platform FFI. `nsl-ir` uses the safe `Sha256` API with no network or filesystem access. The workspace forbid policy remains in force. The [RustSec snapshot](https://github.com/RustSec/advisory-db/tree/02e2517f457a359fc6d3440ea4560c8ea188fee8) includes [RUSTSEC-2021-0100](https://rustsec.org/advisories/RUSTSEC-2021-0100.html), patched in `sha2` versions `>=0.9.8`, and no advisory affecting these locked versions.
+
+```text
+Cargo.lock SHA-256
+d847b84574c4f686b3c07956a9a06c2738af0427a16efbe167e145ff3fd6746c
+```
+
 ## Architecture dependency guard
 
 From `rust/`, run `python tools/check_architecture.py` with Python 3.12 and the pinned Rust toolchain. The guard reads Cargo's locked, all-feature graph for all target platforms. It follows dependencies by resolved package ID, including build and development edges, so renaming a crate or depending on it indirectly still exposes the dependency chain.
 
-`nsl-core` has no permitted workspace dependencies. `nsl-ir` may depend on `nsl-core` and reach the reviewed Decimal packages through it. External packages are checked against the allowlist of the workspace crate that introduces them. `nsl-ir` currently has an empty allowlist of its own. `nsl-compiler` cannot reach `nsl-runtime`. `nsl-runtime` cannot reach `nsl-compiler` or `nsl-source`, which owns the AST.
+`nsl-core` has no permitted workspace dependencies. `nsl-ir` may depend on `nsl-core` and reach the reviewed Decimal packages through it. External packages are checked against the allowlist of the workspace crate that introduces them. The `nsl-ir` allowlist contains the reviewed SHA-256 graph above. `nsl-compiler` cannot reach `nsl-runtime`. `nsl-runtime` cannot reach `nsl-compiler` or `nsl-source`, which owns the AST.
 
 Every member must inherit the workspace `unsafe_code = "forbid"` lint. Cargo's compile checks enforce that lint on workspace targets. Run `python -m unittest discover -s tools` to exercise the guard against temporary Cargo workspaces and verify compiler rejection of unsafe integration-test code.

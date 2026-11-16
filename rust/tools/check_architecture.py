@@ -20,7 +20,13 @@ APPROVED_EXTERNAL: dict[str, set[tuple[str, str]]] = {
         (name, "registry+https://github.com/rust-lang/crates.io-index")
         for name in ("autocfg", "bigdecimal", "libm", "num-bigint", "num-integer", "num-traits")
     },
-    "nsl-ir": set(),
+    "nsl-ir": {
+        (name, "registry+https://github.com/rust-lang/crates.io-index")
+        for name in (
+            "block-buffer", "cfg-if", "cpufeatures", "crypto-common", "digest",
+            "hybrid-array", "libc", "sha2", "typenum",
+        )
+    },
 }
 FORBIDDEN_WORKSPACE = {
     "nsl-compiler": {"nsl-runtime"},
