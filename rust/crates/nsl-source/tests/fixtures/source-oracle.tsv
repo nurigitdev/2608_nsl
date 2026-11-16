@@ -1,0 +1,73 @@
+# Python Oracle 28a949ec96581cbdc52c8133527b23bb5b72ee0a
+source	empty	656d7074792e6e73	-	none	-	source:007df57b217a8640d3d0a6734cc93bb71d6a74079b20dcb3f0f9bca65adb77c3	utf-8
+source	utf8	ec9eacebacb42fec9888ec82b02e6e73	ec9888ec82b0f09f98802065cc810d0a	none	ec9888ec82b0f09f98802065cc810d0a	source:cff8d4d1cb28122ed0d98aab7b03b6cf01e2917942774e45eadd5d3c47c84808	utf-8
+source	bom	626f6d2e6e73	efbbbfec9888ec82b0	none	ec9888ec82b0	source:644a822934a57cb79b5149050578808815b377ddfca49dad5e5614a1df8806bf	utf-8
+source	bare	626f6d2e6e73	ec9888ec82b0	none	ec9888ec82b0	source:644a822934a57cb79b5149050578808815b377ddfca49dad5e5614a1df8806bf	utf-8
+source	bom_only	656d7074792e6e73	efbbbf	none	-	source:007df57b217a8640d3d0a6734cc93bb71d6a74079b20dcb3f0f9bca65adb77c3	utf-8
+source	double_bom	626f6d2e6e73	efbbbfefbbbf78	none	efbbbf78	source:48d380d539736bd808aa97dcafc10387706866626748236c3c357019c13f4e13	utf-8
+source	interior_bom	626f6d2e6e73	78efbbbf	736f757263653a6578706c69636974	78efbbbf	source:explicit	utf-8
+source	blank_override	637573746f6d2e6e73	78	-	78	source:e932ee059426e7e8aea7f66bbb87c91d8e76ab38f5e950c200047aeddd7f6659	utf-8
+source	space_override	637573746f6d2e6e73	78	20	78	 	utf-8
+source	nul_in_text	6e756c2e6e73	610062	none	610062	source:fac113745d0affabbde4b6499f77c3d45ea40c9a94baf898f72e1b06128637ce	utf-8
+source	nul_in_path	6100622e6e73	78	none	78	source:4439d37ffc3cb1cb62dae3ae818e2620d6bebb2daf5ec6cdb3a2595dd0760ecb	utf-8
+source	path_changes_identity	616e6f746865722e6e73	ec9888ec82b0	none	ec9888ec82b0	source:2acbef75a7f232df8aad263b5fa1820b8ce39058cf27b77f23980b882fda7670	utf-8
+source	text_changes_identity	626f6d2e6e73	ec9888ec82b00a	none	ec9888ec82b00a	source:92f1947b88241955efdf17e3187297ef098765beb8100b71559e2d820b781896	utf-8
+source	windows_path_preserved	615c622e6e73	78	none	78	source:993605d981025a318c989af484391850f3bff315033f672c55bf7f0ac5c63158	utf-8
+source	relative_path_preserved	2e2e2f782e6e73	78	none	78	source:03c4107345c17d12058b2ee899fc33d0cfafccc8854a4c3e7273bbdf732cb744	utf-8
+source	extension_only	2e6e73	78	none	78	source:a3f50f8f1d4a6c31a82d484aa270b7458a3c6198284e51f71e3f8a3e3d702741	utf-8
+source_error	wrong_extension	782e4e53	78	none	NSL source logical_path must end with .ns
+source_error	no_extension	-	78	none	NSL source logical_path must end with .ns
+source_error	stray_byte	782e6e73	80	none	NSL source bytes must be valid UTF-8
+source_error	overlong	782e6e73	c0af	none	NSL source bytes must be valid UTF-8
+source_error	surrogate	782e6e73	eda080	none	NSL source bytes must be valid UTF-8
+source_error	out_of_range	782e6e73	f4908080	none	NSL source bytes must be valid UTF-8
+source_error	truncated	782e6e73	f09f8c	none	NSL source bytes must be valid UTF-8
+source_error	invalid_after_bom	782e6e73	efbbbfff	none	NSL source bytes must be valid UTF-8
+source_error	utf8_validated_before_path	626164	ff	none	NSL source bytes must be valid UTF-8
+span	-	0	0	0,1,1	0,1,1	memory:root	memory/root.ns
+span	6c616e67756167650d0a202022ec9888ec82b0f09f988065cc8122202f2f20eca3bcec849d0a736b696c6c	0	8	0,1,1	8,1,9	memory:root	memory/root.ns
+span	6c616e67756167650d0a202022ec9888ec82b0f09f988065cc8122202f2f20eca3bcec849d0a736b696c6c	12	27	12,2,3	19,2,10	memory:root	memory/root.ns
+span	6c616e67756167650d0a202022ec9888ec82b0f09f988065cc8122202f2f20eca3bcec849d0a736b696c6c	38	43	26,3,1	31,3,6	memory:root	memory/root.ns
+span	6c616e67756167650d0a202022ec9888ec82b0f09f988065cc8122202f2f20eca3bcec849d0a736b696c6c	43	43	31,3,6	31,3,6	memory:root	memory/root.ns
+span	22610d0aed959c220d0922eb819d220a	0	8	0,1,1	6,2,3	memory:root	memory/root.ns
+span	22610d0aed959c220d0922eb819d220a	10	15	8,2,5	11,2,8	memory:root	memory/root.ns
+span	22610d0aed959c220d0922eb819d220a	16	16	12,3,1	12,3,1	memory:root	memory/root.ns
+span	2f2f20ec84a4ebaa8520f09f98800a2265cc81220a22eca484e280a8eb8298eb889422	15	20	8,2,1	12,2,5	memory:root	memory/root.ns
+span	2f2f20ec84a4ebaa8520f09f98800a2265cc81220a22eca484e280a8eb8298eb889422	21	35	13,3,1	19,3,7	memory:root	memory/root.ns
+span	2f2f20ec84a4ebaa8520f09f98800a2265cc81220a22eca484e280a8eb8298eb889422	35	35	19,3,7	19,3,7	memory:root	memory/root.ns
+span	2261220d226222	0	3	0,1,1	3,1,4	memory:root	memory/root.ns
+span	2261220d226222	4	7	4,1,5	7,1,8	memory:root	memory/root.ns
+span	2261220d226222	7	7	7,1,8	7,1,8	memory:root	memory/root.ns
+header	legacy	text	-	-	0	6c616e6775616765204e534c2022302e31223b	0.1	0,1,1	19,1,20	13,1,14	18,1,19
+header	controlled	text	-	-	0	6c616e6775616765204e534c2022302e32223b20736b696c6c	0.2	0,1,1	19,1,20	13,1,14	18,1,19
+header	utf8_comments	text	2f2f20ec84a4ebaa85f09f98800d0a09	-	0	6c616e6775616765202f2f20610a204e534c202f2f20620a2022302e3222202f2f20630a203b0a736b696c6c	0.2	9,2,2	47,5,3	34,4,2	39,4,7
+header	bom_bytes	bytes	efbbbf	-	0	6c616e6775616765204e534c2022302e31223b	0.1	0,1,1	19,1,20	13,1,14	18,1,19
+header_error	bom_text	text	efbbbf	-	0	6c616e6775616765204e534c2022302e31223b	NSL-E1007	0,1,1
+header_error	only_comment	text	2f2f20eb819d	-	0	-	NSL-E1004	4,1,5
+header_error	empty	text	-	-	0	-	NSL-E1004	0,1,1
+header_error	missing_other_word	text	736b696c6c2058	-	0	-	NSL-E1004	0,1,1
+header_error	non_leading	text	200922ec9888ec82b022206c616e6775616765204e534c2022302e31223b	-	0	-	NSL-E1007	2,1,3
+header_error	keyword_embedded	text	736b696c6c2058796c616e6775616765206c616e67756167655f206c616e677561676532	-	0	-	NSL-E1004	0,1,1
+header_error	non_ascii_word_boundary	text	ed959c6c616e6775616765	-	0	-	NSL-E1007	0,1,1
+header_error	missing_name	text	6c616e6775616765	-	0	-	NSL-E1005	8,1,9
+header_error	wrong_name	text	6c616e6775616765204e534c322022302e31223b	-	0	-	NSL-E1005	9,1,10
+header_error	missing_quote	text	6c616e6775616765204e534c20302e323b	-	0	-	NSL-E1005	13,1,14
+header_error	missing_end_quote	text	6c616e6775616765204e534c2022302e32	-	0	-	NSL-E1005	17,1,18
+header_error	missing_semicolon	text	6c616e6775616765204e534c2022302e322220	-	0	-	NSL-E1005	19,1,20
+header_error	escaped_version	text	6c616e6775616765204e534c2022302e5c32223b	-	0	-	NSL-E1005	16,1,17
+header_error	version_newline	text	6c616e6775616765204e534c2022302e0d0a32223b	-	0	-	NSL-E1005	16,1,17
+header_error	unsupported_version	text	6c616e6775616765204e534c2022302e39223b	-	0	-	NSL-E1006	13,1,14
+header_error	empty_version	text	6c616e6775616765204e534c2022223b	-	0	-	NSL-E1006	13,1,14
+header_error	non_ascii_version	text	6c616e6775616765204e534c2022efbc902eefbc92223b	-	0	-	NSL-E1006	13,1,14
+header_error	duplicate	text	6c616e6775616765204e534c2022302e31223b2f2f20ec84a4ebaa850d0a206c616e6775616765204e534c2022302e32223b	-	0	-	NSL-E1008	27,2,2
+header_error	duplicate_keyword_only	text	6c616e6775616765204e534c2022302e31223b206c616e6775616765	-	0	-	NSL-E1008	20,1,21
+header	before_ascii_byte_limit	text	-	20	4076	6c616e6775616765204e534c2022302e31223b	0.1	4076,1,4077	4095,1,4096	4089,1,4090	4094,1,4095
+header	at_ascii_byte_limit	text	-	20	4077	6c616e6775616765204e534c2022302e31223b	0.1	4077,1,4078	4096,1,4097	4090,1,4091	4095,1,4096
+header_error	after_ascii_byte_limit	text	-	20	4078	6c616e6775616765204e534c2022302e31223b	NSL-E1009	4097,1,4098
+header_error	comment_exceeds_utf8_byte_limit	text	2f2f	c3a9	2048	0a6c616e6775616765204e534c2022302e31223b	NSL-E1009	2050,1,2051
+header_error	probe_at_limit	text	3f	20	4094	6c616e6775616765	NSL-E1007	0,1,1
+header_error	probe_after_limit	text	3f	20	4095	6c616e6775616765	NSL-E1004	0,1,1
+header_error	duplicate_at_limit	text	6c616e6775616765204e534c2022302e31223b	20	4077	6c616e6775616765	NSL-E1008	4096,1,4097
+header	duplicate_after_limit	text	6c616e6775616765204e534c2022302e31223b	20	4078	6c616e6775616765	0.1	0,1,1	19,1,20	13,1,14	18,1,19
+header	duplicate_after_crossing_limit	text	6c616e6775616765204e534c2022302e31223b2f2f	c3a9	2039	6c616e6775616765	0.1	0,1,1	19,1,20	13,1,14	18,1,19
+header	bounded_comment_tail	text	6c616e6775616765204e534c2022302e31223b2f2f	ed959c	4096	0a6c616e6775616765204e534c2022302e31223b	0.1	0,1,1	19,1,20	13,1,14	18,1,19
