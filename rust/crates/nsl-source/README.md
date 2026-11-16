@@ -61,3 +61,21 @@ Regenerate the Parser fixture with the same Python 3.12 environment and Oracle c
 .venv/bin/python -I -B rust/crates/nsl-source/tests/fixtures/generate_parser.py "$oracle_dir" > "$oracle_dir/parser-oracle.tsv"
 cmp "$oracle_dir/parser-oracle.tsv" rust/crates/nsl-source/tests/fixtures/parser-oracle.tsv
 ```
+
+## R4 exit gate
+
+Run the source and compiler integration targets from the Rust workspace using the pinned toolchain. The workspace quality workflow runs these targets on Linux and Windows.
+
+```bash
+cargo test --locked -p nsl-source -p nsl-compiler --all-targets
+cargo test --locked -p nsl-source --test r4_fuzz -- --nocapture
+```
+
+| Exit criterion | R4-S05 evidence |
+| --- | --- |
+| Source differential | Regenerate and compare the source and lexer fixtures against Oracle `28a949e` using the commands above. The Rust targets verify UTF-8 admission, header codes and spans, and 58 lexer cases across NSL 0.1 and 0.2. [Source boundary tests](tests/r4_source_boundaries.rs) also cover invalid bytes after the header window and a 64 KiB UTF-8 comment. |
+| Parser differential | Regenerate the 122-case Parser fixture from the same Oracle and compare the complete semantic AST projections and diagnostics. The source boundary tests check unclosed groups, calls, List types, and foreach blocks at 4,096 levels. |
+| Include security | Regenerate and compare the 94-case [Include fixture](../nsl-compiler/README.md). The [Include gate tests](../nsl-compiler/tests/r4_include_gate.rs) exercise the default file and byte budgets at their boundaries and reject a too-deep reference before resolver access, even when the target was already visited. |
+| Parser bounded fuzz | [`r4_fuzz`](tests/r4_fuzz.rs) runs 512 rounds with each of four fixed seeds. Each round exercises raw bytes, a mutated fragment, and a mutated skill body under a versioned header. The 6,144 inputs are at most 512 bytes each. The target checks byte admission, token and diagnostic spans, scan/tokenize agreement, parser determinism, and structured rejections. A panic or crash fails the test. |
+
+`NSL-RUST-SRC-013` and `NSL-RUST-SRC-014` are verified for this bounded source campaign. Include security evidence for `NSL-RUST-SRC-010` and `NSL-RUST-SRC-011` includes the default resource limits and previously visited targets. The source portion of `NSL-RUST-QUAL-009` has a test target. This run supplies the source campaign evidence for `NSL-RUST-QUAL-010`.
