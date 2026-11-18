@@ -2,6 +2,7 @@
 
 mod context;
 mod data;
+mod expression;
 mod models;
 mod resource;
 mod result;
@@ -12,6 +13,7 @@ mod tool_validation;
 mod tools;
 
 pub use context::*;
+pub use expression::*;
 pub use models::*;
 pub use resource::*;
 pub use result::*;

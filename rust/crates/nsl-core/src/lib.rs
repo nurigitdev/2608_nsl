@@ -18,7 +18,7 @@ pub use decimal::{DecimalError, NslDecimal};
 pub use identity::{
     ApprovalRequestId, BusinessOperationId, IdempotencyKey, IdentityError, PayloadHash,
 };
-pub use money::{Money, MoneyError};
+pub use money::{Money, MoneyError, MoneySumError, sum_money};
 pub use status::{
     ApprovalDecision, ApprovalStatus, CheckStatus, CommitState, Completeness, DataClassification,
     ExecutionStatus, PreWriteEligibility, Presence, RiskLevel, ToolCapability, UnknownStatus,

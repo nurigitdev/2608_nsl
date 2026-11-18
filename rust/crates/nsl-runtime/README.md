@@ -1,4 +1,4 @@
-# NSL Runtime models, context and tool execution
+# NSL Runtime models, context, tools and expressions
 
 ## R6-S01 scope and ownership
 
@@ -151,3 +151,84 @@ Stable **Rust 1.99.1** passes formatting, locked workspace check, all-target/all
 Pinned `nightly-2026-11-15` LLVM instrumentation reports workspace executable-line coverage (the Rust statement figure) **99.23%** (8,118/8,181) and branch coverage **98.52%** (1,135/1,152). All four new production modules reach **100.00% executable-line coverage**. The mock's defensive null-presence branch remains in the branch denominator even though contract conformance rejects null before it can reach presence construction. Physical test code and generated Unicode constant data are excluded consistently with prior slices. These LLVM and Python coverage figures use different instrumentation and are reported separately.
 
 The [dependency review](../../DEPENDENCIES.md#r6-s02-asynchronous-execution-dependency-review) records two new external packages, unchanged prior checksums, minimal features, licenses, unsafe-code/build-script review and the immutable RustSec snapshot. `Cargo.lock` SHA-256 is **`628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`** before and after the frozen build.
+
+## R6-S03 expressions and immutable LET
+
+`ExpressionEvaluator::evaluate(&mut context, &expression)` evaluates the pure Typed IR variants: literal, symbol reference, field, projection, closed built-in call and binary operation. `execute_let(context, target_symbol_id, expression)` evaluates first and then binds through `ExecutionContext`'s existing immutable Variable namespace. The evaluator borrows the IR and uses a work stack rather than recursive expression calls. READ/WRITE return a typed `Unsupported { node_id }` at this component boundary; provider/READ integration belongs to R6-S04 and governed WRITE to R7. Block statement bookkeeping, version/profile preflight, input/context admission, CHECK, FOREACH/EMIT and execution-result/audit projection remain their planned integration slices.
+
+Evaluation order matches the frozen Oracle: check the deadline on entry, evaluate children left to right (including every call argument before resolving the built-in), calculate, check envelope type equality, observe completeness, check the deadline again, and check a list result's collection size. Pure expression checks do not increment tool/loop/emit counts or observe the maximum-collection meter. A completed child can affect context completeness even if a parent fails; a result observed before a post-evaluation deadline/size rejection also retains that observation. Source bindings and values are preserved.
+
+Metadata follows the Oracle:
+
+- Literals are PUBLIC and COMPLETE. Symbol references preserve the stored envelope and reject a differing declared envelope type with `EXPRESSION_TYPE_MISMATCH` before observing its completeness. Like the Oracle component, envelope consistency does not revalidate the actual value against its declared type; admission is a separate boundary.
+- Field results are PRESENT even when the selected value is null or an empty list. Projection is EMPTY only for an empty resulting list. Both preserve the source completeness, classification and ordered provenance, including duplicates.
+- Calls are PRESENT and preserve the single argument's metadata, including for an empty typed sum. Binary results combine UNKNOWN before PARTIAL before COMPLETE, select the highest classification and deduplicate provenance in stable left-then-right order.
+- LET preserves the result envelope. A failed evaluation leaves the target unbound; a duplicate in any active namespace preserves the existing binding. Completed sibling frames can reuse a name. Statement/current-node changes belong to the block driver, not `execute_let`.
+
+### Arithmetic, comparisons and built-ins
+
+The closed call set is `count`, `min`, `max`, `sum`. Signature validation preserves Oracle names, arity, List requirements, sum item-type restrictions and result-type checks. Empty Int/Decimal sums use typed zero; Money sums call Core `sum_money` and preserve the declared currency. Empty min/max fail. A singleton record min/max returns that record; comparing multiple records fails. Bool, string/domain/enum, Date, fixed-offset DateTime, and lexicographic list observations match the frozen Python operations. Different naive/aware DateTime values compare unequal and cannot be ordered. DateTime business-value comparisons interpret Python ISO text to microsecond instants and retain the naive/aware distinction; this is not the security/evidence timestamp admission boundary.
+
+Integer arithmetic is arbitrary precision. Decimal/Money operations use the existing fixed 28-significant-digit `ROUND_HALF_EVEN` Core implementation, including ordered accumulation and signed-zero/scale behavior. Runtime Money ordering preserves the Oracle's reflected `>`/`>=` operand order, including currency error messages. Structural Money equality includes amount and currency, as in the Oracle dataclass; Core's checked comparison API is unchanged. No Float representation or numeric dependency is added.
+
+Ordinary arithmetic/field/projection/conversion failures return `ExpressionEvaluationError` with the failing expression's node ID and `EXPRESSION_EVALUATION_ERROR`. Child errors keep their original identity. Built-in contract errors and controlled Money errors remain distinct. Missing symbols and malformed Money operations that the Oracle propagates as unexpected errors retain their class/detail in `ExpressionRuntimeError::Unexpected`; its `Display` is always `An unexpected runtime error occurred.` Operand values, internal causes and backtraces are not exposed through the public error source chain. Complete RuntimeEngine diagnostic/audit projection remains R6-S07.
+
+### Approved Oracle difference: Int division
+
+The frozen Oracle accepts an external Binary IR with Int operands and a falsely declared non-Decimal result. For `1 / 2` declared as Int it returns Python float `0.5`; its NSO schema accepts that declaration too. Rust intentionally rejects it under the user's R6-S03 decision, keeping the NSL numeric model free of floating point:
+
+```text
+ExpressionEvaluationError
+node_id: the DIV expression's node_id
+detail_code: EXPRESSION_TYPE_MISMATCH
+message: expression type mismatch at <node_id>
+```
+
+The check runs after child evaluation and before division. Int operand declarations must have a Decimal result; an actual Int/Int pair also cannot produce a non-Decimal quotient. This rejection takes priority over division-by-zero once both children have evaluated. Valid Int division returns Core Decimal and remains Oracle-compatible. The Oracle revision and its implementation are unchanged.
+
+[The exception fixture](tests/fixtures/expression-division-exceptions.tsv) records **24 actual Oracle observations**, not patched expectations: six non-Decimal result declarations crossed with divisors -1/0/1/2. Eighteen observations return float and six fail ordinary division-by-zero evaluation; Rust consistently rejects all 24 with the approved mismatch/node identity. [The boundary test](tests/expression_boundaries.rs) also shows that NSO 1.0 and 1.1 can encode/decode this IR with correct integrity hashes before the Runtime rejects it, and verifies that failed LET does not publish a value.
+
+### R6-S03 verification and traceability
+
+The reference remains **`28a949ec96581cbdc52c8133527b23bb5b72ee0a`**. [The generator](tests/fixtures/generate_expressions.py) imports its unmodified Runtime/Core/built-in code and uses synthetic values and exact scripted clocks. Its small postfix notation is only a test-fixture representation used to construct the same owned IR on both sides.
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R6-S03-EXPR-ORACLE` | **719 matching observations** in [the differential test](tests/expression_oracle.rs): all ten binary operators; arbitrary integers; Decimal rounding/overflow; Money arithmetic/currency/reflected errors; all completeness/classification pairs; provenance order; field/projection/null/empty behavior; closed built-ins and malformed values; fixed-offset/naive DateTime equality; error priority and node/detail identity; immutable LET; exact deadline-clock calls, context observations and collection limits. |
+| `R6-S03-DIVISION-EXCEPTION` | **24 approved compatibility exceptions**, separately stored and asserted in [the differential test](tests/expression_oracle.rs). Ordinary Decimal-result Int division remains in the matching corpus. |
+| `R6-S03-BOUNDARIES` | **8 tests** in [the boundary suite](tests/expression_boundaries.rs): actual NSO 1.0/1.1 admission, 0/1/31/32/255/256/1,024/4,096 expression depth on a 128 KiB evaluator thread stack, atomic failed LET and sibling reuse, unsupported provider nodes, safe unexpected errors, malformed/oversized ISO components and leap-day rules, 5,001-digit integer division without float conversion, collection limit 0/1/MAX-1/MAX/MAX+1 observations and concatenation output limits, Core Money ordered failures/typed zero/overflow, and mismatched host values under an Int declaration. Deep-tree test teardown is iterative; the evaluator itself borrows caller-admitted IR. |
+
+| Rust SRS | R6-S03 status and evidence |
+| --- | --- |
+| `NSL-RUST-RUN-001/002` | Pure Typed-IR expression component implemented with Core/IR dependencies and no compiler/AST, LLM or business-system access. Architecture guard and inspection. |
+| `NSL-RUST-RUN-005` | LET component implemented: evaluation before immutable binding, preserved envelopes and failures, namespace collisions and sibling frames verified. Block-driver integration remains later slices. |
+| `NSL-RUST-RUN-011`, `NSL-RUST-CTX-005/006` | Expression deadline/collection checks implemented, with exact call order and failure-side observations verified. Complete runtime operation accounting remains R6-S04 onward. |
+| `NSL-RUST-RUN-012/013/014` | Pure-component evidence: iterative expression traversal, typed unsupported/malformed failures, generic unexpected-error display and protected detail retention. Complete RuntimeEngine admission, result projection and debug-sink enforcement remain R6-S07. |
+| `NSL-RUST-RUN-017` | Deterministic pure evaluation, scripted clocks, immutable sources and repeated fixture generation verified. Whole-program differential gate remains R6-S07. |
+| `NSL-RUST-CORE-009`, `NSL-RUST-CTX-007`, `NSL-RUST-SEC-007` | Expression metadata/classification/completeness propagation implemented and differentially verified. CHECK/result/audit propagation remains later integration. |
+| `NSL-RUST-MONEY-001/002` | No floating-point semantic path. Approved Int-division rejection is explicitly tested and documented separately from matching Oracle cases. |
+| `NSL-RUST-MONEY-003/004/005/006`, `NSL-RUST-CORE-013` | Runtime reuses exact Core arithmetic and the new pure `sum_money`; ordered invalid-value/currency/overflow behavior and typed zero verified. |
+
+Regenerate from the repository root with Python 3.12 and a fresh archive:
+
+```bash
+oracle_dir=$(mktemp -d)
+git archive 28a949ec96581cbdc52c8133527b23bb5b72ee0a nsl | tar -x -C "$oracle_dir"
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_expressions.py "$oracle_dir" expressions > "$oracle_dir/expressions-oracle.tsv"
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_expressions.py "$oracle_dir" division > "$oracle_dir/expression-division-exceptions.tsv"
+cmp "$oracle_dir/expressions-oracle.tsv" rust/crates/nsl-runtime/tests/fixtures/expressions-oracle.tsv
+cmp "$oracle_dir/expression-division-exceptions.tsv" rust/crates/nsl-runtime/tests/fixtures/expression-division-exceptions.tsv
+```
+
+Both files were generated twice; each pair and the checked-in file matched byte-for-byte and by SHA-256. Explicit LF attributes preserve the fixture bytes across operating systems.
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `expressions-oracle.tsv` | `097413639c33f60a832d7d1a662633768f5e6304695e406ce92b66b136e529f0` |
+| `expression-division-exceptions.tsv` | `65ab95305268cd9b138eb6be72e2dec436bd03e318a0429d6cd94dc5d210b914` |
+
+Local **Rust 1.99.1** passes fmt, locked workspace check, all-target/all-feature Clippy with warnings denied, the Architecture Dependency Guard and its **7 tests**, **154 Rust tests**, and a frozen workspace build. The mandatory Python gate ran **exactly once for R6-S03**: **2,333 passed**, statement **99.29%**, branch **98.14%**. Python production sources are unchanged.
+
+Pinned `nightly-2026-11-15` LLVM instrumentation reports workspace executable-line coverage (the Rust statement figure) **99.19%** (8,711/8,782), branch **98.38%** (1,277/1,298). Core Money reaches **100.00%/100.00%**. Defensive work-stack/empty-collection/comparison guards remain in the totals; physical test code and generated Unicode constant data are excluded consistently with previous slices. Rust and Python use different instrumentation and are reported separately.
+
+No package, dependency edge, version, feature or checksum changes in this Slice. The 17-package external inventory is unchanged. `Cargo.lock` SHA-256 remains **`628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`** before and after the frozen build.

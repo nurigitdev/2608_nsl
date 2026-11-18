@@ -90,3 +90,9 @@ cmp "$oracle_dir/redaction-oracle.tsv" rust/crates/nsl-core/tests/fixtures/redac
 ```
 
 Two generations and a fresh archive of `28a949ec96581cbdc52c8133527b23bb5b72ee0a` matched the committed fixture. SHA-256: `cb19fb07231f52d9bd1518e8e451ab606a1e938a807ff7687e3b2052da982075`.
+
+## R6-S03 Money aggregation
+
+`sum_money(&[Value], &CurrencyCode)` owns ordered Money aggregation in Core. An empty collection produces Decimal zero in the declared currency. Each item is validated and added before visiting the next item, preserving the earliest invalid-value, currency-conflict or Decimal-overflow failure. `MoneySumError` distinguishes these outcomes without introducing floating point or changing existing `Money` arithmetic/comparison behavior. Runtime maps those typed errors to the frozen Oracle's Money or expression error boundary.
+
+`R6-S03-EXPR-ORACLE` verifies aggregation through the frozen expression corpus; `R6-S03-BOUNDARIES` verifies typed zero, singleton scale, invalid-item/currency-conflict priority, overflow and safe error chains in [the Runtime boundary suite](../nsl-runtime/tests/expression_boundaries.rs). This extends the evidence for `NSL-RUST-MONEY-001/002/003/004/005/006` and `NSL-RUST-CORE-013`.

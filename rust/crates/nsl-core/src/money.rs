@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, fmt};
 
-use crate::{CurrencyCode, DecimalError, NslDecimal};
+use crate::{CurrencyCode, DecimalError, NslDecimal, Value};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MoneyError {
@@ -74,4 +74,49 @@ impl Money {
         }
         Ok(())
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MoneySumError {
+    InvalidValue,
+    CurrencyMismatch {
+        expected: CurrencyCode,
+        actual: CurrencyCode,
+    },
+    Decimal(DecimalError),
+}
+impl fmt::Display for MoneySumError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidValue => f.write_str("Money sum requires Money values"),
+            Self::CurrencyMismatch { .. } => MoneyError::CurrencyMismatch.fmt(f),
+            Self::Decimal(e) => e.fmt(f),
+        }
+    }
+}
+impl std::error::Error for MoneySumError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Decimal(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+/// Typed zero for an empty collection; validate and add each item in order so
+/// the earliest invalid value, currency conflict or arithmetic error wins.
+pub fn sum_money(values: &[Value], currency: &CurrencyCode) -> Result<Money, MoneySumError> {
+    let mut total = Money::new("0".parse().expect("zero"), currency.clone());
+    for value in values {
+        let Value::Money(value) = value else {
+            return Err(MoneySumError::InvalidValue);
+        };
+        total = total.checked_add(value).map_err(|e| match e {
+            MoneyError::CurrencyMismatch => MoneySumError::CurrencyMismatch {
+                expected: currency.clone(),
+                actual: value.currency().clone(),
+            },
+            MoneyError::Decimal(e) => MoneySumError::Decimal(e),
+        })?;
+    }
+    Ok(total)
 }
