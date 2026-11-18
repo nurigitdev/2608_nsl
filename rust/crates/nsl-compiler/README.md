@@ -83,3 +83,50 @@ cmp "$oracle_dir/printable.rs" rust/crates/nsl-compiler/src/types/printable.rs
 Local verification on pinned Rust 1.99.1 passed: fmt, locked workspace check, all-target/all-feature Clippy with warnings denied, architecture guard and its 7 tests, 93 Rust tests, and a frozen workspace build. The mandatory Python gate ran once: 2,333 passed, statement coverage 99.29%, branch coverage 98.14%.
 
 Rust coverage uses `nightly-2026-11-15`, `-C instrument-coverage -Z coverage-options=branch`, and matching LLVM tools, with only workspace `crates/*/src` files included. The statement figure uses LLVM executable-line coverage, reported separately from branch coverage: 5,148/5,192 = **99.15%**, and 773/782 = **98.85%**. The compiler crate is 99.19%/98.28%; the new type modules are 99.63%/100.00%. Tests and generated Unicode constant tables are excluded from the reported executable source totals.
+
+## R5-S05 Static resource bounds
+
+`StaticBoundAnalyzer::new(sources).analyze(&statements)` analyzes typed IR independently of lowering. It returns the existing IR `StaticAnalysis` model with exact maximum tool-call, loop-iteration, and emitted-record counts. Successful analyses have `bounded = true`; a nonpositive foreach maximum returns `UnboundedStructureError`. All counts use arbitrary-precision integers. The closed IR enums exhaustively cover every supported statement and expression; unknown shapes and noninteger maxima are rejected by model/admission boundaries rather than interpreted as zero cost.
+
+Sequential statements add their costs. READ and WRITE each count one call plus all calls in their arguments. Field/Projection, built-in calls and binary expressions count calls in their children. CHECK counts calls in its condition; EMIT counts one record and calls in all its fields; Approval has no execution-count cost. A foreach collection expression is evaluated once on entry. Its body uses the declared static maximum, including nested loops:
+
+```text
+tool_calls(foreach)      = calls(collection) + max * calls(body)
+loop_iterations(foreach) = max * (1 + iterations(body))
+emit_records(foreach)    = max * emits(body)
+```
+
+`check(&statements, &limits, &skill_span, &limits_span)` additionally compares counts with the declared limits in Oracle order: tool calls (`NSL-E6101`), loops (`NSL-E6102`), then emitted records (`NSL-E6103`). Equality is permitted. An unprovable bound maps to `NSL-E6104` at the skill span. Other semantic bound errors retain the limits span and its source path, position, and snippet through `SourceDiagnosticContext`, including limits composed from Include fragments.
+
+The user-approved R5-S05 conversion rule preserves the Oracle's Python 3.12 default boundary. Computation and `analyze` results remain exact even beyond 4,300 decimal digits. Only when an exceeded-limit diagnostic needs to format an actual or declared integer wider than 4,300 digits does `check` return `BoundError::IntegerConversion(BoundIntegerConversionError)`. This abort has no NSL diagnostic code and retains the limits `SourceSpan`. The sign does not count as a digit. Earlier ordinary errors retain priority over a later conversion abort. This represents the Oracle's raw `ValueError` as a Rust type error with source context; it does not replace the Oracle's formatting-limit failure with a semantic bound diagnostic.
+
+Collection size and duration remain declared Runtime limits. The frozen compiler does not infer collection cardinality, compare foreach maxima with `collection_size`, or reduce iteration counts based on that limit. The existing Source/NSO boundaries admit the declarations, the analyzer preserves them unchanged, and Runtime will enforce actual sizes and duration under `NSL-RUST-RUN-008/011`. Approval linkage, WRITE safety and complete compiler/lowering integration remain R5-S06, R5-S07 and R5-S08 respectively.
+
+| Rust SRS | Status, verification ID, and evidence in R5-S05 |
+| --- | --- |
+| `NSL-RUST-COMP-007` | Implemented in the static bound stage. `R5-S05-BOUND-ORACLE`: [Oracle differential tests](tests/bound_oracle.rs) verify 86 IR-shape cases and 61 NSL 0.1/0.2 compiler cases, including empty bodies, nested/sequential loops, READ/WRITE counting, exact limit equality, over-limit rejection and nonpositive model maxima. |
+| `NSL-RUST-COMP-019` | Additional bound-stage evidence. `R5-S05-BOUND-DIAGNOSTICS`: source cases match codes, messages, positions and snippets; included limits and the approved codeless conversion abort retain their source spans. |
+
+`R5-S05-BOUND-BOUNDARY` in the [boundary tests](tests/bound_boundaries.rs) verifies 4,299/4,300/4,301-digit results and diagnostic boundaries, exact values across `u64::MAX`, much wider nested products, sign handling, missing diagnostic source context, diagnostic priority, unchanged collection/duration declarations, and deterministic repeated analysis. A 512 KiB thread stack handles a binary expression containing 8,192 READ nodes and 2,048 nested foreach frames; test teardown is also iterative.
+
+The model fixture uses a structural postfix representation; expression types/values that do not affect execution counts are reduced to placeholders. Source cases observe actual typed IR passed by the frozen compiler to `StaticBoundAnalyzer`. The nonpositive IR cases inject maxima at this analysis seam because the source parser already forbids them. The generator observes very wide result integers in small decimal chunks without changing Python's integer-conversion setting or the Oracle implementation.
+
+Regenerate from Oracle `28a949ec96581cbdc52c8133527b23bb5b72ee0a` with Python 3.12:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-compiler/tests/fixtures/generate_bounds.py "$oracle_dir" models > "$oracle_dir/bounds-model-oracle.tsv"
+.venv/bin/python -I -B rust/crates/nsl-compiler/tests/fixtures/generate_bounds.py "$oracle_dir" sources > "$oracle_dir/bounds-source-oracle.tsv"
+cmp "$oracle_dir/bounds-model-oracle.tsv" rust/crates/nsl-compiler/tests/fixtures/bounds-model-oracle.tsv
+cmp "$oracle_dir/bounds-source-oracle.tsv" rust/crates/nsl-compiler/tests/fixtures/bounds-source-oracle.tsv
+```
+
+Both fixtures were generated twice; the files and SHA-256 values matched each other and the committed files.
+
+| Output | SHA-256 |
+| --- | --- |
+| `bounds-model-oracle.tsv` | `7fb7491e3594b1ef58555a1a32a973dce98c952c2a1bcadc5d5b14af171537f0` |
+| `bounds-source-oracle.tsv` | `a3537979ca66c8efc635bbbca0cc16419cd22c6bb3fcc8c7f5481d86445b9dbf` |
+
+Pinned Rust 1.99.1 passes fmt, locked workspace check, all-target/all-feature Clippy with warnings denied, the architecture guard and its 7 tests, 100 Rust tests, and a frozen workspace build. The mandatory Python gate ran once across R5-S05, before its decision checkpoint: 2,333 passed, statement 99.29%, branch 98.14%; Python production sources are unchanged.
+
+Using the same pinned LLVM coverage method as R5-S04, Rust workspace executable-line coverage (the statement figure) is **99.18%** (5,338/5,382), and branch coverage is **98.87%** (785/794). Compiler coverage is 99.29%/98.39%. The new bound modules are **100.00%/100.00%** (190/190 executable lines and 12/12 branches).

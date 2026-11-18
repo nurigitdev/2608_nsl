@@ -101,6 +101,7 @@ dependencies = [
  "nsl-core",
  "nsl-ir",
  "nsl-source",
+ "num-bigint",
  "sha2",
 ]
 

@@ -109,6 +109,15 @@ Cargo.lock SHA-256
 39236a3b5fddd19421b37400ae8f22386cd569cd452e845348fd4997951fd5bc
 ```
 
+## R5-S05 exact bound arithmetic dependency
+
+`nsl-compiler` uses `num-bigint =0.4.8` directly, with default features disabled and only `std` enabled, for exact resource-count sums and products. This is the package already reviewed in R2-S03 (`MIT OR Apache-2.0`, [rust-num/num-bigint](https://github.com/rust-num/num-bigint)); the same redistribution notices and reviewed upstream integer implementation apply. No new package, version, registry checksum, or resolved external feature is introduced. Comparing locked all-feature metadata before and after this Slice confirms that all 15 external package inventories and feature sets are identical. The architecture guard and frozen build pass.
+
+```text
+Cargo.lock SHA-256
+416ce7d68486a3e05612ade0a014124d6aba1bc25fa714eb9fa615801d5c8238
+```
+
 ## Architecture dependency guard
 
 From `rust/`, run `python tools/check_architecture.py` with Python 3.12 and the pinned Rust toolchain. The guard reads Cargo's locked, all-feature graph for all target platforms. It follows dependencies by resolved package ID, including build and development edges, so renaming a crate or depending on it indirectly still exposes the dependency chain.
