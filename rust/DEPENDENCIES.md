@@ -118,6 +118,24 @@ Cargo.lock SHA-256
 416ce7d68486a3e05612ade0a014124d6aba1bc25fa714eb9fa615801d5c8238
 ```
 
+## R6-S02 asynchronous execution dependency review
+
+Runtime adds the permitted `nsl-contract → nsl-core` graph and reuses `sha2 =0.11.1` with default features disabled. Tokio is pinned to **`=1.54.1`**, with only `rt`, `sync`, and `time` in production and `test-util` in development for virtual-clock tests. No network, filesystem, process, signal, multi-thread runtime, macro, or provider transport feature is enabled. These dependency-only changes are committed before the execution implementation.
+
+| New package | Version | SPDX | Upstream | Purpose |
+| --- | --- | --- | --- | --- |
+| `tokio` | `1.54.1` | `MIT` | [tokio-rs/tokio](https://github.com/tokio-rs/tokio) | Private timer and cooperative cancellation notification |
+| `pin-project-lite` | `0.2.17` | `Apache-2.0 OR MIT` | [taiki-e/pin-project-lite](https://github.com/taiki-e/pin-project-lite) | Tokio's transitive safe pin-projection facade |
+
+Both packages come from crates.io with checksums in `Cargo.lock`; preserve their applicable notices on redistribution. Neither package has a build script. Upstream uses unsafe code for scheduler/synchronization/timer internals and pin projection; NSL uses only their safe APIs and retains `forbid(unsafe_code)`. Tokio-specific types do not enter the public Tool Execution Port, identities, or result model.
+
+The [RustSec snapshot `233155b4`](https://github.com/RustSec/advisory-db/tree/233155b4025b854c68a4b199c0e32d7fd53291a2) lists seven Tokio advisories, all patched in the locked version. In particular [RUSTSEC-2026-0384](https://rustsec.org/advisories/RUSTSEC-2026-0384.html) requires `>=1.54.1`, and [RUSTSEC-2026-0386](https://rustsec.org/advisories/RUSTSEC-2026-0386.html) is patched by `>=1.53.3`. There is no `pin-project-lite` advisory. The prior 15 package identities/checksums are unchanged; the graph now contains 17 external packages. Locked metadata, regression tests and the frozen build verify the resolved graph.
+
+```text
+Cargo.lock SHA-256
+628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562
+```
+
 ## Architecture dependency guard
 
 From `rust/`, run `python tools/check_architecture.py` with Python 3.12 and the pinned Rust toolchain. The guard reads Cargo's locked, all-feature graph for all target platforms. It follows dependencies by resolved package ID, including build and development edges, so renaming a crate or depending on it indirectly still exposes the dependency chain.
