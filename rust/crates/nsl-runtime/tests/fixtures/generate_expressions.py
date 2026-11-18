@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0,str(Path(sys.argv[1]).resolve()))
 from nsl.core import (BOOL,INT,STRING,DECIMAL,DATE,DATETIME,YEAR,Money,ValueEnvelope,
     TypeRef,Presence,Completeness,DataClassification,encode_value,list_type,money_type,record_type,enum_type,domain)
-from nsl.ir import NsoCodec,LiteralExpr,SymbolRefExpr,FieldExpr,ProjectionExpr,CallExpr,BinaryExpr
+from nsl.ir import NsoCodec,LiteralExpr,SymbolRefExpr,FieldExpr,ProjectionExpr,CallExpr,BinaryExpr,ReadExpr,ResultPolicy
 from nsl.runtime import RuntimeEngine
 from nsl.runtime_models import ExecutionContext,ExecutionRequest
 from nsl.security import ExecutionPrincipal,PrincipalVerification
@@ -73,6 +73,9 @@ def parse(program):
             expr=CallExpr(node,p[1],args,t)
         elif kind=='B':
             right=stack.pop();left=stack.pop();expr=BinaryExpr(node,p[1],left,right,t)
+        elif kind=='R':
+            names=[] if p[2]=='-' else p[2].split('+');n=len(names);args=tuple(stack[-n:]) if n else ();stack=stack[:-n] if n else stack
+            flags=int(p[3]);expr=ReadExpr(node,p[1],tuple(zip(names,args)),t,ResultPolicy(bool(flags&1),bool(flags&2),bool(flags&4)))
         stack.append(expr)
     assert len(stack)==1
     return stack[0]
@@ -178,4 +181,4 @@ async def main():
     await row('let',binary(l('one',node='left'),l('zero',node='right'),'DIV','Decimal'))
     # Combined field/projection/call expression, with no mutation of its source.
     await row('let',binary(call(s(t='ListRecord',node='source')+';P,a,ListInt,projection',node='sum'),l('one',node='right')),bind('records','ListRecord'))
-asyncio.run(main())
+if __name__=='__main__':asyncio.run(main())

@@ -34,3 +34,6 @@ rust/crates/nsl-runtime/tests/fixtures/tools-oracle.tsv text eol=lf
 rust/crates/nsl-runtime/tests/fixtures/timeouts-oracle.tsv text eol=lf
 rust/crates/nsl-runtime/tests/fixtures/expressions-oracle.tsv text eol=lf
 rust/crates/nsl-runtime/tests/fixtures/expression-division-exceptions.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/reads-oracle.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/read-authorization-oracle.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/read-security-exceptions.tsv text eol=lf

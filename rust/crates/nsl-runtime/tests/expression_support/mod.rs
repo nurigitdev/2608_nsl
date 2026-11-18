@@ -182,6 +182,32 @@ pub fn parse(program: &str) -> Expression {
                     right,
                 }
             }
+            "R" => {
+                let names = if p[2] == "-" {
+                    vec![]
+                } else {
+                    p[2].split('+').collect::<Vec<_>>()
+                };
+                let n = names.len();
+                let values = stack.split_off(stack.len() - n);
+                let flags: u8 = p[3].parse().unwrap();
+                ExpressionKind::Read {
+                    tool_ref: p[1].into(),
+                    arguments: names
+                        .into_iter()
+                        .zip(values)
+                        .map(|(name, value)| NamedExpression {
+                            name: name.into(),
+                            value,
+                        })
+                        .collect(),
+                    result_policy: ResultPolicy {
+                        required: flags & 1 != 0,
+                        accept_partial: flags & 2 != 0,
+                        empty_is_valid: flags & 4 != 0,
+                    },
+                }
+            }
             _ => panic!(),
         };
         stack.push(Expression {

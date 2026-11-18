@@ -1,4 +1,4 @@
-# NSL Runtime models, context, tools and expressions
+# NSL Runtime models, context, tools, expressions and READ
 
 ## R6-S01 scope and ownership
 
@@ -234,3 +234,85 @@ The [first Windows CI run](https://github.com/nurigitdev/2608_nsl/actions/runs/4
 Pinned `nightly-2026-11-15` LLVM instrumentation reports workspace executable-line coverage (the Rust statement figure) **99.19%** (8,711/8,782), branch **98.38%** (1,277/1,298). Core Money reaches **100.00%/100.00%**. Defensive work-stack/empty-collection/comparison guards remain in the totals; physical test code and generated Unicode constant data are excluded consistently with previous slices. Rust and Python use different instrumentation and are reported separately.
 
 No package, dependency edge, version, feature or checksum changes in this Slice. The 17-package external inventory is unchanged. `Cargo.lock` SHA-256 remains **`628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`** before and after the frozen build.
+
+## R6-S04 canonical READ execution
+
+`ReadEvaluator` adds asynchronous READ and READ-containing LET to the existing Typed-IR expression component. It shares `ExpressionMachine` with the pure `ExpressionEvaluator`; the machine pauses before a READ's arguments and resumes after provider validation. The pure facade still returns its existing typed unsupported-service error for READ/WRITE. WRITE expressions remain unsupported by the READ driver. The before/after refactor regression suites both passed all 154 existing Rust tests, including the 719-expression corpus and the same 128 KiB pure-evaluator stack boundary.
+
+The caller injects an immutable `ToolContractCatalog`, `ToolExecutionPort`, `ReadAuthorizationPort` and an explicit Decimal encoding byte budget. Business-system I/O is confined to the injected Tool Port. The component assumes caller-admitted bounded IR and context. It does not replace production principal verification, skill/profile preflight or artifact trust admission; the host must explicitly validate those boundaries. `StaticReadAuthorizer` mirrors the Oracle component's principal validation, exact scope membership and deterministic default-deny decision reference. It returns the reference used in `ToolCallRequest`, without adding an authorization timestamp or wire schema. A reference by itself is not authority. A host can inject current authorization policy; denial stops before evaluating any arguments or nested READs.
+
+### Admission and execution order
+
+1. Check the expression deadline, find its required tool and resolve the exact catalog version.
+2. Enforce the approved security rule: **both declared and resolved capability must be READ, and declared scope must exactly equal the resolved contract scope**. Reject with `TOOL_CONTRACT_MISMATCH` before authorization, child evaluation, resource/invocation accounting or provider dispatch. Do not normalize scope text or treat an unregistered capability as READ.
+3. Validate the argument-name set and reject duplicates, including a duplicate alongside every otherwise required argument. Authorize using the **actual contract scope** and then evaluate arguments in IR order. Each nested READ follows the same admission procedure.
+4. Consume one tool-call allowance and increment the arbitrary-precision invocation counter. Format its ID as the Oracle's minimum-width-four integer (`inv0001`, `inv10000`, etc.). Compute canonical argument SHA-256 even without an audit sink, retaining the Oracle's encoding-failure/accounting order. Construct the request with original execution/node/tool/version, principal, tenant and authorization correlation.
+5. Validate the request hash/types, then invoke once with the smaller of contract timeout and the ceiling remaining duration. Each invocation owns a fresh cooperative cancellation signal. R6-S02 cancellation/cleanup semantics are preserved; cancellation suppression can return a value, cleanup errors retain their type, and cleanup is awaited without a second deadline. One timed-out invocation cannot cancel a later sibling. `TOOL_TIMEOUT` becomes a duration `LimitExceeded` only when the remaining execution duration selected that timeout. No timeout, transport or cancellation result infers a business commit outcome or retries WRITE.
+6. Validate structured identity/snapshot metadata, contract output type/classification/value, and canonical result hash, in that order. Apply the required/empty policy, then check the deadline. Closed Rust metadata types exclude Python wrong-type envelope fields; an adapter must return a typed malformed-result error for an unstructured response.
+7. Observe list size, attach `prov:<invocation_id>:<first 12 hash hex digits>`, and finish the outer expression's envelope-type/completeness/deadline/list checks. A collection overflow records its maximum size before failing and does not publish a LET value. Read-specific collection failure precedes observation of that result's completeness, matching the Oracle. PARTIAL and UNKNOWN are preserved even when `accept_partial` is false; R6-S05 owns strict CHECK interpretation.
+
+`ReadExecutionError` retains typed expression, Tool, authorization, catalog and encoding failures. Its public source chain does not disclose provider internals. Tool codes/messages and expression node/detail identities are differentially checked. Catalog comparison uses kind/tool ID/version; the fixture normalizer renders the Oracle's KeyError text, while the existing Rust catalog `Display` stays generic. Existing explicit Decimal budgets and the 4,300-digit canonical integer bound return typed encoding errors. Complete execution-result/debug projection remains R6-S07. Audit recording and snapshot persistence remain their planned later slices; no new audit or snapshot wire contract is introduced here.
+
+### Approved security exception and current Python issue
+
+Frozen Oracle `28a949e` and the current Python `nsl/runtime.py`, `nsl/tools.py`, and `nsl/security.py` had identical relevant source at review. Their READ path authorizes `required.required_scope` and does not compare the required capability/scope to the resolved contract's capability/scope. A correct hash of an actual WRITE contract can therefore be paired with forged READ/weaker-scope metadata. Hash and NSO integrity checks alone do not detect that disagreement.
+
+[The reproducible probe](tests/fixtures/probe_python_read_metadata.py) passes complete NSO encoding/decoding and the ordinary Python `RuntimeEngine.execute` path in IR 1.0 and 1.1. The principal has `nsl:skill:execute` and `test:read`, lacks `test:write`, and there are no approvals. The actual contract is WRITE/CREATE requiring `test:write`, while its IR declaration advertises READ/`test:read`. Both Python executions return COMPLETED and invoke the synthetic mock handler once. The probe constructs no external provider and makes no business mutation.
+
+This is a runtime authorization/contract-binding vulnerability requiring a Python security fix. The probe establishes the missing core check, not exposure or compromise of a deployed service; trusted-artifact restrictions, catalog contents and independent provider authorization can constrain practical exploitation. Those layers do not remove the need to enforce the Runtime boundary.
+
+Under the user's explicit R6-S04 decision, Rust rejects this behavior instead of reproducing it. The 22 frozen security observations are kept separate from matching Oracle cases; tests assert `TOOL_CONTRACT_MISMATCH`, zero authorizer/provider calls, no argument evaluation, zero charged tool calls/invocation increments and no LET publication. Actual NSO 1.0/1.1 round-trip tests include a nested READ argument and verify that the outer invalid metadata is rejected before the nested provider can run.
+
+**Python remediation remains open and is not claimed as delivered by this Rust Slice.** The recommended next work, before R6-S05, is a separately scoped Python security patch: compare resolved capability/scope during preflight, enforce READ-only capability again in `_execute_read` (including a READ inside the controlled pipeline), and authorize the actual contract scope. Keep frozen Oracle `28a949e` and its wheel lock unchanged; record the security exception rather than silently changing the compatibility reference. No next Rust Slice is started here.
+
+To reproduce against a fresh frozen archive or the current tree:
+
+```bash
+oracle_dir=$(mktemp -d)
+git archive 28a949ec96581cbdc52c8133527b23bb5b72ee0a nsl | tar -x -C "$oracle_dir"
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/probe_python_read_metadata.py "$oracle_dir"
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/probe_python_read_metadata.py .
+```
+
+### R6-S04 verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R6-S04-READ-ORACLE` | **273 matching READ observations** in [the differential suite](tests/read_oracle.rs): IR 1.0/1.1; all required/accept-partial/empty policies with COMPLETE/PARTIAL/UNKNOWN and scalar/list/empty-record results; identity/type/class/value/hash/snapshot failures; missing/duplicate argument priority; missing/version/changed contracts; exact request envelopes, authorization correlation and tenant/subject/scopes; -2/-1/0/998/999/9,998/9,999/100-digit invocation seeds; tool-call and collection boundaries; scripted deadline checks; nested/sibling READ and aggregation; error-side resources and completeness. |
+| `R6-S04-AUTH-ORACLE` | **10 matching authorization observations** in [the boundary suite](tests/read_boundaries.rs): deterministic allow/deny references, missing/Unicode scopes, blank action/scopes, malformed principal and credential admission. |
+| `R6-S04-SECURITY-EXCEPTION` | **22 approved differences** in [the differential suite](tests/read_oracle.rs): actual WRITE/TRANSACTION/unregistered capability, weaker declared scope, combined WRITE/scope substitution, and non-READ declaration; safe Rust rejection before all child/provider effects. These are unmodified Oracle observations, not patched expectations. |
+| `R6-S04-BOUNDARIES` | **8 boundary tests**: NSO 1.0/1.1 forged-metadata admission and nested-call isolation, injected current denial, full-name-set duplicate rejection, explicit input/result encoding budgets and charged attempts, safe error displays/chains, WRITE-expression rejection, MockToolExecutor/immutable LET and independent contexts, timeout cancellation/suppression/cleanup-error measurement, late values after execution expiry, and fresh cancellation for sibling calls. |
+
+| Rust SRS | R6-S04 status and evidence |
+| --- | --- |
+| `NSL-RUST-RUN-004`, `NSL-RUST-TOOL-005/006/007/008` | Canonical READ expression/LET component implemented through injected ports, request/result validation, exact hashes and provenance. Full RuntimeEngine statement/result integration remains R6-S05–S07. |
+| `NSL-RUST-TOOL-004` | Exact missing/incompatible catalog failures and changed-contract rejection verified; provider is not invoked. |
+| `NSL-RUST-TOOL-009`, `NSL-RUST-ASYNC-003` | Per-call timeout/cancel/cleanup and duration mapping verified without commit inference or business retry. |
+| `NSL-RUST-CTX-001/002` | Execution/principal/tenant/subject/authorization correlation preserved; injected current Tool authority enforced. Production verified-principal/skill admission remains the host/integration boundary. |
+| `NSL-RUST-CTX-004/005/006/007`, `NSL-RUST-RUN-011` | Charged attempts, exact invocation counters, deadline/collection accounting and completeness/error-side observations verified. |
+| `NSL-RUST-SEC-001/002/003/005` | No direct enterprise access or dynamic execution. READ cannot dispatch a resolved WRITE contract or substitute a weaker required scope; new Rust security guard closes the demonstrated path. Governed WRITE remains R7. |
+| `NSL-RUST-SEC-006` | Request identity/correlation isolation evidence; provider business-data tenant filtering remains its trusted responsibility, not a claim made by this component. |
+| `NSL-RUST-ASYNC-001/002/004/005`, `NSL-RUST-TOOL-010` | Existing pinned Tokio/time boundary reused, no new Tokio wire/model types, Tool and current-authorization ports explicitly Send+Sync. |
+| `NSL-RUST-RUN-005/017` | Immutable READ-containing LET, pure-expression regression and deterministic corpus generation verified. Whole-program differential gate remains R6-S07. |
+
+The fixed reference remains `28a949ec96581cbdc52c8133527b23bb5b72ee0a`. Generate fixtures from the repository root with Python 3.12:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_reads.py "$oracle_dir" normal > "$oracle_dir/reads-oracle.tsv"
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_reads.py "$oracle_dir" auth > "$oracle_dir/read-authorization-oracle.tsv"
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_reads.py "$oracle_dir" security > "$oracle_dir/read-security-exceptions.tsv"
+```
+
+Each fixture was generated twice and matched the checked-in file and SHA-256. The existing 719-case expression fixture was regenerated byte-for-byte too. Explicit LF attributes preserve fixture bytes across operating systems.
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `reads-oracle.tsv` | `7885d6d3c515deb4e1d947e025e2de3063a5ee3a901564d3e0b73ffd9401d5fb` |
+| `read-authorization-oracle.tsv` | `262c0f8b49d7ed2ad0b038324e3ac199fd886a0eb60b20225f7be71b4de398b9` |
+| `read-security-exceptions.tsv` | `2ca3117be5b717cffa47936c977d15a6339d8f5ef5549e6ea95d37e22e5ea297` |
+
+Local stable **Rust 1.99.1** passes fmt, locked workspace check, all-target/all-feature Clippy with warnings denied, the Architecture Dependency Guard and its **7 tests**, **164 Rust tests**, and frozen workspace build. The mandatory Python quality gate ran **exactly once across R6-S04 and its security-decision continuation**: **2,333 passed**, statement **99.29%**, branch **98.14%**. Its coverage data was directed to the repository-local `test/` directory. Python production sources are unchanged.
+
+Pinned `nightly-2026-11-15` LLVM instrumentation reports workspace executable-line coverage (the Rust statement figure) **99.12%** (9,027/9,107), branch **98.13%** (1,309/1,334). The authorization module reaches **100.00%/100.00%**. Defensive internal traversal/READ-finish branches remain included; physical test code and generated Unicode constant data are excluded consistently with previous slices. Rust and Python use different instrumentation and are reported separately.
+
+External inventory, dependency edges, features and checksums are unchanged (17 packages). `Cargo.lock` SHA-256 is still `628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`, identical before and after frozen build.

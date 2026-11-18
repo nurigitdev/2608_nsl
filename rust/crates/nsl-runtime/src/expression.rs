@@ -1,12 +1,12 @@
-//! Pure Typed-IR evaluation. Traversal is iterative and preserves Oracle order;
-//! provider operations are admitted by later execution slices.
+//! Shared iterative Typed-IR traversal. The pure facade stops at service nodes;
+//! the READ driver admits and resumes provider operations through the same machine.
 mod builtins;
 mod operations;
 mod values;
 
 use crate::{BindingError, BindingNamespace, ExecutionContext, LimitExceeded, RuntimeClock};
 use nsl_core::{Completeness, DataClassification, Presence, TypeRef, Value, ValueEnvelope};
-use nsl_ir::{Expression, ExpressionKind, LiteralValue};
+use nsl_ir::{Expression, ExpressionKind, LiteralValue, NamedExpression, ResultPolicy};
 use std::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -84,19 +84,58 @@ pub(super) fn mismatch(node: &str) -> ExpressionRuntimeError {
 enum Step<'a> {
     Enter(&'a Expression),
     Finish(&'a Expression, usize),
+    FinishRead(&'a Expression, usize),
 }
 
-#[derive(Clone, Copy, Debug, Default)]
-pub struct ExpressionEvaluator;
-impl ExpressionEvaluator {
-    pub fn evaluate<C: RuntimeClock>(
-        &self,
+pub(crate) enum EvaluationProgress<'a> {
+    Complete(ValueEnvelope),
+    ReadStart {
+        expression: &'a Expression,
+        tool_ref: &'a str,
+        arguments: &'a [NamedExpression],
+        policy: ResultPolicy,
+    },
+    ReadReady {
+        expression: &'a Expression,
+        arguments: Vec<ValueEnvelope>,
+    },
+}
+pub(crate) struct ExpressionMachine<'a> {
+    steps: Vec<Step<'a>>,
+    values: Vec<ValueEnvelope>,
+}
+impl<'a> ExpressionMachine<'a> {
+    pub(crate) fn new(expression: &'a Expression) -> Self {
+        Self {
+            steps: vec![Step::Enter(expression)],
+            values: vec![],
+        }
+    }
+    pub(crate) fn begin_read(
+        &mut self,
+        expression: &'a Expression,
+        arguments: &'a [NamedExpression],
+    ) {
+        self.steps
+            .push(Step::FinishRead(expression, self.values.len()));
+        self.steps
+            .extend(arguments.iter().rev().map(|a| Step::Enter(&a.value)));
+    }
+    pub(crate) fn accept_read<C: RuntimeClock>(
+        &mut self,
         ctx: &mut ExecutionContext<C>,
         expression: &Expression,
-    ) -> Result<ValueEnvelope, ExpressionRuntimeError> {
-        let mut steps = vec![Step::Enter(expression)];
-        let mut values = Vec::<ValueEnvelope>::new();
-        while let Some(step) = steps.pop() {
+        value: ValueEnvelope,
+    ) -> Result<(), ExpressionRuntimeError> {
+        finish(ctx, expression, &value)?;
+        self.values.push(value);
+        Ok(())
+    }
+    pub(crate) fn advance<C: RuntimeClock>(
+        &mut self,
+        ctx: &mut ExecutionContext<C>,
+    ) -> Result<EvaluationProgress<'a>, ExpressionRuntimeError> {
+        while let Some(step) = self.steps.pop() {
             match step {
                 Step::Enter(expression) => {
                     ctx.guard().check_deadline()?;
@@ -115,7 +154,7 @@ impl ExpressionEvaluator {
                                 DataClassification::Public,
                             );
                             finish(ctx, expression, &result)?;
-                            values.push(result);
+                            self.values.push(result);
                         }
                         ExpressionKind::SymbolRef { symbol_id } => {
                             let result = ctx
@@ -126,38 +165,81 @@ impl ExpressionEvaluator {
                                 })?
                                 .clone();
                             finish(ctx, expression, &result)?;
-                            values.push(result);
+                            self.values.push(result);
                         }
                         ExpressionKind::Field { source, .. }
                         | ExpressionKind::Projection { source, .. } => {
-                            steps.push(Step::Finish(expression, values.len()));
-                            steps.push(Step::Enter(source));
+                            self.steps.push(Step::Finish(expression, self.values.len()));
+                            self.steps.push(Step::Enter(source));
                         }
                         ExpressionKind::Binary { left, right, .. } => {
-                            steps.push(Step::Finish(expression, values.len()));
-                            steps.push(Step::Enter(right));
-                            steps.push(Step::Enter(left));
+                            self.steps.push(Step::Finish(expression, self.values.len()));
+                            self.steps.push(Step::Enter(right));
+                            self.steps.push(Step::Enter(left));
                         }
                         ExpressionKind::Call { arguments, .. } => {
-                            steps.push(Step::Finish(expression, values.len()));
-                            steps.extend(arguments.iter().rev().map(Step::Enter));
+                            self.steps.push(Step::Finish(expression, self.values.len()));
+                            self.steps.extend(arguments.iter().rev().map(Step::Enter));
                         }
-                        ExpressionKind::Read { .. } | ExpressionKind::Write(_) => {
+                        ExpressionKind::Read {
+                            tool_ref,
+                            arguments,
+                            result_policy,
+                        } => {
+                            return Ok(EvaluationProgress::ReadStart {
+                                expression,
+                                tool_ref,
+                                arguments,
+                                policy: *result_policy,
+                            });
+                        }
+                        ExpressionKind::Write(_) => {
                             return Err(ExpressionRuntimeError::Unsupported {
                                 node_id: expression.node_id.clone(),
                             });
                         }
                     }
                 }
+                Step::FinishRead(expression, start) => {
+                    return Ok(EvaluationProgress::ReadReady {
+                        expression,
+                        arguments: self.values.split_off(start),
+                    });
+                }
                 Step::Finish(expression, start) => {
-                    let arguments = values.split_off(start);
+                    let arguments = self.values.split_off(start);
                     let result = calculate(expression, &arguments)?;
                     finish(ctx, expression, &result)?;
-                    values.push(result);
+                    self.values.push(result);
                 }
             }
         }
-        Ok(values.pop().expect("one result for a completed expression"))
+        Ok(EvaluationProgress::Complete(
+            self.values
+                .pop()
+                .expect("one result for a completed expression"),
+        ))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ExpressionEvaluator;
+impl ExpressionEvaluator {
+    pub fn evaluate<C: RuntimeClock>(
+        &self,
+        ctx: &mut ExecutionContext<C>,
+        expression: &Expression,
+    ) -> Result<ValueEnvelope, ExpressionRuntimeError> {
+        let mut machine = ExpressionMachine::new(expression);
+        match machine.advance(ctx)? {
+            EvaluationProgress::Complete(value) => Ok(value),
+            EvaluationProgress::ReadStart { expression, .. }
+            | EvaluationProgress::ReadReady { expression, .. } => {
+                Err(ExpressionRuntimeError::Unsupported {
+                    node_id: expression.node_id.clone(),
+                })
+            }
+        }
     }
 
     /// Evaluate before binding, exactly as _execute_let. Block statement-node
