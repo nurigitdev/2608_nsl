@@ -112,19 +112,22 @@ fn iterative_expression_traversal_works_on_a_small_stack() {
                 },
             };
         }
-        let expression = std::thread::Builder::new()
+        // Keep NSO admission, Context preparation and teardown on the normal
+        // test stack. The restricted stack measures only expression evaluation.
+        let mut ctx = context();
+        let before = ctx.usage();
+        let (ctx, expression, result) = std::thread::Builder::new()
+            .name(format!("expression-evaluation-depth-{depth}"))
             .stack_size(128 * 1024)
             .spawn(move || {
-                let mut ctx = context();
-                let before = ctx.usage();
-                let result = ExpressionEvaluator.evaluate(&mut ctx, &expression).unwrap();
-                assert_eq!(result.value(), &Value::Int(1.into()));
-                assert_eq!(ctx.usage(), before);
-                expression
+                let result = ExpressionEvaluator.evaluate(&mut ctx, &expression);
+                (ctx, expression, result)
             })
             .unwrap()
             .join()
             .unwrap();
+        assert_eq!(result.unwrap().value(), &Value::Int(1.into()));
+        assert_eq!(ctx.usage(), before);
         drop_expression(vec![expression]);
     }
 }
