@@ -27,3 +27,6 @@ rust/crates/nsl-compiler/tests/fixtures/compiler-oracle.tsv text eol=lf
 rust/crates/nsl-compiler/tests/fixtures/compiler-limit-oracle.tsv text eol=lf
 rust/crates/nsl-core/tests/fixtures/redaction-oracle.tsv text eol=lf
 rust/crates/nsl-compiler/tests/fixtures/compiler-gate-oracle.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/models-oracle.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/guards-oracle.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/contexts-oracle.tsv text eol=lf

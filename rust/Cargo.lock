@@ -143,6 +143,11 @@ version = "0.2.1"
 [[package]]
 name = "nsl-runtime"
 version = "0.2.1"
+dependencies = [
+ "nsl-core",
+ "nsl-ir",
+ "num-bigint",
+]
 
 [[package]]
 name = "nsl-source"
