@@ -50,6 +50,7 @@ from .ir import (
     LiteralExpr,
     ProjectionExpr,
     ReadExpr,
+    RequiredTool,
     SkillObject,
     Statement,
     SymbolRefExpr,
@@ -81,6 +82,7 @@ from .security import (
 )
 from .tools import (
     ToolCallRequest,
+    ToolContract,
     ToolContractValidator,
     ToolExecutionError,
     ToolExecutionPort,
@@ -295,10 +297,12 @@ class RuntimeEngine:
             lambda size: self._validate_collection_size(skill, size),
         )
         for required in skill.required_tools:
+            contract = self.tool_catalog.resolve(required.tool_id, required.version)
+            self._validate_required_tool_metadata(required, contract)
             self.authorizer.authorize(
                 request.principal,
                 f"tool:{required.tool_id}:execute",
-                frozenset({required.required_scope}),
+                frozenset({contract.required_scope}),
             )
 
     def validate_controlled_execution_request(
@@ -318,10 +322,12 @@ class RuntimeEngine:
             lambda size: self._validate_collection_size(skill, size),
         )
         for required in skill.required_tools:
+            contract = self.tool_catalog.resolve(required.tool_id, required.version)
+            self._validate_required_tool_metadata(required, contract)
             self.authorizer.authorize(
                 request.principal,
                 f"tool:{required.tool_id}:execute",
-                frozenset({required.required_scope}),
+                frozenset({contract.required_scope}),
             )
 
     async def execute(
@@ -859,10 +865,33 @@ class RuntimeEngine:
                 raise RuntimeContractError(
                     f"tool contract mismatch: {required.tool_id}"
                 )
+            self._validate_required_tool_metadata(required, contract)
             if required.capability != "READ" and not (
                 allow_controlled and required.capability == "WRITE"
             ):
                 raise RuntimeContractError("WRITE capability is forbidden")
+
+    @staticmethod
+    def _validate_required_tool_metadata(
+        required: RequiredTool,
+        contract: ToolContract,
+        *,
+        read_only: bool = False,
+    ) -> None:
+        """Bind untrusted IR authority claims to the resolved contract."""
+        if (
+            required.capability != contract.capability
+            or required.required_scope != contract.required_scope
+            or (read_only and contract.capability != "READ")
+        ):
+            if read_only:
+                raise ToolExecutionError(
+                    "TOOL_CONTRACT_MISMATCH",
+                    f"read contract metadata mismatch: {required.tool_id}",
+                )
+            raise RuntimeContractError(
+                f"tool contract metadata mismatch: {required.tool_id}"
+            )
 
     def _bind_inputs_and_contexts(self, ctx: ExecutionContext) -> None:
         inputs, contexts = self._validated_input_context_bindings(
@@ -1314,6 +1343,7 @@ class RuntimeEngine:
                 f"read references unregistered tool: {expression.tool_ref}"
             )
         contract = self.tool_catalog.resolve(required.tool_id, required.version)
+        self._validate_required_tool_metadata(required, contract, read_only=True)
         argument_names = tuple(name for name, _ in expression.arguments)
         expected_names = {name for name, _ in contract.input_types}
         if (
@@ -1327,7 +1357,7 @@ class RuntimeEngine:
         decision = self.authorizer.authorize(
             ctx.request.principal,
             f"tool:{required.tool_id}:execute",
-            frozenset({required.required_scope}),
+            frozenset({contract.required_scope}),
         )
         arguments = {
             name: await self._evaluate(ctx, value, tools, services)
