@@ -161,7 +161,7 @@ impl<'source> StaticTypeChecker<'source> {
         let (logical_path, snippet) = self.diagnostics.location(span);
         TypeCheckError::Diagnostic(Box::new(TypeDiagnostic {
             kind,
-            message: message.into(),
+            message: nsl_core::redact_text(&message.into()),
             span: span.clone(),
             logical_path,
             snippet,

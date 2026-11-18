@@ -324,3 +324,58 @@ fn output_preflight_rejects_wide_bodies_strings_paths_and_nested_types() {
         assert!(error.source().is_some());
     }
 }
+
+#[test]
+fn public_diagnostics_redact_once_while_preserving_original_source_identity() {
+    use nsl_compiler::includes::{IncludeDiagnosticKind, IncludeError};
+    let catalog = type_support::catalog();
+    let source = SourceFile::from_text("compiler/Bearer synthetic.ns",         "language NSL \"0.2\"; skill TEST {version \"1\"; risk READ_ONLY; limits {tool_calls 1;loop_iterations 1;emitted_rows 1;collection_size 1;} requires {tool MISSING version \"api_key=synthetic\";} }"
+,None).unwrap();
+    let original = source.clone();
+    let compiler = NslCompiler::new(&catalog, options(generous()));
+    let error = compiler.compile(source).unwrap_err();
+    let CompileError::Type(nsl_compiler::types::TypeCheckError::Diagnostic(ref value)) = error
+    else {
+        panic!("contract diagnostic")
+    };
+    assert!(!value.message.contains("synthetic"));
+    assert_eq!(
+        value.logical_path.as_deref(),
+        Some("compiler/Bearer [REDACTED]")
+    );
+    assert_eq!(value.span.source_id(), original.source_id());
+    let diagnostic = error.diagnostic().unwrap();
+    assert_eq!(diagnostic.code, "NSL-E4001");
+    assert_eq!(diagnostic.phase, "SEMANTIC");
+    assert_eq!(diagnostic.span, value.span);
+    assert_eq!(diagnostic.message, value.message); // no second non-idempotent redaction
+    assert_eq!(diagnostic.snippet, value.snippet);
+    assert!(original.logical_path().contains("synthetic"));
+    assert!(original.text().contains("api_key=synthetic"));
+
+    let root=SourceFile::from_text("compiler/Bearer synthetic.ns",        "language NSL \"0.2\"; skill TEST {version \"1\";risk READ_ONLY;limits {tool_calls 1;loop_iterations 1;emitted_rows 1;collection_size 1;} include \"part.ns\";}"
+,None).unwrap();
+    let memory = Memory(vec![]);
+    // Include adapters expose this fixed, codeless failure before the compiler
+    // maps it to a source-aware NSL diagnostic. Provider details stay outside.
+    assert_eq!(
+        IncludeResolveError.to_string(),
+        "include source could not be resolved"
+    );
+    assert!(IncludeResolveError.source().is_none());
+    let error = NslCompiler::new(&catalog, options(generous()))
+        .with_include_resolver(&memory)
+        .compile(root.clone())
+        .unwrap_err();
+    let CompileError::Include(IncludeError::Diagnostic(ref value)) = error else {
+        panic!("include resolution")
+    };
+    assert_eq!(value.kind, IncludeDiagnosticKind::ResolutionFailed);
+    assert_eq!(value.logical_path, "compiler/Bearer [REDACTED]");
+    assert_eq!(&value.source_id, root.source_id());
+    assert_eq!(value.span.as_ref().unwrap().source_id(), root.source_id());
+    assert_eq!(
+        error.diagnostic().unwrap().logical_path.as_deref(),
+        Some("compiler/Bearer [REDACTED]")
+    );
+}

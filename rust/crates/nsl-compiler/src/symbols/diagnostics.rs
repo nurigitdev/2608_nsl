@@ -43,7 +43,12 @@ impl fmt::Display for SymbolDiagnostic {
             SymbolDiagnosticKind::DuplicateSymbol => "duplicate symbol or shadowing is forbidden",
             SymbolDiagnosticKind::DuplicateApproval => "duplicate approval ID",
         };
-        write!(f, "{}: {message}: {}", self.kind.code(), self.name)
+        write!(
+            f,
+            "{}: {}",
+            self.kind.code(),
+            nsl_core::redact_text(&format!("{message}: {}", self.name))
+        )
     }
 }
 

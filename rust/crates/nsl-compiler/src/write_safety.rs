@@ -198,7 +198,7 @@ impl<'source> WriteSafetyAnalyzer<'source> {
         let (logical_path, snippet) = self.diagnostics.location(span);
         WriteSafetyError::Diagnostic(Box::new(WriteSafetyDiagnostic {
             kind,
-            message: kind.message(tool_id),
+            message: nsl_core::redact_text(&kind.message(tool_id)),
             span: span.clone(),
             logical_path,
             snippet,

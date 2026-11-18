@@ -245,7 +245,7 @@ impl<'source> ApprovalBindingAnalyzer<'source> {
         let (logical_path, snippet) = self.diagnostics.location(span);
         ApprovalAnalysisError::Diagnostic(Box::new(ApprovalDiagnostic {
             kind,
-            message,
+            message: nsl_core::redact_text(&message),
             span: span.clone(),
             logical_path,
             snippet,

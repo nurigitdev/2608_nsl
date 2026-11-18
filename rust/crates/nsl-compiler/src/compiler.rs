@@ -263,7 +263,7 @@ impl<'a> NslCompiler<'a> {
             CompileError::Diagnostic(Box::new(CompilerDiagnostic {
                 code,
                 phase,
-                message,
+                message: nsl_core::redact_text(&message),
                 span: span.clone(),
                 logical_path,
                 snippet,

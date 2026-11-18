@@ -1,3 +1,4 @@
+use nsl_core::redact_text;
 use std::collections::HashMap;
 
 use nsl_source::{SourceFile, SourceId, SourceSpan};
@@ -17,10 +18,10 @@ impl<'source> SourceDiagnosticContext<'source> {
     pub(crate) fn location(&self, span: &SourceSpan) -> (Option<String>, Option<String>) {
         let source = self.0.get(span.source_id());
         (
-            source.map(|source| source.logical_path().to_owned()),
+            source.map(|source| redact_text(source.logical_path())),
             source
                 .and_then(|source| source_line(source.text(), span.start().line()))
-                .map(str::to_owned),
+                .map(redact_text),
         )
     }
 }

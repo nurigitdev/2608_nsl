@@ -261,7 +261,7 @@ impl<'a> SourceBundleBuilder<'a> {
 
     fn parse(&self, source: &SourceFile, mode: ParseMode) -> Result<Ast, IncludeError> {
         Parser::parse(source, mode, self.parse_limits).map_err(|error| IncludeError::Parse {
-            logical_path: source.logical_path().to_owned(),
+            logical_path: nsl_core::redact_text(source.logical_path()),
             error,
         })
     }

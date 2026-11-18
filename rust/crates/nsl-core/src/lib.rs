@@ -11,7 +11,9 @@ mod type_ref;
 mod value;
 
 pub use canonical_json::{CanonicalJsonError, MAX_JSON_INTEGER_DIGITS, canonical_json};
-pub use credentials::{CredentialMaterialError, ensure_no_credential_material};
+pub use credentials::{
+    CredentialMaterialError, REDACTED, ensure_no_credential_material, redact_text,
+};
 pub use decimal::{DecimalError, NslDecimal};
 pub use identity::{
     ApprovalRequestId, BusinessOperationId, IdempotencyKey, IdentityError, PayloadHash,

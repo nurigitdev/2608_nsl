@@ -73,3 +73,20 @@ cmp "$oracle_dir/core-gate.tsv" rust/crates/nsl-core/tests/fixtures/core-gate.ts
 .venv/bin/python -I -B rust/crates/nsl-core/tests/fixtures/generate_core_gate.py --word-boundaries > "$oracle_dir/oracle_unicode.rs"
 cmp "$oracle_dir/oracle_unicode.rs" rust/crates/nsl-core/src/oracle_unicode.rs
 ```
+
+## R5-S09 Public diagnostic redaction
+
+`redact_text(&str) -> String` implements the frozen Oracle's default `redact_text(text)` call used by `Diagnostic.__post_init__`; `REDACTED` is `[REDACTED]`. The shared Core function applies private-key blocks, credential-label assignments, Bearer/Basic schemes and JWT markers in the Oracle's order. It preserves the assignment label/separator and authentication scheme spelling, uses Python-compatible whitespace and case matching, and reuses the pinned Unicode 15.0 word-boundary table. It introduces no dependencies. The optional Python `sensitive_values` replacement interface is outside this default-call API.
+
+The [redaction differential suite](tests/redaction_oracle.rs), verification ID `R5-S09-REDACTION`, checks 9,846 frozen inputs: empty/plain text, every credential-label family, Unicode case folds and word boundaries, quoted/unquoted values and line breaks, authentication schemes, valid/invalid/nested/multiple key blocks, JWT boundaries, pattern precedence and 2,000 seeded combinations. The boundary suite also checks 0/1/4,095/4,096/4,097 repeated plain and marked values. This supports `NSL-RUST-COMP-019` public diagnostics and the compiler-facing portion of `NSL-RUST-SEC-004`; Runtime/Audit/Replay integration remains in later slices.
+
+Apply this function once when constructing public diagnostic strings. The Oracle's transformation is not generally idempotent: an already masked assignment can be matched again. Source text, source IDs, spans and artifact bytes retain their original identity. Credential admission continues to use `ensure_no_credential_material`; redaction does not replace artifact validation.
+
+Regenerate with Python 3.12 from the locked Oracle archive:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-core/tests/fixtures/generate_redaction.py "$oracle_dir" > "$oracle_dir/redaction-oracle.tsv"
+cmp "$oracle_dir/redaction-oracle.tsv" rust/crates/nsl-core/tests/fixtures/redaction-oracle.tsv
+```
+
+Two generations and a fresh archive of `28a949ec96581cbdc52c8133527b23bb5b72ee0a` matched the committed fixture. SHA-256: `cb19fb07231f52d9bd1518e8e451ab606a1e938a807ff7687e3b2052da982075`.

@@ -150,7 +150,7 @@ pub(super) fn diagnostic(
     IncludeError::Diagnostic(IncludeDiagnostic {
         kind,
         source_id: source.source_id().clone(),
-        logical_path: source.logical_path().to_owned(),
+        logical_path: nsl_core::redact_text(source.logical_path()),
         span: span.cloned(),
     })
 }

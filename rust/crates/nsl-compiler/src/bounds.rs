@@ -195,7 +195,7 @@ impl<'source> StaticBoundAnalyzer<'source> {
         let (logical_path, snippet) = self.diagnostics.location(span);
         BoundError::Diagnostic(Box::new(BoundDiagnostic {
             kind,
-            message,
+            message: nsl_core::redact_text(&message),
             span: span.clone(),
             logical_path,
             snippet,

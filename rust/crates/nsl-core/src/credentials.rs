@@ -1,3 +1,6 @@
+mod redact;
+pub use redact::{REDACTED, redact_text};
+
 use std::fmt;
 
 use crate::{ValueData, oracle_unicode::is_word};
