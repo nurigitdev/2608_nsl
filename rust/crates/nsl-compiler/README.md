@@ -130,3 +130,43 @@ Both fixtures were generated twice; the files and SHA-256 values matched each ot
 Pinned Rust 1.99.1 passes fmt, locked workspace check, all-target/all-feature Clippy with warnings denied, the architecture guard and its 7 tests, 100 Rust tests, and a frozen workspace build. The mandatory Python gate ran once across R5-S05, before its decision checkpoint: 2,333 passed, statement 99.29%, branch 98.14%; Python production sources are unchanged.
 
 Using the same pinned LLVM coverage method as R5-S04, Rust workspace executable-line coverage (the statement figure) is **99.18%** (5,338/5,382), and branch coverage is **98.87%** (785/794). Compiler coverage is 99.29%/98.39%. The new bound modules are **100.00%/100.00%** (190/190 executable lines and 12/12 branches).
+
+## R5-S06 Approval binding analysis
+
+`ApprovalBindingAnalyzer::new(sources).analyze(&skill)` runs on a parsed/composed AST before ordinary value-name/type analysis. NSL 0.1 returns an empty analysis. NSL 0.2 returns immutable views of approval declarations and their WRITE bindings. Each declaration reuses the existing `ApprovalSymbol` and independent `ApprovalSymbolId` counter, plus its event order. Each binding records that approval ID, the WRITE's arena-local `ExpressionId`, its event order, and whether it occurs inside a foreach body. Analysis results and their arena IDs belong to the originating skill.
+
+Approval declarations and writes are visited in the Oracle's preorder: a WRITE event precedes its argument events; arguments, binary operands, statements, and EMIT fields retain source order. Only Approval/WRITE events increment the one-based order. A foreach collection is visited before its body and retains the enclosing scope flag. The body and its descendants are inside foreach; a nested foreach's collection is therefore inside its enclosing foreach body.
+
+The analyzer validates in three steps:
+
+1. Collect all declarations in event order. An approval inside foreach produces `NSL-E5305` at its ID token; a duplicate skill-scope ID produces `NSL-E2002` at the second ID token. Declaration errors take precedence over every WRITE-reference error, including errors in earlier source text.
+2. Resolve WRITE approvals in event order. Unknown IDs produce `NSL-E5301`, declarations that do not precede their WRITE produce `NSL-E5302`, and a second WRITE using an already-linked approval produces `NSL-E5303`. These errors point at the WRITE's `approved_by` ID token. Lookup uses only the approval namespace; INPUT/CONTEXT/VARIABLE/ITERATOR/CHECK names do not declare approvals.
+3. Reject the first unlinked approval in declaration order with `NSL-E5304` at its declaration ID. Each successful declaration is linked to exactly one WRITE.
+
+The new compiler-internal `ApprovalTable` owns namespace lookup, duplicate rejection and sequential ID allocation for both this stage and the existing symbol resolver. Its behavior-preserving extraction passed all 100 existing Rust tests before and after refactoring. The symbol resolver retains its existing declaration-only scope; approval linkage diagnostics belong to this new stage. Each Rust analyzer call uses a fresh local table, preventing failed or previous skill analyses from carrying names, counters or foreach state into later calls. This matches the frozen compiler's fresh analyzer per compilation.
+
+Diagnostics reuse `SourceDiagnosticContext` and retain full spans, logical paths, source positions and snippets. Invalid arena references return typed `ApprovalAnalysisError` values. Traversal uses an explicit work stack, including deeply nested calls and loops. WRITE count, prohibition of WRITE inside foreach and Tool Contract safety remain R5-S07; complete lowering/public compiler integration remains R5-S08. Thus two distinct approvals linked to two writes can pass this stage, as in the Oracle, before the later strict WRITE-count check.
+
+| Rust SRS | Status, verification ID, and evidence in R5-S06 |
+| --- | --- |
+| `NSL-RUST-COMP-010` | Implemented in the approval-binding stage. `R5-S06-APPROVAL-ORACLE`: [Oracle differential tests](tests/approval_oracle.rs) verify declared approval lookup, independent namespace/IDs, and skill-scope declarations. |
+| `NSL-RUST-COMP-011` | Implemented. `R5-S06-APPROVAL-ORDER`: the differential cases verify declaration-before-WRITE, preorder for nested writes, event-only ordering and collection/body scope flags. |
+| `NSL-RUST-COMP-012` | Implemented in this stage. `R5-S06-APPROVAL-LINKS`: duplicate declarations, unknown/unused approvals and repeated WRITE use are rejected; the AST/grammar has one explicit approval ID per WRITE. |
+| `NSL-RUST-COMP-019` | Additional approval-stage evidence. `R5-S06-APPROVAL-DIAGNOSTICS`: 385 frozen cases compare codes, messages, positions, full spans and snippets, including declaration/reference/unused-error priority. The generator also checks that rejected ordinary source cases produce the same first error through the Oracle's full compiler. |
+
+The fixture includes all 341 sequences of zero through four events drawn from declare A, declare B, write A and write B, plus targeted namespace, scope, nesting, Unicode source/snippet/path, case-sensitive ID, NSL 0.1 and missing-context cases. One explicit model case changes a parsed NSL 0.2 AST to version 0.1 to verify that the analyzer bypasses approval nodes for 0.1; it does not add 0.2 grammar to the 0.1 parser. Successful standalone analysis cases intentionally include shapes rejected by later typing or WRITE safety.
+
+`R5-S06-APPROVAL-BOUNDARY` in the [boundary tests](tests/approval_boundaries.rs) verifies allocation compatibility with the existing symbol resolver, missing source context, error chaining, invalid statement references, isolation between skills and error paths, 4,096 nested foreach/call constructs and a chain of 8,192 binary operators on a 512 KiB stack, and 0/1/2/9,999/10,000/10,001 approval pairs. Opaque expression IDs cannot be forged into parser-created AST nodes; the defensive expression-error public contract is also checked.
+
+Regenerate with Python 3.12 from the same frozen Oracle checkout:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-compiler/tests/fixtures/generate_approvals.py "$oracle_dir" > "$oracle_dir/approval-oracle.tsv"
+cmp "$oracle_dir/approval-oracle.tsv" rust/crates/nsl-compiler/tests/fixtures/approval-oracle.tsv
+```
+
+Two generations matched byte-for-byte and matched the committed fixture. SHA-256: `f9a6e09728076959289cc0da170a074d50d899f4bf3389ad3b21ba19166a1da1`.
+
+Pinned Rust 1.99.1 passes fmt, locked workspace check, all-target/all-feature Clippy with warnings denied, the architecture guard and its 7 tests, 107 Rust tests, and a frozen build. Dependencies and `Cargo.lock` are unchanged. The mandatory Python gate ran once: 2,333 passed, statement 99.29%, branch 98.14%.
+
+The same pinned LLVM method reports workspace executable-line coverage (the statement figure) **99.22%** (5,568/5,612) and branch coverage **98.89%** (805/814). Compiler coverage is 99.39%/98.54%. The new approval modules are **100.00%/100.00%** (210/210 lines, 18/18 branches); the common approval table is **100.00%/100.00%** (26/26 lines, 2/2 branches).

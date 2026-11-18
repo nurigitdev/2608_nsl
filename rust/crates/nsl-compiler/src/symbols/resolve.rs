@@ -1,11 +1,11 @@
-use std::collections::{HashMap, HashSet, hash_map::Entry};
+use std::collections::{HashMap, hash_map::Entry};
 
 use nsl_source::ast::{AstSkill, ExpressionId, ExpressionKind, StatementId, StatementKind};
 use nsl_source::{SourceFile, SourceLanguageVersion, SourceSpan};
 
 use super::diagnostics::SourceDiagnosticContext;
 use super::{
-    ApprovalSymbol, ApprovalSymbolId, ScopeId, ScopeKind, SymbolBinding, SymbolDeclaration,
+    ApprovalSymbol, ApprovalTable, ScopeId, ScopeKind, SymbolBinding, SymbolDeclaration,
     SymbolDiagnosticKind, SymbolId, SymbolReference, SymbolResolution, SymbolResolutionError,
     SymbolScope,
 };
@@ -50,9 +50,8 @@ fn collect_approvals(
     skill: &AstSkill,
     diagnostics: &SourceDiagnosticContext<'_>,
 ) -> Result<Vec<ApprovalSymbol>, SymbolResolutionError> {
-    let mut approvals = Vec::new();
+    let mut approvals = ApprovalTable::default();
     if skill.language_version == SourceLanguageVersion::V0_2 {
-        let mut names = HashSet::new();
         for &id in &skill.body {
             let node = skill
                 .statement(id)
@@ -62,24 +61,19 @@ fn collect_approvals(
                 approval_id_span,
                 ..
             } = &node.kind
+                && approvals
+                    .declare(approval_id, id, approval_id_span)
+                    .is_none()
             {
-                if !names.insert(approval_id) {
-                    return Err(diagnostics.error(
-                        SymbolDiagnosticKind::DuplicateApproval,
-                        approval_id,
-                        approval_id_span,
-                    ));
-                }
-                approvals.push(ApprovalSymbol {
-                    id: ApprovalSymbolId(approvals.len() + 1),
-                    name: approval_id.clone(),
-                    statement: id,
-                    span: approval_id_span.clone(),
-                });
+                return Err(diagnostics.error(
+                    SymbolDiagnosticKind::DuplicateApproval,
+                    approval_id,
+                    approval_id_span,
+                ));
             }
         }
     }
-    Ok(approvals)
+    Ok(approvals.into_symbols())
 }
 
 struct Frame<'ast> {

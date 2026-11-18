@@ -1,5 +1,6 @@
 //! Resolve the names in a composed AST in the frozen Oracle's allocation order.
 
+mod approvals;
 mod diagnostics;
 mod resolve;
 
@@ -8,6 +9,7 @@ use std::fmt;
 use nsl_source::SourceSpan;
 use nsl_source::ast::{ExpressionId, StatementId};
 
+pub(crate) use approvals::ApprovalTable;
 pub use diagnostics::{SymbolDiagnostic, SymbolDiagnosticKind, SymbolResolutionError};
 pub use resolve::resolve_symbols;
 

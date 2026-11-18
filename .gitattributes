@@ -19,3 +19,4 @@ rust/crates/nsl-compiler/tests/fixtures/type-rules-oracle.tsv text eol=lf
 rust/crates/nsl-compiler/tests/fixtures/type-skills-oracle.tsv text eol=lf
 rust/crates/nsl-compiler/tests/fixtures/bounds-model-oracle.tsv text eol=lf
 rust/crates/nsl-compiler/tests/fixtures/bounds-source-oracle.tsv text eol=lf
+rust/crates/nsl-compiler/tests/fixtures/approval-oracle.tsv text eol=lf
