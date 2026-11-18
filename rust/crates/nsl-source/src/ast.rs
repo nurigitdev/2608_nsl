@@ -40,10 +40,10 @@ impl AstSkill {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct StatementId(pub(crate) usize);
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ExpressionId(pub(crate) usize);
 
 #[derive(Clone, Debug, Eq, PartialEq)]

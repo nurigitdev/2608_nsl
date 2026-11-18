@@ -100,6 +100,15 @@ Cargo.lock SHA-256
 b51495d0822b93a4de74258457a4c356fcac54188fa5c2b185ca5dbc684956d6
 ```
 
+## R5-S04 static type checker dependency
+
+`nsl-compiler` adds the internal workspace edge to `nsl-contract` for exact required-tool resolution and input/output typing. The contract crate reaches Core and the already reviewed SHA-256 graph; it does not reach Runtime, Compiler, or Source. External packages, versions, checksums, and features are unchanged. The locked workspace check, frozen build, and architecture guard pass.
+
+```text
+Cargo.lock SHA-256
+39236a3b5fddd19421b37400ae8f22386cd569cd452e845348fd4997951fd5bc
+```
+
 ## Architecture dependency guard
 
 From `rust/`, run `python tools/check_architecture.py` with Python 3.12 and the pinned Rust toolchain. The guard reads Cargo's locked, all-feature graph for all target platforms. It follows dependencies by resolved package ID, including build and development edges, so renaming a crate or depending on it indirectly still exposes the dependency chain.

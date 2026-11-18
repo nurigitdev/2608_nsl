@@ -15,3 +15,5 @@ rust/crates/nsl-compiler/tests/fixtures/include-oracle.tsv text eol=lf
 rust/crates/nsl-contract/tests/fixtures/contract-model-oracle.tsv text eol=lf
 rust/crates/nsl-contract/tests/fixtures/contract-identity-oracle.tsv text eol=lf
 rust/crates/nsl-compiler/tests/fixtures/symbol-oracle.tsv text eol=lf
+rust/crates/nsl-compiler/tests/fixtures/type-rules-oracle.tsv text eol=lf
+rust/crates/nsl-compiler/tests/fixtures/type-skills-oracle.tsv text eol=lf

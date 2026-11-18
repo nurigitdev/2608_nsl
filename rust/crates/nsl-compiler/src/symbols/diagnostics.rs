@@ -1,7 +1,9 @@
-use std::{collections::HashMap, fmt};
+use std::fmt;
 
 use nsl_source::ast::{ExpressionId, StatementId};
-use nsl_source::{SourceFile, SourceId, SourcePosition, SourceSpan};
+use nsl_source::{SourcePosition, SourceSpan};
+
+pub(super) use crate::diagnostics::SourceDiagnosticContext;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SymbolDiagnosticKind {
@@ -73,58 +75,20 @@ impl std::error::Error for SymbolResolutionError {
     }
 }
 
-pub(super) struct SourceDiagnosticContext<'a>(HashMap<&'a SourceId, &'a SourceFile>);
-
-impl<'a> SourceDiagnosticContext<'a> {
-    pub(super) fn new(sources: impl IntoIterator<Item = &'a SourceFile>) -> Self {
-        Self(
-            sources
-                .into_iter()
-                .map(|source| (source.source_id(), source))
-                .collect(),
-        )
-    }
-
+impl SourceDiagnosticContext<'_> {
     pub(super) fn error(
         &self,
         kind: SymbolDiagnosticKind,
         name: &str,
         span: &SourceSpan,
     ) -> SymbolResolutionError {
-        let source = self.0.get(span.source_id());
+        let (logical_path, snippet) = self.location(span);
         SymbolResolutionError::Diagnostic(Box::new(SymbolDiagnostic {
             kind,
             name: name.into(),
             span: span.clone(),
-            logical_path: source.map(|source| source.logical_path().to_owned()),
-            snippet: source
-                .and_then(|source| source_line(source.text(), span.start().line()))
-                .map(str::to_owned),
+            logical_path,
+            snippet,
         }))
     }
-}
-
-// The Oracle indexes Python splitlines() for diagnostic snippets.
-fn source_line(text: &str, mut line: usize) -> Option<&str> {
-    let mut start = 0;
-    for (offset, ch) in text.char_indices() {
-        if offset < start
-            || !matches!(
-                ch,
-                '\n' | '\r' | '\u{b}' | '\u{c}' | '\u{1c}'
-                    ..='\u{1e}' | '\u{85}' | '\u{2028}' | '\u{2029}'
-            )
-        {
-            continue;
-        }
-        if line == 1 {
-            return Some(&text[start..offset]);
-        }
-        start = offset + ch.len_utf8();
-        if ch == '\r' && text.as_bytes().get(start) == Some(&b'\n') {
-            start += 1;
-        }
-        line -= 1;
-    }
-    (line == 1 && start < text.len()).then(|| &text[start..])
 }

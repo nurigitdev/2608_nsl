@@ -50,7 +50,7 @@ pub struct SymbolScope {
     pub kind: ScopeKind,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SymbolDeclaration {
     Input(usize),
     Context(usize),
