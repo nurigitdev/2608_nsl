@@ -170,3 +170,53 @@ Two generations matched byte-for-byte and matched the committed fixture. SHA-256
 Pinned Rust 1.99.1 passes fmt, locked workspace check, all-target/all-feature Clippy with warnings denied, the architecture guard and its 7 tests, 107 Rust tests, and a frozen build. Dependencies and `Cargo.lock` are unchanged. The mandatory Python gate ran once: 2,333 passed, statement 99.29%, branch 98.14%.
 
 The same pinned LLVM method reports workspace executable-line coverage (the statement figure) **99.22%** (5,568/5,612) and branch coverage **98.89%** (805/814). Compiler coverage is 99.39%/98.54%. The new approval modules are **100.00%/100.00%** (210/210 lines, 18/18 branches); the common approval table is **100.00%/100.00%** (26/26 lines, 2/2 branches).
+
+## R5-S07 Strict WRITE safety
+
+`WriteSafetyAnalyzer::new(sources).analyze(&approvals, &contracts_by_id)` consumes an approval-checked AST view and the exact, already-resolved required Tool Contracts. Contract identity/version resolution precedes this stage in the frozen compiler; complete compiler assembly remains R5-S08. The analyzer neither hashes a contract nor invokes a provider. It accepts no principal, tenant or entitlement input and exposes no option to relax WRITE count or foreach policy.
+
+The stage follows Oracle `28a949e` in this order:
+
+1. More than one WRITE produces `NSL-E5202` at the second WRITE in approval-analysis preorder.
+2. A WRITE inside a foreach body produces `NSL-E5201` at that WRITE, before contract lookup.
+3. A tool absent from the resolved required-contract map produces `NSL-E2201`.
+4. The selected contract must have WRITE capability (`NSL-E5401`), a supported OperationKind (`NSL-E5404`), ATOMIC semantics (`NSL-E5402`), structured required idempotency (`NSL-E5403`) and valid risk metadata (`NSL-E5405`), in that order.
+
+Zero and one WRITE are allowed. The existing CREATE, CREATE_DRAFT and UPDATE operations and risk metadata R0 through R5 are accepted. Risk metadata does not make an entitlement decision. A root foreach collection expression is outside that foreach's body; a nested foreach collection is inside its enclosing body. These flags retain the Oracle's behavior from R5-S06 rather than treating every expression in a foreach statement identically.
+
+The returned `WriteSafetyAnalysis` preserves all twelve Oracle fields: write/approval/mapping/unused/max-call counts, loop status, approval/operation/atomicity/idempotency/risk assertions, and `requires_verified_package_for_write`. That final flag is false for zero WRITE and true for one WRITE. The report is compile metadata; Runtime/package verification must independently enforce the execution boundary.
+
+`ApprovalBindingAnalysis<'ast>` now retains a private immutable reference to its originating AST. Safety analysis obtains WRITE nodes from that origin rather than accepting a separately supplied AST with potentially unrelated arena IDs. A default analysis with no origin is rejected with typed `InvalidApprovalAnalysis`; defensive invalid-WRITE errors remain typed. Existing behavior passed all 107 Rust tests before and after this ownership refactor. Callers retaining an analysis must retain its AST as required by Rust borrowing.
+
+Public `ToolContract`, `WriteSemantics` and idempotency models remain validated and immutable. Unsupported operations, non-ATOMIC semantics, missing approval/precondition/idempotency/commit metadata and invalid risks are already rejected at admission. An internal read-only safety-metadata snapshot keeps the ordered policy explicit and supports differential fault injection. Its unit tests reproduce the Oracle tests that bypass Python frozen dataclasses with `object.__setattr__`; no unchecked public Rust constructor or mutable contract model is introduced. Unsupported transaction capability cannot be used for WRITE, and the grammar and existing contract enums do not add dynamic tool dispatch or unsupported transaction semantics.
+
+| Rust SRS | Status, verification ID, and evidence in R5-S07 |
+| --- | --- |
+| `NSL-RUST-COMP-008` | Implemented in WRITE safety. `R5-S07-WRITE-COUNT`: [differential cases](tests/write_safety_oracle.rs) cover 0/1/2/3 WRITEs, nested-write preorder and count-error priority. |
+| `NSL-RUST-COMP-009` | Implemented. `R5-S07-WRITE-FOREACH`: cases cover body writes, nested collections, root collections, writes after loops and loop-error priority over contract errors. |
+| `NSL-RUST-COMP-013` | Implemented in this stage. `R5-S07-WRITE-CONTRACT`: exact resolved-tool lookup and WRITE capability are checked before operation/semantics metadata. |
+| `NSL-RUST-COMP-014/015` | Additional safety/admission evidence. All three operations succeed; DELETE and unknown OperationKind fail admission. |
+| `NSL-RUST-COMP-016` | Safety/admission evidence. `R5-S07-WRITE-POLICY`: 53 policy cases verify injected failures and priority. `R5-S07-WRITE-ADMISSION`: 17 constructor cases verify the public model boundaries. Optional verification metadata retains the existing R5-S01/R5-S02 model and canonical rules; Runtime verification remains later work. |
+| `NSL-RUST-COMP-019` | Additional WRITE-stage evidence. Codes, messages, whole-WRITE spans, positions and snippets match the frozen component, including missing source context and Unicode source lines. |
+
+The source fixture has 50 cases, including R0/R5 and operation boundaries, approval-before-safety failures, unknown/dynamic-value tool names, READ/TRANSACTION/unregistered capabilities and all successful report fields. The 53 policy cases include all 32 combinations of five invalid metadata categories and targeted wrong-type/absent fields. The [boundary tests](tests/write_safety_boundaries.rs) verify origin-bound analysis, call isolation, missing diagnostic context, typed error chaining and strict static-tool/explicit-approval grammar. Whole compiler lowering and end-to-end canonical output remain R5-S08.
+
+Regenerate the three fixtures with Python 3.12 from the frozen Oracle checkout:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-compiler/tests/fixtures/generate_write_safety.py "$oracle_dir" policies > "$oracle_dir/write-safety-policy-oracle.tsv"
+.venv/bin/python -I -B rust/crates/nsl-compiler/tests/fixtures/generate_write_safety.py "$oracle_dir" sources > "$oracle_dir/write-safety-source-oracle.tsv"
+.venv/bin/python -I -B rust/crates/nsl-compiler/tests/fixtures/generate_write_safety.py "$oracle_dir" admissions > "$oracle_dir/write-safety-admission-oracle.tsv"
+```
+
+Two generations matched byte-for-byte and matched the committed files:
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `write-safety-policy-oracle.tsv` | `8644c56d66b725490c58bb4b0587b4a04bffc56020eaada80a661f9e59b7ead5` |
+| `write-safety-source-oracle.tsv` | `31fcec86d798fab8df7c0d1d40779d38d23515a0be2a3341729026ba2b7d52be` |
+| `write-safety-admission-oracle.tsv` | `74d5f4886dd1471fa596284d837e7f9b45e413c5f8962ad24bcdb8456cb9ddb5` |
+
+Pinned Rust 1.99.1 passes fmt, locked workspace check, all-target/all-feature Clippy with warnings denied, the architecture guard and its 7 tests, 114 Rust tests and a frozen build. Dependencies and `Cargo.lock` are unchanged. The mandatory Python gate ran once: 2,333 passed, statement 99.29%, branch 98.14%.
+
+The same pinned LLVM coverage method reports workspace executable-line coverage (the statement figure) **99.10%** (5,741/5,793), and branch coverage **98.68%** (825/836). Compiler coverage is 99.02%/97.81%; the new WRITE-safety modules are 95.40%/90.91%. Defensive invalid-origin-node paths and error paths made unreachable by validated public contract models remain in these totals. Policy fault-injection tests live under `tests/` and are excluded from executable production-source totals.

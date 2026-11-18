@@ -99,12 +99,16 @@ pub struct ApprovalWriteBinding {
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct ApprovalBindingAnalysis {
+pub struct ApprovalBindingAnalysis<'ast> {
+    origin: Option<&'ast AstSkill>,
     approvals: Vec<ApprovalDeclaration>,
     bindings: Vec<ApprovalWriteBinding>,
 }
 
-impl ApprovalBindingAnalysis {
+impl<'ast> ApprovalBindingAnalysis<'ast> {
+    pub(crate) fn skill(&self) -> Option<&'ast AstSkill> {
+        self.origin
+    }
     pub fn approvals(&self) -> &[ApprovalDeclaration] {
         &self.approvals
     }
@@ -127,12 +131,15 @@ impl<'source> ApprovalBindingAnalyzer<'source> {
 
     /// Run on a parsed/composed AST before ordinary symbol resolution. WRITE
     /// count, loop prohibition and Tool Contract safety belong to R5-S07.
-    pub fn analyze(
+    pub fn analyze<'ast>(
         &self,
-        skill: &AstSkill,
-    ) -> Result<ApprovalBindingAnalysis, ApprovalAnalysisError> {
+        skill: &'ast AstSkill,
+    ) -> Result<ApprovalBindingAnalysis<'ast>, ApprovalAnalysisError> {
         if skill.language_version != SourceLanguageVersion::V0_2 {
-            return Ok(ApprovalBindingAnalysis::default());
+            return Ok(ApprovalBindingAnalysis {
+                origin: Some(skill),
+                ..ApprovalBindingAnalysis::default()
+            });
         }
         let events = walk::events(skill)?;
         let mut table = ApprovalTable::default();
@@ -223,6 +230,7 @@ impl<'source> ApprovalBindingAnalyzer<'source> {
             }
         }
         Ok(ApprovalBindingAnalysis {
+            origin: Some(skill),
             approvals,
             bindings,
         })

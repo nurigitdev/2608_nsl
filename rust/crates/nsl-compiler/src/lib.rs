@@ -6,3 +6,4 @@ mod diagnostics;
 pub mod includes;
 pub mod symbols;
 pub mod types;
+pub mod write_safety;

@@ -122,7 +122,8 @@ fn analyzer_calls_do_not_share_names_orders_or_foreach_state_between_skills() {
     assert!(
         matches!(error, ApprovalAnalysisError::Diagnostic(error) if error.kind == ApprovalDiagnosticKind::UnknownApproval)
     );
-    let last = analyzer.analyze(&parse(&third, 1)).unwrap();
+    let third_skill = parse(&third, 1);
+    let last = analyzer.analyze(&third_skill).unwrap();
     assert!(!last.bindings()[0].inside_foreach);
     assert_eq!(last.approvals()[0].symbol.id.to_string(), "s0001");
     assert_eq!(last.approvals()[0].declaration_order, 1);
