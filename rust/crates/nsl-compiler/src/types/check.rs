@@ -3,9 +3,14 @@ use std::collections::{BTreeSet, HashMap};
 use nsl_contract::{CatalogErrorKind, ToolContract, ToolContractCatalog};
 use nsl_core::{DataClassification, ToolCapability, TypeKind, TypeRef};
 use nsl_source::SourceLanguageVersion;
-use nsl_source::ast::{AstLiteral, AstSkill, AstType, ExpressionId, ExpressionKind, StatementKind};
+use nsl_source::ast::{
+    AstLiteral, AstSkill, AstType, ExpressionId, ExpressionKind, StatementId, StatementKind,
+};
 
-use crate::symbols::{SymbolDeclaration, SymbolId, SymbolResolution};
+use crate::symbols::{
+    SymbolDeclaration, SymbolDiagnosticKind, SymbolId, SymbolReference, SymbolResolution,
+    SymbolTable, collect_approvals,
+};
 
 use super::diagnostics::quoted_name;
 use super::rules::{list, primitive};
@@ -22,6 +27,23 @@ impl StaticTypeChecker<'_> {
         resolution: &SymbolResolution,
         catalog: &ToolContractCatalog,
     ) -> Result<TypedSkill, TypeCheckError> {
+        Ok(self.run(skill, Some(resolution), catalog)?.1)
+    }
+
+    pub(crate) fn analyze(
+        &self,
+        skill: &AstSkill,
+        catalog: &ToolContractCatalog,
+    ) -> Result<(SymbolResolution, TypedSkill), TypeCheckError> {
+        let (symbols, types) = self.run(skill, None, catalog)?;
+        Ok((symbols.expect("dynamic symbol analysis"), types))
+    }
+
+    pub(crate) fn required_contracts<'a>(
+        &self,
+        skill: &'a AstSkill,
+        catalog: &'a ToolContractCatalog,
+    ) -> Result<HashMap<&'a str, &'a ToolContract>, TypeCheckError> {
         let mut contracts = HashMap::new();
         for required in &skill.requires {
             if contracts.contains_key(required.tool_id.as_str()) {
@@ -61,19 +83,31 @@ impl StaticTypeChecker<'_> {
             }
             contracts.insert(required.tool_id.as_str(), contract);
         }
+        Ok(contracts)
+    }
+
+    fn run(
+        &self,
+        skill: &AstSkill,
+        resolution: Option<&SymbolResolution>,
+        catalog: &ToolContractCatalog,
+    ) -> Result<(Option<SymbolResolution>, TypedSkill), TypeCheckError> {
+        let contracts = self.required_contracts(skill, catalog)?;
         let mut state = CheckState {
             checker: self,
             skill,
             contracts,
             result: TypedSkill::default(),
+            table: resolution.is_none().then(SymbolTable::new),
+            dynamic_references: Vec::new(),
             declarations: resolution
-                .bindings()
-                .iter()
+                .into_iter()
+                .flat_map(|result| result.bindings())
                 .map(|binding| (binding.declaration, binding.id))
                 .collect(),
             references: resolution
-                .references()
-                .iter()
+                .into_iter()
+                .flat_map(|result| result.references())
                 .map(|reference| (reference.expression, reference.symbol))
                 .collect(),
         };
@@ -110,8 +144,23 @@ impl StaticTypeChecker<'_> {
                 ));
             }
         }
-        let mut pending = skill.body.iter().rev().copied().collect::<Vec<_>>();
-        while let Some(id) = pending.pop() {
+        let mut pending = skill
+            .body
+            .iter()
+            .rev()
+            .copied()
+            .map(StatementTask::Visit)
+            .collect::<Vec<_>>();
+        while let Some(task) = pending.pop() {
+            let id = match task {
+                StatementTask::Visit(id) => id,
+                StatementTask::Leave => {
+                    if let Some(table) = &mut state.table {
+                        table.leave_foreach();
+                    }
+                    continue;
+                }
+            };
             let statement = skill
                 .statement(id)
                 .ok_or(TypeCheckError::InvalidResolution)?;
@@ -129,6 +178,9 @@ impl StaticTypeChecker<'_> {
                         .ok_or(TypeCheckError::InvalidResolution)?
                         .span;
                     let item = self.require_list(&value.type_info, span)?;
+                    if let Some(table) = &mut state.table {
+                        table.enter_foreach(id);
+                    }
                     state.bind(
                         SymbolDeclaration::Iterator(id),
                         ValueType {
@@ -136,7 +188,8 @@ impl StaticTypeChecker<'_> {
                             classification: value.classification,
                         },
                     )?;
-                    pending.extend(body.iter().rev().copied());
+                    pending.push(StatementTask::Leave);
+                    pending.extend(body.iter().rev().copied().map(StatementTask::Visit));
                 }
                 StatementKind::Check { condition, .. } => {
                     let value = state.expression(*condition)?;
@@ -212,15 +265,30 @@ impl StaticTypeChecker<'_> {
                 StatementKind::Approve { .. } => {}
             }
         }
-        Ok(state.result)
+        let symbols = if let Some(table) = state.table {
+            Some(table.finish(
+                state.dynamic_references,
+                collect_approvals(skill, &self.diagnostics).map_err(TypeCheckError::Symbol)?,
+            ))
+        } else {
+            None
+        };
+        Ok((symbols, state.result))
     }
 }
 
-fn ast_type(ast: &AstType) -> TypeRef {
+pub(crate) fn ast_type(ast: &AstType) -> TypeRef {
     (0..ast.list_depth).fold(ast.item.clone(), |item, _| list(item))
 }
 
+enum StatementTask {
+    Visit(StatementId),
+    Leave,
+}
+
 struct CheckState<'a, 'source> {
+    table: Option<SymbolTable<'a>>,
+    dynamic_references: Vec<SymbolReference>,
     checker: &'a StaticTypeChecker<'source>,
     skill: &'a AstSkill,
     contracts: HashMap<&'a str, &'a ToolContract>,
@@ -246,6 +314,52 @@ impl CheckState<'_, '_> {
         declaration: SymbolDeclaration,
         value: ValueType,
     ) -> Result<(), TypeCheckError> {
+        if let Some(table) = &mut self.table {
+            let (name, span) = match declaration {
+                SymbolDeclaration::Input(index) => {
+                    let field = self
+                        .skill
+                        .inputs
+                        .get(index)
+                        .ok_or(TypeCheckError::InvalidResolution)?;
+                    (field.name.as_str(), &field.span)
+                }
+                SymbolDeclaration::Context(index) => {
+                    let field = self
+                        .skill
+                        .contexts
+                        .get(index)
+                        .ok_or(TypeCheckError::InvalidResolution)?;
+                    (field.name.as_str(), &field.span)
+                }
+                SymbolDeclaration::Let(id)
+                | SymbolDeclaration::Iterator(id)
+                | SymbolDeclaration::Check(id) => {
+                    let node = self
+                        .skill
+                        .statement(id)
+                        .ok_or(TypeCheckError::InvalidResolution)?;
+                    let name = match &node.kind {
+                        StatementKind::Let { name, .. } => name,
+                        StatementKind::Foreach { iterator, .. } => iterator,
+                        StatementKind::Check { check_id, .. } => check_id,
+                        _ => return Err(TypeCheckError::InvalidResolution),
+                    };
+                    (name.as_str(), &node.span)
+                }
+            };
+            if !table.declare(name, declaration, span) {
+                return Err(TypeCheckError::Symbol(self.checker.diagnostics.error(
+                    SymbolDiagnosticKind::DuplicateSymbol,
+                    name,
+                    span,
+                )));
+            }
+            self.declarations.insert(
+                declaration,
+                table.bindings.last().expect("declared symbol").id,
+            );
+        }
         let id = self
             .declarations
             .get(&declaration)
@@ -300,6 +414,22 @@ impl CheckState<'_, '_> {
                         classification: DataClassification::Public,
                     },
                     ExpressionKind::Path(parts) => {
+                        if let Some(table) = &self.table {
+                            let name = parts.first().ok_or(TypeCheckError::InvalidResolution)?;
+                            let symbol = table.resolve(name).ok_or_else(|| {
+                                TypeCheckError::Symbol(self.checker.diagnostics.error(
+                                    SymbolDiagnosticKind::UnknownIdentifier,
+                                    name,
+                                    &expression.span,
+                                ))
+                            })?;
+                            self.references.insert(id, symbol);
+                            self.dynamic_references.push(SymbolReference {
+                                expression: id,
+                                symbol,
+                                span: expression.span.clone(),
+                            });
+                        }
                         let symbol = self
                             .references
                             .get(&id)

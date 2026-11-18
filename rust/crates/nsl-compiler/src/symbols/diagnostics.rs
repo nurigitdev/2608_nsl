@@ -76,7 +76,7 @@ impl std::error::Error for SymbolResolutionError {
 }
 
 impl SourceDiagnosticContext<'_> {
-    pub(super) fn error(
+    pub(crate) fn error(
         &self,
         kind: SymbolDiagnosticKind,
         name: &str,

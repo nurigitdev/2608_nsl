@@ -192,7 +192,14 @@ fn statement(node: &Statement, budget: &mut DecimalBudget) -> Result<ValueData> 
 }
 
 pub(super) fn project(skill: &SkillObject, max_decimal_bytes: usize) -> Result<ValueData> {
-    let mut fields = semantic_fields(skill, &mut DecimalBudget::PerToken(max_decimal_bytes))?;
+    project_with_budget(skill, DecimalBudget::PerToken(max_decimal_bytes))
+}
+
+pub(super) fn project_with_budget(
+    skill: &SkillObject,
+    mut budget: DecimalBudget,
+) -> Result<ValueData> {
+    let mut fields = semantic_fields(skill, &mut budget)?;
     let source_hash = skill.build.source_bundle_sha256.as_str();
     fields.extend(object!(
         "hashes" => ValueData::Object(object!("semantic_sha256" => text(skill.semantic_hash.as_str()),

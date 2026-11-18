@@ -32,6 +32,14 @@ impl BuildMetadata {
 }
 
 impl SkillObject {
+    pub fn compute_semantic_sha256_with_limits(
+        &self,
+        limits: super::NsoLimits,
+    ) -> Result<PayloadHash> {
+        super::bounded::preflight(self, limits)?;
+        let data = encode::semantic_document(self, DecimalBudget::Total(limits.max_bytes))?;
+        Ok(sha256(&super::bounded::canonical(&data, limits)?))
+    }
     /// Hash the canonical IR fields, excluding build metadata and declared hashes.
     pub fn compute_semantic_sha256(&self, max_decimal_bytes: usize) -> Result<PayloadHash> {
         semantic_sha256(self, DecimalBudget::PerToken(max_decimal_bytes))

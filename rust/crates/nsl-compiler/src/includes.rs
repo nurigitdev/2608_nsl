@@ -281,7 +281,7 @@ fn source_and_includes<'a>(
     }
 }
 
-fn build_source(source: &SourceFile, is_root: bool) -> BuildSource {
+pub(crate) fn build_source(source: &SourceFile, is_root: bool) -> BuildSource {
     let bytes = source.text().as_bytes();
     BuildSource {
         logical_path: source.logical_path().to_owned(),

@@ -3,6 +3,7 @@
 mod check;
 mod diagnostics;
 mod rules;
+pub(crate) use check::ast_type;
 
 use std::{collections::HashMap, fmt};
 
@@ -83,12 +84,14 @@ impl std::error::Error for TypeDiagnostic {}
 pub enum TypeCheckError {
     Diagnostic(Box<TypeDiagnostic>),
     InvalidResolution,
+    Symbol(crate::symbols::SymbolResolutionError),
 }
 
 impl fmt::Display for TypeCheckError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Diagnostic(error) => error.fmt(f),
+            Self::Symbol(error) => error.fmt(f),
             Self::InvalidResolution => f.write_str("AST and symbol resolution are inconsistent"),
         }
     }
@@ -99,6 +102,7 @@ impl std::error::Error for TypeCheckError {
         match self {
             Self::Diagnostic(error) => Some(error.as_ref()),
             Self::InvalidResolution => None,
+            Self::Symbol(error) => Some(error),
         }
     }
 }

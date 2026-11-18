@@ -3,6 +3,9 @@
 mod approvals;
 mod diagnostics;
 mod resolve;
+mod table;
+pub(crate) use resolve::collect_approvals;
+pub(crate) use table::SymbolTable;
 
 use std::fmt;
 

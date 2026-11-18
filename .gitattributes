@@ -23,3 +23,5 @@ rust/crates/nsl-compiler/tests/fixtures/approval-oracle.tsv text eol=lf
 rust/crates/nsl-compiler/tests/fixtures/write-safety-policy-oracle.tsv text eol=lf
 rust/crates/nsl-compiler/tests/fixtures/write-safety-source-oracle.tsv text eol=lf
 rust/crates/nsl-compiler/tests/fixtures/write-safety-admission-oracle.tsv text eol=lf
+rust/crates/nsl-compiler/tests/fixtures/compiler-oracle.tsv text eol=lf
+rust/crates/nsl-compiler/tests/fixtures/compiler-limit-oracle.tsv text eol=lf

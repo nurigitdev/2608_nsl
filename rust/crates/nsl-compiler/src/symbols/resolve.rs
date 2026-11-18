@@ -1,13 +1,10 @@
-use std::collections::{HashMap, hash_map::Entry};
-
 use nsl_source::ast::{AstSkill, ExpressionId, ExpressionKind, StatementId, StatementKind};
 use nsl_source::{SourceFile, SourceLanguageVersion, SourceSpan};
 
 use super::diagnostics::SourceDiagnosticContext;
 use super::{
-    ApprovalSymbol, ApprovalTable, ScopeId, ScopeKind, SymbolBinding, SymbolDeclaration,
-    SymbolDiagnosticKind, SymbolId, SymbolReference, SymbolResolution, SymbolResolutionError,
-    SymbolScope,
+    ApprovalSymbol, ApprovalTable, SymbolDeclaration, SymbolDiagnosticKind, SymbolReference,
+    SymbolResolution, SymbolResolutionError, SymbolTable,
 };
 
 /// Resolve a composed skill. Source files provide diagnostic locations and snippets.
@@ -46,7 +43,7 @@ pub fn resolve_symbols<'source>(
     })
 }
 
-fn collect_approvals(
+pub(crate) fn collect_approvals(
     skill: &AstSkill,
     diagnostics: &SourceDiagnosticContext<'_>,
 ) -> Result<Vec<ApprovalSymbol>, SymbolResolutionError> {
@@ -74,85 +71,6 @@ fn collect_approvals(
         }
     }
     Ok(approvals.into_symbols())
-}
-
-struct Frame<'ast> {
-    scope: ScopeId,
-    names: Vec<&'ast str>,
-}
-
-struct SymbolTable<'ast> {
-    frames: Vec<Frame<'ast>>,
-    active: HashMap<&'ast str, SymbolId>,
-    scopes: Vec<SymbolScope>,
-    bindings: Vec<SymbolBinding>,
-}
-
-impl<'ast> SymbolTable<'ast> {
-    fn new() -> Self {
-        let id = ScopeId(1);
-        Self {
-            frames: vec![Frame {
-                scope: id,
-                names: Vec::new(),
-            }],
-            active: HashMap::new(),
-            scopes: vec![SymbolScope {
-                id,
-                parent_id: None,
-                kind: ScopeKind::Skill,
-            }],
-            bindings: Vec::new(),
-        }
-    }
-
-    fn enter_foreach(&mut self, statement: StatementId) {
-        let id = ScopeId(self.scopes.len() + 1);
-        let parent_id = Some(self.frames.last().expect("the root scope is active").scope);
-        self.scopes.push(SymbolScope {
-            id,
-            parent_id,
-            kind: ScopeKind::Foreach(statement),
-        });
-        self.frames.push(Frame {
-            scope: id,
-            names: Vec::new(),
-        });
-    }
-
-    fn leave_foreach(&mut self) {
-        let frame = self.frames.pop().expect("the foreach scope is active");
-        for name in frame.names {
-            self.active.remove(name);
-        }
-    }
-
-    fn declare(
-        &mut self,
-        name: &'ast str,
-        declaration: SymbolDeclaration,
-        span: &SourceSpan,
-    ) -> bool {
-        let Entry::Vacant(slot) = self.active.entry(name) else {
-            return false;
-        };
-        let frame = self.frames.last_mut().expect("the root scope is active");
-        let id = SymbolId(self.bindings.len() + 1);
-        slot.insert(id);
-        frame.names.push(name);
-        self.bindings.push(SymbolBinding {
-            id,
-            name: name.into(),
-            scope_id: frame.scope,
-            declaration,
-            span: span.clone(),
-        });
-        true
-    }
-
-    fn resolve(&self, name: &str) -> Option<SymbolId> {
-        self.active.get(name).copied()
-    }
 }
 
 enum Visit {

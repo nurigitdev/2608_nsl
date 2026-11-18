@@ -220,3 +220,48 @@ Two generations matched byte-for-byte and matched the committed files:
 Pinned Rust 1.99.1 passes fmt, locked workspace check, all-target/all-feature Clippy with warnings denied, the architecture guard and its 7 tests, 114 Rust tests and a frozen build. Dependencies and `Cargo.lock` are unchanged. The mandatory Python gate ran once: 2,333 passed, statement 99.29%, branch 98.14%.
 
 The same pinned LLVM coverage method reports workspace executable-line coverage (the statement figure) **99.10%** (5,741/5,793), and branch coverage **98.68%** (825/836). Compiler coverage is 99.02%/97.81%; the new WRITE-safety modules are 95.40%/90.91%. Defensive invalid-origin-node paths and error paths made unreachable by validated public contract models remain in these totals. Policy fault-injection tests live under `tests/` and are excluded from executable production-source totals.
+
+## R5-S08 Lowering and compiler API
+
+`NslCompiler::new(&catalog, options).compile(source)` exposes the Source → explicit Root Skill parse → optional injected Include composition → approval binding → contract admission and WRITE safety → name/type analysis → typed IR → static bounds → semantic hash → canonical NSO pipeline. `with_include_resolver(&resolver)` injects resolution without filesystem access. Every invocation owns fresh local analysis state. `CompilerOptions` requires the caller to provide `ParseLimits`, `IncludeOptions` and `NsoLimits`; there is no implicit compiler output budget.
+
+NSL 0.1 lowers to IR 1.0 / `NSL-0.1-STRICT`, and NSL 0.2 to IR 1.1 / `NSL-0.2-STRICT`. Lowering preserves Oracle postorder node-ID allocation, independent expression/statement/CHECK/EMIT/approval/READ/WRITE counters, INPUT → CONTEXT → body symbol IDs, declaration and tool order, field versus collection projection, exact values/types/classifications, CHECK and result policies, and Controlled WRITE/approval references. AST traversal and construction use explicit work stacks. Required contracts are hashed before ordinary declaration analysis, matching the Oracle's error priority.
+
+The common `SymbolTable` was extracted and its existing standalone regression tests passed before and after refactoring. The integrated type checker resolves names as it checks each expression, using that same table and type rules. A whole-skill name pass followed by typing would incorrectly let a later unknown name hide an earlier type error. The existing standalone `resolve_symbols` and `StaticTypeChecker::check` APIs remain available. Approval IDs retain their independent namespace.
+
+`CompilationResult` contains the typed `SkillObject`, canonical `nso_bytes`, `semantic_hash`, `source_bundle_hash`, ordered `source_manifest`, `include_edges` and all twelve `write_safety` report fields. Build/source metadata remains separate from Runtime statements. The API retains typed frontend, Include, semantic, contract and codec errors and their error chains; `CompileError::diagnostic()` provides the common semantic diagnostic view. Typed admission/resource aborts have no NSL diagnostic code.
+
+### Explicit output limits
+
+The user-approved output boundary reuses `NsoLimits { max_bytes, max_depth, max_nodes }` with exactly the decoder's inclusive JSON units: canonical UTF-8 output bytes; root at depth zero; one node per JSON value, including the root; object keys do not count as nodes. An output exactly at a limit is accepted. `CompileError::OutputLimit(CompilerOutputLimit { limit, span })` identifies the exceeded dimension and retains an originating `SourceSpan`, with no synthetic NSL code. Early AST admission can point at a declaration/expression; final whole-artifact rejection retains the root skill span. Parser and Include budgets remain independent caller-supplied input limits.
+
+AST admission checks lower bounds before expensive name/type analysis or recursive IR creation. The bounded IR encoder preflights recursive projection paths and uses an explicit-stack canonical writer that checks each append and each JSON value. Decimal fixed-point expansion uses a total output-byte budget, and an encoding-budget error maps to the compiler's typed byte-limit error. Semantic hashing uses the same bounded canonical rules; artifact output is checked in full, including build metadata. These limits bound accepted output; they are not an exact heap-allocation or wall-clock quota. Callers should choose a depth appropriate to their process stack, because existing typed IR projection/validation and destruction still contain recursive operations under that explicit depth budget.
+
+| Rust SRS | Status, verification ID, and evidence in R5-S08 |
+| --- | --- |
+| `NSL-RUST-COMP-001` | Implemented. `R5-S08-PIPELINE`: the public compiler connects Source, AST, existing semantic stages, typed IR, bounds, hashing and NSO encoding. [Compiler differential tests](tests/compiler_oracle.rs) exercise both language versions and Include composition. |
+| `NSL-RUST-COMP-017` | Implemented. `R5-S08-LOWERING`: 47 successful frozen outputs match the complete canonical IR 1.0/1.1 bytes, hashes, manifests, dependency edges and WRITE report. |
+| `NSL-RUST-COMP-019` | Additional integrated semantic evidence. `R5-S08-DIAGNOSTICS`: 36 rejected cases match Oracle code, phase, source position, logical path, snippet, message and first-error priority. Comprehensive compiler differential closure remains R5-S09. |
+| `NSL-RUST-COMP-020` | Implemented for this baseline. `R5-S08-DETERMINISM`: repeated calls return equal complete results; two independent fixture generations match each other and the committed bytes. |
+
+`R5-S08-OUTPUT-LIMITS` in the [boundary tests](tests/compiler_boundaries.rs) checks all 47 artifacts at each exact byte/depth/node maximum, one below and one above. It verifies 0/1 budgets, an 8,192-operator chain, a 10,000-input header, deeply nested types, long field paths, UTF-8 strings and wide decimal expansion, as well as typed error spans and absence of diagnostic codes. Additional tests cover codec credential rejection, optional contract-type hash rejection before ordinary duplicate declarations, unsupported capabilities, resolver failure and reuse after failure. [Bounded codec tests](../nsl-ir/tests/bounded_support/mod.rs) check canonical scalar/collection units, all byte truncation points across UTF-8 and JSON escapes, integer width and model preflight errors. Test seams reside under `tests/` and are excluded from production-source coverage.
+
+Regenerate from the same frozen Python 3.12 Oracle checkout used by preceding slices:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-compiler/tests/fixtures/generate_compiler.py "$oracle_dir" > "$oracle_dir/compiler-oracle.tsv"
+.venv/bin/python -I -B rust/crates/nsl-compiler/tests/fixtures/generate_compiler_limits.py "$oracle_dir/compiler-oracle.tsv" > "$oracle_dir/compiler-limit-oracle.tsv"
+cmp "$oracle_dir/compiler-oracle.tsv" rust/crates/nsl-compiler/tests/fixtures/compiler-oracle.tsv
+cmp "$oracle_dir/compiler-limit-oracle.tsv" rust/crates/nsl-compiler/tests/fixtures/compiler-limit-oracle.tsv
+```
+
+The frozen revision is `28a949ec96581cbdc52c8133527b23bb5b72ee0a`. Both generations of each fixture matched:
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `compiler-oracle.tsv` (83 cases) | `b5d60ad74ae99dc45129d1e21c129dd442377a852bf409c35735392d6409b65f` |
+| `compiler-limit-oracle.tsv` (47 successful artifacts) | `3de41e15b0c1a03c234c68c16271aa7def9dc674f878cc430032d636eb525adf` |
+
+Pinned Rust 1.99.1 passes fmt, locked workspace check, all-target/all-feature Clippy with warnings denied, the architecture guard and its 7 tests, 122 Rust tests and a frozen workspace build. Dependencies and `Cargo.lock` are unchanged. The mandatory Python gate ran exactly once across this Slice and its output-limit decision checkpoint: 2,333 passed, statement 99.29%, branch 98.14%; Python production sources are unchanged.
+
+The same pinned nightly-2026-11-15 LLVM instrumentation reports workspace executable-line coverage (the statement figure) **98.89%** (6,587/6,661), and branch coverage **98.61%** (921/934). Coverage includes defensive production paths and excludes physical test files and generated Unicode constant tables, using normalized source paths. This is a separate measurement from Python's statement instrumentation. R5-S09 remains the next full compiler differential gate.

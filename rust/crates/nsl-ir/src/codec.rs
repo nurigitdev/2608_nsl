@@ -1,3 +1,4 @@
+mod bounded;
 mod decode;
 mod encode;
 mod hash;
@@ -11,7 +12,7 @@ use nsl_core::{DecimalError, TypeError};
 
 use crate::{NsoValidationError, SkillObject, validate_nso_document};
 
-/// Inclusive limits for an NSO input. The root is at depth 0 and counts as one
+/// Inclusive NSO input/output limits. The root is at depth 0 and counts as one
 /// node. Each JSON value counts once. Object keys do not count as nodes.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NsoLimits {
@@ -79,6 +80,15 @@ impl std::error::Error for NsoCodecError {
 pub struct NsoCodec;
 
 impl NsoCodec {
+    /// Compiler output boundary, using the same JSON units as decode limits.
+    pub fn encode_with_limits(skill: &SkillObject, limits: NsoLimits) -> Result<Vec<u8>> {
+        bounded::preflight(skill, limits)?;
+        let data =
+            encode::project_with_budget(skill, encode::DecimalBudget::Total(limits.max_bytes))?;
+        let bytes = bounded::canonical(&data, limits)?;
+        validate_nso_document(&data).map_err(NsoCodecError::Validation)?;
+        Ok(bytes)
+    }
     /// Encode a validated wire document. The budget is per fixed-point token.
     pub fn encode(skill: &SkillObject, max_decimal_bytes: usize) -> Result<Vec<u8>> {
         let data = encode::project(skill, max_decimal_bytes)?;
