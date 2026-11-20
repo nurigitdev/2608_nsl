@@ -39,3 +39,5 @@ rust/crates/nsl-runtime/tests/fixtures/read-authorization-oracle.tsv text eol=lf
 rust/crates/nsl-runtime/tests/fixtures/read-security-exceptions.tsv text eol=lf
 rust/crates/nsl-runtime/tests/fixtures/check-rules-oracle.tsv text eol=lf
 rust/crates/nsl-runtime/tests/fixtures/check-runtime-oracle.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/statements-oracle.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/statements-type-exceptions.tsv text eol=lf

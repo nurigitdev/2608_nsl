@@ -285,7 +285,7 @@ git archive 28a949ec96581cbdc52c8133527b23bb5b72ee0a nsl | tar -x -C "$oracle_di
 
 | Rust SRS | R6-S04 status and evidence |
 | --- | --- |
-| `NSL-RUST-RUN-004`, `NSL-RUST-TOOL-005/006/007/008` | Canonical READ expression/LET component implemented through injected ports, request/result validation, exact hashes and provenance. CHECK is added by R6-S05 below; full RuntimeEngine statement/result integration remains R6-S06–S07. |
+| `NSL-RUST-RUN-004`, `NSL-RUST-TOOL-005/006/007/008` | Canonical READ expression/LET component implemented through injected ports, request/result validation, exact hashes and provenance. CHECK is added by R6-S05 and FOREACH/EMIT/block dispatch by R6-S06 below; whole-engine admission/result integration remains R6-S07. |
 | `NSL-RUST-TOOL-004` | Exact missing/incompatible catalog failures and changed-contract rejection verified; provider is not invoked. |
 | `NSL-RUST-TOOL-009`, `NSL-RUST-ASYNC-003` | Per-call timeout/cancel/cleanup and duration mapping verified without commit inference or business retry. |
 | `NSL-RUST-CTX-001/002` | Execution/principal/tenant/subject/authorization correlation preserved; injected current Tool authority enforced. Production verified-principal/skill admission remains the host/integration boundary. |
@@ -418,4 +418,138 @@ from Python coverage.
 Oracle commit/wheel lock, previous compatibility fixtures, Python SRS fingerprints
 and statuses, external package inventory (17 packages) and crate edges are
 unchanged. `Cargo.lock` SHA-256 remains
+`628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.
+
+
+## R6-S06 — bounded FOREACH and typed EMIT
+
+`ReadEvaluator::execute_block`, `execute_foreach` and `execute_emit` add statement
+execution using Typed IR and the existing injected READ/authority ports. The
+block driver handles LET, CHECK, FOREACH and EMIT with an explicit work stack;
+it does not recursively await child blocks. Approval remains an unsupported
+controlled-service statement. Whole-engine profile/hash/input admission, final
+public result/error projection and audit/snapshot wire integration remain R6-S07
+and later slices; no live WRITE service is introduced.
+
+### Iteration, scopes and resource order
+
+FOREACH checks the existing **16-level** depth bound before evaluating its
+collection. After expression evaluation, it requires both a List declaration
+and a List value, checks the per-node maximum with exact integers, then validates
+all elements recursively before entering any iteration. Each iteration consumes
+one global loop allowance before pushing a frame and immutably binding its
+iterator. Elements inherit collection completeness, classification and ordered
+provenance; presence is PRESENT, matching the Oracle. Completed sibling frames
+can reuse names; active ancestors cannot be shadowed. Iterator, local LET and
+CHECK bindings disappear when their iteration ends; emitted/check results remain
+execution-wide.
+
+A scope-restoration guard also unwinds frames and restores the caller's original
+FOREACH depth on errors or a dropped pending driver future. It retains completed
+work and charged READ/iteration counters. Successful statement completion
+restores the prior current-node identity; failure keeps the failing node, as in
+the Oracle. Tool timeout/cancellation/cleanup semantics remain the R6-S02 port
+boundary; scope cleanup on driver drop makes no new provider-cleanup promise.
+
+Block deadlines, collection evaluation, per-node bounds, global loop limits and
+EMIT limits retain the Oracle's order. Existing expression/deadline failures can
+preempt statement validation while obtaining a value. Counts and per-node limits
+are arbitrary-precision integers, including direct-component zero/negative
+boundary observations; strict NSO positive-limit admission is unchanged.
+
+### Output and approved type-validation differences
+
+EMIT checks deadline/row allowance first, then validates the exact output name
+set, including duplicate declarations/fields. It evaluates expressions in EMIT
+field order, checks each declaration, recursively validates values against the
+existing Core `TypeRef::accepts`, and enforces classification flow. It publishes
+one `EmitRecord` in **declared output order** and increments `emitted_rows` only
+after every field passes. Empty output rows still consume one row. Values retain
+actual classification, presence, completeness and provenance. A failed later
+field publishes no partial row; earlier READ effects and accounting are retained.
+
+The user explicitly approved stricter malformed-value rejection while retaining
+Oracle `28a949e`. Python's `_validate_runtime_type` skips List/Record shape and
+recursive checks, and FOREACH uses Python len/iteration without requiring a List.
+[The mock-only probe](tests/fixtures/probe_python_collection_types.py) crosses
+NSO encode/decode and ordinary full `RuntimeEngine.execute` in both IR versions:
+List<Int> input `"ab"` iterates twice; a wrong list element, wrong Record field,
+extra field, or even scalar `17` under a List output declaration can complete.
+Both frozen and current Python reproduce all **12 observations per tree**, with
+zero Tool/provider calls. This is a confirmed type-validation gap, not a claim
+of deployment compromise. Current Python is not patched by this Rust Slice.
+
+Rust instead rejects non-List/mismatched FOREACH collections and malformed nested
+EMIT values. `StatementTypeError { node_id, target }` retains the **statement**
+node identity, has no diagnostic code, and contains no rejected value. Targets
+are FOREACH collection, EMIT declaration or EMIT value/field. `StatementLimitError`
+retains per-node/depth limit identity with the exact Oracle messages;
+`StatementExecutionError` preserves typed READ, CHECK, binding, model, limit and
+contract errors without exposing provider source chains. Public error projection
+is still the later engine boundary.
+
+The **68 approved exceptions** retain the Oracle's original successful outcomes
+in a separate fixture, not rewritten rejection expectations. Tests require Rust
+type rejection before body/provider effects, loop charging, output publication or
+row charging. Normal observations compare structured outputs/checks, exact
+metadata/provenance, current node, surviving bindings, frame/depth restoration,
+resource counts, monotonic clock calls and captured Tool authorization/requests.
+The component normalizer compares Oracle error class/message and existing READ
+identities; extra typed statement-node identity is asserted independently.
+
+### R6-S06 verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R6-S06-STATEMENT-ORACLE` | **306 matching observations** in `tests/statement_oracle.rs`: both IR versions, empty/one/multi-item iteration, LET/CHECK integration, all completeness/classification states, exact field order, sibling scopes and escape/collision rejection, -1/0/1/MAX-1/MAX/MAX+1 limits, depth/current-node/clock ordering, Tool and authorization failures, output/schema/type/classification errors and retained partial progress. |
+| `R6-S06-TYPE-EXCEPTION` | **68 explicitly approved differences** in the same suite: non-List values or declarations, wrong elements, nested lists/records and missing/extra/wrong-typed Record fields. Rust type errors carry the original statement node; no body/provider or output-row side effects. |
+| `R6-S06-API-BOUNDARIES` | Component entrypoints reject wrong statement kinds before effects. Tests use the same scripted-clock environment for matching and malformed observations, covering generic API branches without excluding code from LLVM measurement. |
+| `R6-S06-SCOPE-BOUNDARIES` | **6 tests** in `tests/statement_boundaries.rs`: NSO 1.0/1.1 byte round-trip and output metadata/order; staged EMIT with retained prior READ costs; dropped pending nested driver and caller-state restoration; depth 15/16/17 on a 256 KiB stack, 100-digit limits and a 3^16 branching tree stopped at 100 charged iterations; safe typed errors and Send futures; **128 bounded generated inputs** combining malformed last elements and collection/loop/row limits. |
+| `R6-S06-DETERMINISM` | Both fixture files generated twice from a fresh archive of the pinned Oracle; bytes and SHA-256 match the repository copies. Explicit LF attributes preserve them on both CI operating systems. |
+
+| Rust SRS | R6-S06 status and evidence |
+| --- | --- |
+| `NSL-RUST-RUN-008` | IMPLEMENTED for bounded statement execution: per-node/global/depth/collection limits, exact integer accounting and cleanup verified. |
+| `NSL-RUST-RUN-009` | IMPLEMENTED for EMIT component: exact names/types/classification, recursive approved validation, field evaluation/declaration ordering and atomic row publication verified. |
+| `NSL-RUST-RUN-005/006`, `NSL-RUST-CTX-007/008` | Immutable iteration-local LET/CHECK binding and completeness propagation integrated; whole-engine Result integration remains R6-S07. |
+| `NSL-RUST-RUN-011`, `NSL-RUST-CTX-004/005/006` | Resource and monotonic clock ordering, prior-effect accounting and worst-case bounded iteration verified. |
+| `NSL-RUST-RUN-012/014/017` | Typed malformed-value rejection, scope unwinding, safe errors, bounded generated-input tests and deterministic frozen observations. Wider fuzz/fault campaigns remain their planned slices. |
+| `NSL-RUST-RUN-002`, `NSL-RUST-SEC-001/002/003`, `NSL-RUST-TOOL-010` | Only Typed IR and existing injected ports; no Compiler/AST, new dependency edge, dynamic evaluation or direct business-system access. |
+| `NSL-RUST-RUN-003/010/013/016/018` | Existing admission/result models preserved. Complete engine preflight, input/context admission and user-safe public projection are not marked implemented by this component work. |
+
+The reference remains `28a949ec96581cbdc52c8133527b23bb5b72ee0a`.
+Generate with Python 3.12 and an archive of that commit:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_statements.py "$oracle_dir" normal
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_statements.py "$oracle_dir" types
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/probe_python_collection_types.py "$oracle_dir"
+```
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `statements-oracle.tsv` | `453cbe1f00ec83e27bdebf8e1e3a0e86707d3dd30043c34c310fc1c3daca96bb` |
+| `statements-type-exceptions.tsv` | `1aaf1276e97a65d218ca363c54d583def6294b2e54d4343c35d28269c3fa518e` |
+
+Local stable **Rust 1.99.1** passes fmt, locked workspace check, all-target /
+all-feature Clippy with warnings denied, the dependency guard and **7 guard
+tests**, **179 Rust tests** (170 before this Slice), and frozen workspace build.
+The mandatory Python quality gate ran **once** across R6-S06 and its approved
+type-decision continuation: **2,391 passed**, statement **99.28%**, branch
+**98.11%**, including traceability, architecture, performance and certification.
+
+Pinned `nightly-2026-11-15` LLVM instrumentation reports workspace executable-line
+coverage (the Rust statement figure) **99.15%** (9,322/9,402) and branch coverage
+**98.12%** (1,356/1,382). The statement module reaches **99.52%** (208/209 lines)
+and **97.22%** (35/36 branches). Its private validated-iteration invariant guard
+remains included and uncovered; no source/test exclusion or changed aggregation
+was used. The same production-source aggregation as previous slices is retained.
+An initial branch measurement was below target; exact-name-set cases and API
+boundary coverage in the shared scripted-clock harness were added before this
+final measurement. Rust and Python are measured separately.
+
+Oracle commit/wheel lock, previous compatibility fixtures, current Python's
+separate READ security patch, Python SRS fingerprints/statuses, external package
+inventory (17 packages) and crate dependency edges are unchanged. `Cargo.lock`
+SHA-256 remains
 `628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.
