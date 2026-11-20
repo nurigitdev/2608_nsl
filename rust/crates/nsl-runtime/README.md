@@ -51,7 +51,7 @@ The frozen reference is `28a949ec96581cbdc52c8133527b23bb5b72ee0a`. `generate_ru
 | `NSL-RUST-CTX-001/002` | Implemented at the model/context boundary. Identity correlation and typed security/input separation, explicit principal validation, credential admission and isolated context state are covered by model and boundary tests. Authorization and current-authority integration remain later work. |
 | `NSL-RUST-CTX-003` | Implemented. All active namespace duplicates are rejected, prior values survive, and paired frames permit sibling reuse. |
 | `NSL-RUST-CTX-004/005/006` | Implemented in the guard/context components. Usage snapshots, exact monotonic elapsed time, exclusive deadlines and request-clock independence are tested. Runtime operation/timeout integration remains R6-S02 onward. |
-| `NSL-RUST-CTX-007` | Completeness propagation component implemented. Context and result models match Oracle; CHECK evaluation remains R6-S05. |
+| `NSL-RUST-CTX-007` | Completeness propagation component implemented. Context and result models match Oracle; CHECK propagation is implemented and verified in R6-S05 below. |
 | `NSL-RUST-CTX-008` | Isolated mutable scope: request/IR ownership, paired frames, guard-owned meter and independent state containers. |
 | `NSL-RUST-RUN-002/015` | Architecture evidence: Core/IR-only Runtime dependencies and data-only context state. No enterprise transaction service or state owner is added. |
 | `NSL-RUST-RUN-005/011` | Binding/resource components implemented and differentially verified. Actual statement and provider execution remain later slices. |
@@ -285,7 +285,7 @@ git archive 28a949ec96581cbdc52c8133527b23bb5b72ee0a nsl | tar -x -C "$oracle_di
 
 | Rust SRS | R6-S04 status and evidence |
 | --- | --- |
-| `NSL-RUST-RUN-004`, `NSL-RUST-TOOL-005/006/007/008` | Canonical READ expression/LET component implemented through injected ports, request/result validation, exact hashes and provenance. Full RuntimeEngine statement/result integration remains R6-S05–S07. |
+| `NSL-RUST-RUN-004`, `NSL-RUST-TOOL-005/006/007/008` | Canonical READ expression/LET component implemented through injected ports, request/result validation, exact hashes and provenance. CHECK is added by R6-S05 below; full RuntimeEngine statement/result integration remains R6-S06–S07. |
 | `NSL-RUST-TOOL-004` | Exact missing/incompatible catalog failures and changed-contract rejection verified; provider is not invoked. |
 | `NSL-RUST-TOOL-009`, `NSL-RUST-ASYNC-003` | Per-call timeout/cancel/cleanup and duration mapping verified without commit inference or business retry. |
 | `NSL-RUST-CTX-001/002` | Execution/principal/tenant/subject/authorization correlation preserved; injected current Tool authority enforced. Production verified-principal/skill admission remains the host/integration boundary. |
@@ -318,3 +318,104 @@ R6-S04 commit `2c0e84bc403c928f6990ebac454fd181ad4ded1f` passed both Linux and W
 Pinned `nightly-2026-11-15` LLVM instrumentation reports workspace executable-line coverage (the Rust statement figure) **99.12%** (9,027/9,107), branch **98.13%** (1,309/1,334). The authorization module reaches **100.00%/100.00%**. Defensive internal traversal/READ-finish branches remain included; physical test code and generated Unicode constant data are excluded consistently with previous slices. Rust and Python use different instrumentation and are reported separately.
 
 External inventory, dependency edges, features and checksums are unchanged (17 packages). `Cargo.lock` SHA-256 is still `628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`, identical before and after frozen build.
+
+
+## R6-S05 — CHECK / Partial / Unknown semantics
+
+`StrictRuleEvaluator` implements deterministic CHECK evaluation. It requires
+both the exact primitive Bool declaration and a `Value::Bool`; integers (including
+0/1), strings, null, Decimal, collections and domain/enum aliases cannot use
+truthiness. A wrong declaration/value produces typed `CheckEvaluationError`
+with the Oracle message `CHECK predicate is not Bool`.
+
+| Predicate completeness | Bool value | Status | Reason |
+| --- | --- | --- | --- |
+| COMPLETE | true | PASS | null |
+| COMPLETE | false | FAIL | null |
+| PARTIAL | either | UNKNOWN | PARTIAL_INPUT |
+| UNKNOWN | either | UNKNOWN | UNKNOWN_COMPLETENESS |
+
+Presence is preserved independently; it is not a truthiness or completeness
+substitute. A complete known-empty aggregate may pass, while the same aggregate
+with partial/unknown facts cannot pass. Severity and `on_fail` do not override
+these rules. The evaluator retains the Oracle's legacy `NSL-0.1-STRICT` name for
+both supported language/IR profiles; this does not alter their admission rules.
+
+`ReadEvaluator::execute_check` evaluates the condition through the existing
+iterative READ-capable expression machine, records the structured `CheckResult`,
+and immutably binds its status in the current CHECK namespace. Results preserve
+check ID, severity, message, condition node ID, presence, completeness, ordered
+provenance (including duplicates) and reason. The bound value has the exact
+`CheckResult {status: CheckStatus(PASS, FAIL, UNKNOWN)}` type, PRESENT/COMPLETE,
+INTERNAL classification and the predicate provenance. The status is a known
+enum even for UNKNOWN facts; the context still retains the original incomplete
+facts. This distinction matches the frozen Oracle.
+
+Condition/type/provider/authority/resource failures do not append a check or
+publish a binding. A binding collision happens *after* appending the result,
+matching the Oracle's error-side state; the original immutable value remains.
+FAIL/UNKNOWN are outcomes, not thrown errors or a new execution-stop policy.
+`CheckExecutionError` preserves typed evaluation, READ and binding errors without
+chaining provider details. A non-CHECK statement is rejected before any service
+or argument effect.
+
+This Slice adds no statement dispatcher, FOREACH/EMIT, WRITE admission/execution,
+audit wire format or final public-result projection. CHECK summary inputs are
+ready for later controlled WRITE integration: `ValidationSummary::from_checks`
+retains HAS_FAIL, HAS_UNKNOWN and HAS_FAIL_AND_UNKNOWN separately from ALL_PASS
+and NO_CHECK. The actual WriteGuard/eligibility integration remains R8-S03;
+`NSL-RUST-RUN-007` is not claimed complete by evaluating CHECK alone. Raw internal
+result metadata continues the R6-S01 model contract; final user-safe projection
+remains R6-S07. Existing READ capability/scope security guards are unchanged.
+
+### R6-S05 verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R6-S05-RULE-ORACLE` | **288 observations** in `tests/check_oracle.rs`: complete Bool true/false, both presences, all three completeness states and four classifications, empty/single/ordered duplicate provenance, malformed Bool values and declarations, messages/Unicode, severity/on_fail metadata and exact errors. |
+| `R6-S05-RUNTIME-ORACLE` | **114 observations** in `tests/check_oracle.rs`: IR 1.0/1.1, READ partial acceptance on/off, known-empty and incomplete aggregation, exact result/binding/provenance, Bool failures, collisions in all four namespaces, missing scopes, provider/type/hash/timeout failures, tool-call and collection boundaries, monotonic deadline boundaries and error-side resource/clock/invocation state. |
+| `R6-S05-BOUNDARIES` | **4 tests** in `tests/check_boundaries.rs`: both NSO versions round-trip with true/false × all completeness states and a real deterministic MockToolExecutor; known status lookup; invalid statement and safe typed errors; immutable binding/append order, sibling frames and independent contexts; empty/one/mixed actual CHECK summaries. |
+| `R6-S05-DETERMINISM` | Both fixture files generated twice from a fresh archive of the pinned Oracle; bytes and SHA-256 match. Their LF attributes preserve bytes on Windows. No expected result patching or new Oracle exception. |
+
+| Rust SRS | R6-S05 status and evidence |
+| --- | --- |
+| `NSL-RUST-RUN-006` | IMPLEMENTED for the CHECK component: PASS/FAIL/UNKNOWN, exact Bool, partial false-PASS prevention and structured outcomes; all 402 frozen observations match. |
+| `NSL-RUST-CTX-007` | IMPLEMENTED for CHECK propagation: condition facts, result provenance and context completeness retained, with exact COMPLETE status binding. Whole-engine Result integration remains R6-S07. |
+| `NSL-RUST-RUN-005`, `NSL-RUST-CTX-008` | CHECK binding uses the existing immutable, execution-local namespace; collisions, sibling scopes and independent contexts verified. |
+| `NSL-RUST-RUN-007` | PARTIAL: actual CHECK outcomes feed the existing validated summary without upgrading FAIL/UNKNOWN to ALL_PASS. Provider WRITE gating/eligibility remains R8-S03. |
+| `NSL-RUST-RUN-011`, `NSL-RUST-CTX-004/005/006` | Existing READ/collection/tool/deadline accounting and monotonic clock order remain intact; no CHECK-only charged tool calls. |
+| `NSL-RUST-RUN-012/014` | Typed malformed predicate/non-CHECK rejection and safe error-chain tests; no new panic path from external CHECK values. |
+| `NSL-RUST-RUN-017`, `NSL-RUST-TOOL-010`, `NSL-RUST-SEC-001/002/003` | Deterministic fixtures, injected provider/authority only, no direct business-system access, dynamic execution, new dependencies or crate edges. |
+
+The reference remains `28a949ec96581cbdc52c8133527b23bb5b72ee0a`.
+Generate from the repository root with Python 3.12 and an archive of that commit:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_checks.py "$oracle_dir" rules
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_checks.py "$oracle_dir" runtime
+```
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `check-rules-oracle.tsv` | `43888823c8a6f50e39cf4f08a9f1b600da80d69873a185591d723a0cf7e04328` |
+| `check-runtime-oracle.tsv` | `60c12a434c40f55b0fef622778da67ee388d7aff2106f16d923ed6b7e9cef57c` |
+
+Local stable **Rust 1.99.1** passes fmt, locked workspace check, all-target /
+all-feature Clippy with warnings denied, the dependency guard and **7 guard
+tests**, **170 Rust tests** (164 before this Slice), and frozen workspace build.
+The mandatory Python quality gate ran once for R6-S05: **2,391 passed**,
+statement **99.28%**, branch **98.11%**, including traceability, architecture,
+performance and certification checks. Existing Python sources and their
+separate READ security patch are unchanged.
+
+Pinned `nightly-2026-11-15` LLVM instrumentation reports workspace executable-line
+coverage (the Rust statement figure) **99.14%** (9,114/9,193) and branch coverage
+**98.14%** (1,321/1,346). The new CHECK module is **100.00% / 100.00%**
+(86/86 lines and 12/12 branches). The same production-source aggregation as the
+previous Slice is used; test code is excluded. These are separate measurements
+from Python coverage.
+
+Oracle commit/wheel lock, previous compatibility fixtures, Python SRS fingerprints
+and statuses, external package inventory (17 packages) and crate edges are
+unchanged. `Cargo.lock` SHA-256 remains
+`628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.

@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod authorization;
+mod check;
 mod context;
 mod data;
 mod expression;
@@ -15,6 +16,7 @@ mod tool_validation;
 mod tools;
 
 pub use authorization::*;
+pub use check::*;
 pub use context::*;
 pub use expression::*;
 pub use models::*;
