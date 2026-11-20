@@ -45,3 +45,7 @@ rust/crates/nsl-runtime/tests/fixtures/runtime-gate-oracle.tsv text eol=lf
 rust/crates/nsl-runtime/tests/fixtures/runtime-admission-exceptions.tsv text eol=lf
 rust/crates/nsl-runtime/tests/fixtures/runtime-summary-oracle.tsv text eol=lf
 rust/crates/nsl-runtime/tests/fixtures/runtime-security-exceptions.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/approval-models-oracle.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/approval-bindings-oracle.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/approval-time-oracle.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/approval-summary-exceptions.tsv text eol=lf

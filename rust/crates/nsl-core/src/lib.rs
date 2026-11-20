@@ -8,6 +8,7 @@ mod money;
 mod oracle_unicode;
 mod status;
 mod type_ref;
+mod utc_instant;
 mod value;
 
 pub use canonical_json::{CanonicalJsonError, MAX_JSON_INTEGER_DIGITS, canonical_json};
@@ -26,3 +27,5 @@ pub use status::{
 };
 pub use type_ref::{TypeError, TypeKind, TypeRef};
 pub use value::{CurrencyCode, Integer, Value, ValueData, ValueEnvelope, ValueError};
+
+pub use utc_instant::{UtcInstant, UtcInstantError};

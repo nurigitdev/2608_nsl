@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+mod approval;
 mod authorization;
 mod check;
 mod context;
@@ -17,6 +18,7 @@ mod tool_measurement;
 mod tool_validation;
 mod tools;
 
+pub use approval::*;
 pub use authorization::*;
 pub use check::*;
 pub use context::*;

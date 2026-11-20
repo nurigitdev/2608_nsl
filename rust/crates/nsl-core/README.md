@@ -96,3 +96,17 @@ Two generations and a fresh archive of `28a949ec96581cbdc52c8133527b23bb5b72ee0a
 `sum_money(&[Value], &CurrencyCode)` owns ordered Money aggregation in Core. An empty collection produces Decimal zero in the declared currency. Each item is validated and added before visiting the next item, preserving the earliest invalid-value, currency-conflict or Decimal-overflow failure. `MoneySumError` distinguishes these outcomes without introducing floating point or changing existing `Money` arithmetic/comparison behavior. Runtime maps those typed errors to the frozen Oracle's Money or expression error boundary.
 
 `R6-S03-EXPR-ORACLE` verifies aggregation through the frozen expression corpus; `R6-S03-BOUNDARIES` verifies typed zero, singleton scale, invalid-item/currency-conflict priority, overflow and safe error chains in [the Runtime boundary suite](../nsl-runtime/tests/expression_boundaries.rs). This extends the evidence for `NSL-RUST-MONEY-001/002/003/004/005/006` and `NSL-RUST-CORE-013`.
+
+## R7-S01 — UTC evidence instants
+
+`UtcInstant` is an immutable microsecond-precision UTC civil instant for security
+and approval evidence (`NSL-RUST-CORE-011`). It validates Gregorian years 1..9999,
+calendar/time/fraction boundaries, rejects naive/nonzero-offset ISO input and
+emits Python-compatible `+00:00` text with zero or six fractional digits. It has
+no system-clock/local-time inference, dependency addition or binary floating
+point. NSL business `Value::DateTime` remains a separate existing contract.
+
+Core boundary/ordering tests are in `tests/utc_instant.rs`; 11 frozen UTC vectors
+and 360 approval binding/TTL observations are exercised in Runtime's
+`tests/approval_models.rs`. The Runtime README records the fixed Oracle and
+R7-S01 model, summary exception, quality and coverage evidence.

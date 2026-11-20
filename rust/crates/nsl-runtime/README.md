@@ -680,3 +680,137 @@ Oracle lock, previous fixtures, Python sources and SRS fingerprints/statuses,
 external package inventory (17 packages), dependency directions and `Cargo.lock`
 are unchanged. Lockfile SHA-256 remains
 `628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.
+
+## R7-S01 — approval request and evidence contracts
+
+`ApprovalRequest` and `ApprovalEvidence` add immutable, owned approval metadata
+in the Runtime layer. `ApprovalBindings` keeps eight identities together:
+tenant, execution, business operation, static approval ID, per-execution approval
+request ID, skill semantic hash, payload hash and write-intent hash. Request
+metadata also retains skill/version, WRITE node/tool, risk, message, expiry,
+classification, protected payload reference and display-safe summary. Evidence
+retains APPROVED/REJECTED, approver, decision/expiry instants and opaque integrity
+material. Private admitted models expose borrowed metadata and detached structured
+`to_data` snapshots; changing an original input/spec cannot mutate a model.
+
+BusinessOperationId, ApprovalRequestId and PayloadHash use existing Core newtypes.
+Semantic/payload hashes retain the Oracle's lowercase SHA-256 validation;
+`write_intent_hash` and `evidence_integrity` retain the Oracle constructor's
+nonempty, credential-free opaque strings. Canonical WriteIntent construction and
+hash recomputation remain R8-S01. Static approval identity and request identity
+are not interchangeable. Required-string validation preserves Python whitespace,
+credential screening, field identity and rejection precedence (including multiple
+invalid fields); typed enum fields exclude unregistered risk/classification/
+decision values before model construction.
+
+`ApprovalEvidence::check_bindings` compares business operation, request identity,
+intent and payload in the Oracle's order, followed by tenant/execution/static
+approval/skill identity. Typed mismatches preserve the existing reason strings.
+This is a **structural model check**, not evidence authentication or authority to
+execute WRITE. The differential adapter uses the frozen Python validator with a
+deterministic true verifier solely to observe binding/time/decision semantics.
+Rust proof verification, current-principal checks, claim/release/consume and
+replay prevention remain R7-S04. No approval publish, checkpoint, suspension,
+resume or provider path is added by this Slice.
+
+### UTC and TTL boundaries
+
+Core `UtcInstant` is separate from NSL business `Value::DateTime`. Its private
+civil fields enforce Gregorian years 1..9999, valid calendar/time components and
+microseconds 0..999999 without a binary float or timezone-framework dependency.
+Explicit UTC civil construction and canonical ISO UTC parsing are supported;
+naive/nonzero-offset timestamps are rejected. Z and negative-zero offsets
+normalize to `+00:00`. Serialization matches Python `datetime.isoformat()`:
+no fraction at zero, otherwise exactly six fractional digits.
+
+Evidence rejects `expires_at < decided_at`; equality is admitted and is already
+expired at that instant. Request and evidence expiry predicates use the exact
+`now >= expires_at` boundary. `None` means no expiry. Models do not consult a
+system clock, infer local time, invent a default TTL, or turn expiry checks into
+Runtime duration accounting. UTC instants are explicit arguments. Like the fixed
+Oracle, a request may represent an already-expired request and evidence model
+construction has no independent "now"/future-decision policy.
+
+### User-approved integer-only summary difference
+
+The fixed Oracle accepts finite Python floats recursively in
+`display_safe_summary`, including `0.5`, `1.0`, `-0.0` and exponent notation; it
+rejects NaN/Infinity. The transition contract forbids primitive floats and JSON
+float round trips. The user explicitly approved a narrower Rust summary boundary
+while retaining Oracle `28a949e`:
+
+* JSON metadata numbers are integers only. Decimal display is explicit text,
+  such as `"0.5"`. Bool, null, strings, arrays and objects retain their meanings.
+* `ApprovalSummaryInput::Number` carries a raw number lexeme, never an `f32`,
+  `f64`, Decimal substitution or rounded value. Fractional/exponent/non-finite
+  tokens are rejected, including integral `1.0` and signed float zero. JSON
+  integer `-0` normalizes to integer zero, matching Python's JSON integer value.
+* The codeless `ApprovalSummaryError { kind: IntegerRequired, path }` identifies
+  a root or nested value, e.g. `display_safe_summary.nested.items[1].ratio`.
+  Errors contain no rejected numeric value or nested payload/source chain.
+* `SafeApprovalSummary` freezes an owned, immutable snapshot. Callers explicitly
+  bound depth, node count and aggregate UTF-8 key/text/number bytes through
+  `ApprovalSummaryLimits`; admission and freezing use explicit work stacks.
+  Credential screening retains the null/empty-string exceptions and rejects
+  credential-bearing keys/text. Debug omits the summary payload.
+
+Original Oracle observations are preserved in a separate exception fixture;
+expected successes are not rewritten to Rust rejections. Safe Core credential
+errors omit the Oracle's detailed rejected material/path; the test adapter
+normalizes only that existing error-category difference and typed datetime/API
+error representations, not successful data or binding outcomes.
+
+### R7-S01 verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R7-S01-MODEL-ORACLE` | **536 observations**: exact request/evidence structured data, all classifications, R0/R2/R5 metadata, optional expiry/reference, empty/nested/mixed summaries, wide exact integers, required IDs, whitespace, credential material, malformed/uppercase/non-hex/wrong-length hashes, rejection precedence, rejected decision and decision/expiry chronology. |
+| `R7-S01-BINDING-TTL-ORACLE` | **360 observations**: each of eight binding mismatches and combined mismatch precedence, APPROVED/REJECTED, expiry absent/at decision/one hour later, and -1/0/+1 microsecond around decision and expiry. Test projection matches the frozen validator's validation/status/reason values; it does not implement resume authentication. |
+| `R7-S01-UTC-ORACLE` | **11 observations**: year 1/9999, leap/century dates, zero/partial/nonzero microseconds, Z/negative-zero normalization, naive and positive/negative nonzero offsets. Exact UTC serialization or typed rejection checked. |
+| `R7-S01-SUMMARY-EXCEPTION` | **14 observations** preserve eight finite-float successes and six original non-finite ValueErrors. Rust rejects every numeric token at its exact root/nested path without a diagnostic code; decimal display strings remain accepted. |
+| `R7-S01-BOUNDARIES` | Runtime budget tests at 0/1/MAX-1/MAX/MAX+1, empty metadata, caller-owned mutation isolation, identity getters, exact expiry, safe Debug/Display/error chains and **128 bounded generated nested summary inputs**. Core tests cover invalid/calendar/clock/fraction boundaries, microsecond/year/leap ordering and malformed Unicode/ISO text parsing without panics. |
+| `R7-S01-DETERMINISM` | All four fixtures generated twice from independent archives of the fixed commit; exact bytes and SHA-256 match. LF attributes retain bytes on both CI operating systems. |
+
+| Rust SRS | R7-S01 status and evidence |
+| --- | --- |
+| `NSL-RUST-GATE-001` | IMPLEMENTED for request/evidence models: separate identities, human decision, protected references and opaque integrity fields; no boolean-only approval model. |
+| `NSL-RUST-GATE-002/005` | PARTIAL overall: structural business/request/payload/intent/identity binding and mismatches verified. Authenticated proof validation and WRITE blocking remain R7-S04/R8. |
+| `NSL-RUST-GATE-004` | PARTIAL overall: rejected decision and exact expiry represented and tested; execution enforcement remains later slices. |
+| `NSL-RUST-CORE-005/011` | Existing identity newtypes reused; IMPLEMENTED UTC evidence instant boundary with exact microsecond canonical serialization and chronology. Business DateTime behavior remains unchanged. |
+| `NSL-RUST-GATE-003/006/007/008/009/010` | Remaining publish/checkpoint/suspension/current-identity/resume/claim responsibilities retain their planned slices; not marked implemented by these model tests. |
+| `NSL-RUST-MONEY-001`, `NSL-RUST-SEC-001/002/003`, `NSL-RUST-RUN-001/002/014/018` | No floating-point business values, new external dependencies/crate edges, dynamic execution or direct business-system access. Core credential admission and payload-safe diagnostics retained. |
+
+Generate with Python 3.12 and an archive of
+`28a949ec96581cbdc52c8133527b23bb5b72ee0a`:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_approval_models.py "$oracle_dir" models
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_approval_models.py "$oracle_dir" bindings
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_approval_models.py "$oracle_dir" time
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_approval_models.py "$oracle_dir" floats
+```
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `approval-models-oracle.tsv` | `1acc98a0747d015ca5fd43bbd333560821c9f5c502b0e0978192db8b38a7cf47` |
+| `approval-bindings-oracle.tsv` | `f632f75c9f59e2ae286f8e51dcb49126ddacadd10cc95ed2bb668f7a79280d10` |
+| `approval-time-oracle.tsv` | `892f357eea539af33b15ccb5110f8ec0b7ac9856e175656fb11116083e272372` |
+| `approval-summary-exceptions.tsv` | `cbfe66e8126de35349b7f2939637a9b9ea962ac392a068955b18edcc60f3b7e2` |
+
+Stable **Rust 1.99.1** passes fmt, locked workspace check, all-target/all-feature
+Clippy with warnings denied, the architecture guard and **7 guard tests**,
+**196 Rust tests** (187 before R7-S01), and frozen workspace build. The mandatory
+Python quality gate ran **once** for R7-S01 and its approved summary-decision
+continuation: **2,391 passed**, statement **99.28%**, branch **98.11%**, including
+traceability, readiness, architecture, performance and certification checks.
+
+Pinned `nightly-2026-11-15` LLVM instrumentation reports production workspace
+executable-line coverage (the Rust statement figure) **99.23%** (10,365/10,445)
+and branch coverage **98.31%** (1,512/1,538). The same production-source
+aggregation as earlier slices is used; no source or branch exclusion is added.
+Rust and Python are independent measurements.
+
+The Oracle commit/wheel lock, Python sources, prior frozen fixtures, SRS
+fingerprints/statuses, external package inventory (17 packages), dependency
+edges and Cargo.lock remain unchanged. Lockfile SHA-256 remains
+`628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.
