@@ -63,6 +63,11 @@ impl ToolExecutionMeasurement {
 pub trait ToolMeasurementSink: Send + Sync {
     fn record(&self, measurement: ToolExecutionMeasurement) -> Result<(), ToolCallError>;
 }
+impl<T: ToolMeasurementSink + ?Sized> ToolMeasurementSink for &T {
+    fn record(&self, measurement: ToolExecutionMeasurement) -> Result<(), ToolCallError> {
+        (**self).record(measurement)
+    }
+}
 #[derive(Default)]
 pub struct NullToolMeasurementSink;
 impl ToolMeasurementSink for NullToolMeasurementSink {

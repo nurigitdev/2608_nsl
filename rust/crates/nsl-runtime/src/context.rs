@@ -192,6 +192,21 @@ impl<C: RuntimeClock> ExecutionContext<C> {
     pub fn context_values(&self) -> &BTreeMap<String, ValueEnvelope> {
         &self.context_values
     }
+    pub(crate) fn envelopes(&self) -> impl Iterator<Item = &ValueEnvelope> {
+        self.input_values
+            .values()
+            .chain(self.context_values.values())
+            .chain(
+                self.frames
+                    .iter()
+                    .flat_map(|f| f.values.values().chain(f.checks.values())),
+            )
+            .chain(
+                self.outputs
+                    .iter()
+                    .flat_map(|r| r.fields().iter().map(|(_, value)| value)),
+            )
+    }
     pub fn frame_count(&self) -> usize {
         self.frames.len()
     }

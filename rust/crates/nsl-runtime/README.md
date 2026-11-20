@@ -553,3 +553,130 @@ separate READ security patch, Python SRS fingerprints/statuses, external package
 inventory (17 packages) and crate dependency edges are unchanged. `Cargo.lock`
 SHA-256 remains
 `628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.
+
+## R6-S07 — pure runtime differential gate and R6 exit
+
+`RuntimeEngine` composes the existing Typed IR, execution/context/resource models,
+READ port and authority, expression/statement driver, CHECK results and public
+result/semantic-view codecs. It accepts injected contracts, provider,
+authorizer, measurements and monotonic clock; `execute` also supplies a system
+monotonic clock. The caller explicitly selects production/development principal
+verification, bounded semantic-IR `NsoLimits` and the Decimal encoding budget.
+Wire callers must first use the existing strict NSO decoder. Runtime admission
+checks the language/IR/profile pair, semantic hash, bounded analysis, registered
+contract versions/hashes and actual capability/scope before binding or execution.
+Extra undeclared request fields retain the Oracle's existing behavior.
+
+Ordinary execution rejects controlled content, including nested Approval/WRITE.
+`execute_pre_write_prefix` requires business identity and the Oracle's single
+top-level Approval/WRITE ordering and reference, then executes only the statements
+before Approval. Its result contains no approval, WRITE, suspension or eligibility
+claim. Checkpoint capture, persisted evidence and resume remain R7; no live WRITE,
+audit transport or snapshot storage is introduced. The Oracle generator calls
+its real `execute_controlled_prefix` and compares that operation's `.result`.
+The Python checkpoint side effect is outside this Slice's Rust API.
+
+### Approved admission and summary boundaries
+
+The pinned Oracle is unchanged. Two confirmed gaps and their user-approved Rust
+handling are covered separately:
+
+* Python `_validate_runtime_type` leaves compound List/Record shape unchecked,
+  including unused Input/Context declarations. Rust recursively validates every
+  declared input and resolved context before running any body statement. All
+  bindings are staged before publication. Invalid values return
+  `RuntimeTerminalKind::InputType(RuntimeInputTypeError { symbol_id, location })`,
+  with the original Input name or Context path, no fabricated statement node,
+  diagnostic code or rejected value. Missing paths/required inputs retain the
+  Oracle's ordinary contract failures. Collection limits retain their existing
+  order and accounting.
+* Repeated CHECK IDs in NSL 0.2 can make `ValidationSummary::from_checks` fail:
+  IDs must remain unique and nonempty. Rust keeps that invariant and every
+  completed CHECK and output; it neither renames/deduplicates checks nor invents
+  an ALL_PASS/NO_CHECK result. Summary failure returns the codeless typed terminal
+  `InvalidValidationSummary` error, with `RuntimeEvidence` containing original
+  checks, outputs, resource counters, completeness and current node. Measurements
+  have already reached the injected sink and are not discarded. NSL 0.1 repeated
+  CHECKs still complete without a validation summary, as in the Oracle.
+
+The exception fixture retains **72 original accepted compound Input/Context
+observations**, plus **2 earlier-approved statement declaration rejections** and
+**2 earlier-approved malformed Int-division differences**. Original Oracle
+outcomes are not patched. Eight additional observations retain the earlier
+R6-S04 actual-contract capability/scope security difference: Rust rejects before
+Tool authorization/provider effects. Current Python, its separate READ security
+patch, and Oracle commit/wheel lock remain unchanged by R6-S07.
+
+Expected contract/expression/authorization/tool/resource failures retain Oracle
+status, code, category, message, detail and node rules. Unexpected errors return
+only `NSL-E8002` and the generic user-safe message. Confidential/Restricted live
+values and Core `redact_text` patterns are redacted from public error text.
+Protected debug details require an explicitly configured sink, also redact live
+sensitive values, and ignore sink failure. No default logger or public error
+source chain reveals internal details. Terminal errors expose evidence explicitly
+for trusted callers; their Display and Debug omit CHECK/output payloads.
+
+### R6-S07 verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R6-S07-RUNTIME-ORACLE` | **246 full-engine observations** in `tests/runtime_gate.rs`: NSL 0.1 READ-only and NSL 0.2 pre-WRITE prefix, empty/scalar/list/nested/record values, all completeness states, PASS/FAIL/UNKNOWN and mixed summaries, READ/LET/CHECK/FOREACH/EMIT, missing/version/hash/profile/authority failures, provider/type/hash/identity/timeout/measurement failures, public/semantic results, exact requests, authority order, measurements and clock calls. |
+| `R6-S07-SUMMARY-ORACLE` | **12 observations** across 0/1/2/3 repetitions, NSL 0.1 ordinary and NSL 0.2 ordinary/prefix. Eight produce matching normal results; four retain the Oracle's ValueError reason through a typed summary terminal error. Tests assert original IDs, every CHECK/output, one charged/measured READ and exact loop/row counters. Error-class normalization is confined to the test adapter. |
+| `R6-S07-ADMISSION-EXCEPTION` | **76 frozen observations** retain original accepted/failure results separately. Native tests assert recursive Input/Context rejection before body/provider/output effects, symbol/path identity, existing statement-node identity and Int-division detail code. A malformed final binding blocks an otherwise valid READ body. |
+| `R6-S07-SECURITY-EXCEPTION` | **8 frozen observations** verify actual-contract capability/scope binding before provider effects. Production verification, development unverified principals, tenant/actor validity, skill authorization, READ scopes, sensitive redaction and opt-in/failing debug sinks are exercised. |
+| `R6-S07-API-BOUNDARIES` | Explicit zero IR byte/depth/node budgets, Decimal fixed-point budgets 0/1/MAX-1/MAX/MAX+1, Optional contract encoding rejection, typed cancellation/encoding terminal evidence, mismatched contracts, duplicate bindings, non-record intermediate Context paths and system-clock entrypoint. Controlled admission failures occur before authority/clock/provider use; nested controlled content is rejected by ordinary execution. |
+| `R6-S07-WORST-CASE` | A 3^16 nested FOREACH workload on a 256 KiB thread stack stops at exactly 100 charged iterations, with retained partial output and zero provider calls. Repeating execution has independent resource/context state. Existing R6-S06 depth 15/16/17, per-node/global limits, driver-drop cleanup and 128 generated bounded cases also pass. |
+| `R6-S07-DETERMINISM` | All four fixtures generated twice from a fresh archive of the pinned commit; exact files and SHA-256 match. LF attributes preserve these bytes on Linux and Windows. No expectation rewriting or production Python import from the current tree. |
+
+| R6 exit condition | Evidence/result |
+| --- | --- |
+| v0.1 compatibility | PASS: full-engine normal results/semantic views and all existing frozen source/compiler/IR/runtime tests. |
+| READ/CHECK/EMIT differential | PASS: 258 full-engine/summary observations, with the typed summary adapter and 84 separately documented approved exceptions. |
+| resource worst-case | PASS: exact accounting, admission/collection/loop/row/tool/duration boundaries and the bounded branching-tree/cleanup tests. |
+| no live WRITE available | PASS: ordinary execution rejects controlled content; prefix stops before Approval/WRITE and the suffix READ. No WRITE/provider request is captured in the matching corpus. |
+
+| Rust SRS | R6-S07 status and evidence |
+| --- | --- |
+| `NSL-RUST-RUN-003/010` | IMPLEMENTED for pure runtime: compatibility/hash/contract admission and recursive Input/Context validation before body execution. |
+| `NSL-RUST-RUN-004/005/006/008/009/011/016/017`, `NSL-RUST-CTX-004/005/006/007/008` | IMPLEMENTED for READ-only/pre-WRITE result integration: exact public/semantic results, immutable bindings, checks, bounded statements, completeness, resources and repeatability. |
+| `NSL-RUST-RUN-013/014` | IMPLEMENTED for engine error projection: generic public unexpected errors, sensitive redaction and explicit protected debug sink. |
+| `NSL-RUST-RUN-012/018` | PARTIAL overall: typed malformed-value/cancellation/encoding handling and existing credential admission verified; wider external fuzz/fault and Trace/Replay integration remain planned. |
+| `NSL-RUST-RUN-007` | PARTIAL overall: summaries preserve FAIL/UNKNOWN/NO_CHECK and summary construction can terminate safely; controlled WRITE eligibility remains R8-S03. |
+| `NSL-RUST-RUN-001/002/015`, `NSL-RUST-TOOL-010`, `NSL-RUST-SEC-001/002/003` | Typed IR and injected ports only; no new crate edges/dependencies, compiler/AST dependency, dynamic evaluation or direct enterprise access. |
+
+Generate using Python 3.12 and an archive of the fixed
+`28a949ec96581cbdc52c8133527b23bb5b72ee0a`:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_runtime_gate.py "$oracle_dir" normal
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_runtime_gate.py "$oracle_dir" summary
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_runtime_gate.py "$oracle_dir" admission
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_runtime_gate.py "$oracle_dir" security
+```
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `runtime-gate-oracle.tsv` | `37ff61e7573dba817b1c2874f8d4969c3dc2bce42cd5b193c883d9f5f8d9b5cb` |
+| `runtime-summary-oracle.tsv` | `9fe6474db07e51a2c24bc578f82a90ab20ee3519a61d74b66d255705076643c1` |
+| `runtime-admission-exceptions.tsv` | `b35f5ceaaa93fe9fd40c6e34582eabdea5b8ebc7770111e21ec31ced980cca27` |
+| `runtime-security-exceptions.tsv` | `cbe3ebe3d5c695f7d161337cdf6a882a2a3a92ccfd20001eb544ce61325e40f9` |
+
+Stable **Rust 1.99.1** passes fmt, locked workspace check, all-target/all-feature
+Clippy with warnings denied, dependency guard and **7 guard tests**, **187 Rust
+tests** (179 before this Slice), and frozen workspace build. The mandatory Python
+quality gate ran **once** for R6-S07 and its approved decision continuation:
+**2,391 passed**, statement **99.28%**, branch **98.11%**, with traceability,
+readiness, certification, architecture and performance checks passing.
+
+Pinned `nightly-2026-11-15` LLVM instrumentation reports production workspace
+executable-line coverage (the Rust statement figure) **99.21%** (9,888/9,967)
+and branch coverage **98.22%** (1,432/1,458). The same production-source aggregation
+as previous slices is used, without source/branch exclusions. Rust and Python
+are measured independently. Additional real admission, per-node limit, binding,
+Money-error and sensitive-value boundaries improved the initial Rust measurement
+of 99.11% / 98.01% before the final gates.
+
+Oracle lock, previous fixtures, Python sources and SRS fingerprints/statuses,
+external package inventory (17 packages), dependency directions and `Cargo.lock`
+are unchanged. Lockfile SHA-256 remains
+`628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.

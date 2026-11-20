@@ -50,6 +50,15 @@ pub trait ToolExecutionPort: Send + Sync {
         cancellation: CancellationSignal,
     ) -> ToolExecutionFuture<'a>;
 }
+impl<T: ToolExecutionPort + ?Sized> ToolExecutionPort for &T {
+    fn execute<'a>(
+        &'a self,
+        request: &'a ToolCallRequest,
+        cancellation: CancellationSignal,
+    ) -> ToolExecutionFuture<'a> {
+        (**self).execute(request, cancellation)
+    }
+}
 impl<T: ToolExecutionPort + ?Sized> ToolExecutionPort for Arc<T> {
     fn execute<'a>(
         &'a self,
