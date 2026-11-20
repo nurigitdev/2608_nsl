@@ -192,6 +192,36 @@ impl<C: RuntimeClock> ExecutionContext<C> {
     pub fn context_values(&self) -> &BTreeMap<String, ValueEnvelope> {
         &self.context_values
     }
+    pub(crate) fn checkpoint_frames(
+        &self,
+    ) -> impl Iterator<
+        Item = (
+            &BTreeMap<String, ValueEnvelope>,
+            &BTreeMap<String, ValueEnvelope>,
+        ),
+    > {
+        self.frames.iter().map(|f| (&f.values, &f.checks))
+    }
+    pub(crate) fn install_checkpoint_state(&mut self, s: crate::checkpoint::state::RestoredState) {
+        self.input_values = s.inputs;
+        self.context_values = s.contexts;
+        self.frames = s
+            .frames
+            .into_iter()
+            .map(|(values, checks)| Frame { values, checks })
+            .collect();
+        self.checks = s.checks;
+        self.outputs = s.outputs;
+        self.resource_guard.install_checkpoint_usage(s.resources);
+        self.data_completeness = s.completeness;
+        self.invocation_counter = s.invocation_counter;
+        self.foreach_depth = s.foreach_depth;
+        self.current_node_id = s.current_node;
+        self.approvals = s.approvals;
+        self.writes = s.writes;
+        self.idempotency = s.idempotency;
+        self.checkpoint = s.checkpoint;
+    }
     pub(crate) fn envelopes(&self) -> impl Iterator<Item = &ValueEnvelope> {
         self.input_values
             .values()

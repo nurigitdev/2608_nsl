@@ -172,6 +172,12 @@ impl<C: RuntimeClock> ResourceGuard<C> {
         }
         self.check_collection(&size)
     }
+    pub(crate) fn checkpoint_usage(&self) -> &ResourceUsage {
+        &self.meter
+    }
+    pub(crate) fn install_checkpoint_usage(&mut self, usage: ResourceUsage) {
+        self.meter = usage;
+    }
     pub fn usage(&self) -> ResourceUsage {
         self.meter.clone()
     }

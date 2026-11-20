@@ -814,3 +814,149 @@ The Oracle commit/wheel lock, Python sources, prior frozen fixtures, SRS
 fingerprints/statuses, external package inventory (17 packages), dependency
 edges and Cargo.lock remain unchanged. Lockfile SHA-256 remains
 `628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.
+
+## R7-S02 — integrity-protected execution checkpoints
+
+The contract is specified in [CHECKPOINT.md](CHECKPOINT.md). `ExecutionCheckpoint`
+owns execution/business identity, positive arbitrary-precision checkpoint version,
+skill/version/semantic/IR/runtime identity, exact state bytes and a SHA-256 digest.
+Business identity uses the existing Core `BusinessOperationId` newtype internally.
+The canonical JSON envelope has schema **integer 1** and standard base64 state;
+the digest covers canonical identity material and base64 of the **exact state
+bytes**, excluding only the digest itself. Header whitespace/key order and
+reference-compatible base64 aliases can normalize on re-encoding; the state blob
+itself is never silently reserialized while verifying its digest. This is an
+integrity checksum, not authenticated storage, a signature or WRITE authority.
+
+The default checkpoint `runtime_version` remains the Oracle audit constant
+**`0.1.0`**, distinct from the distribution **0.2.1**. A caller may explicitly
+supply a different coordinator runtime identity; restore requires an exact match.
+No package/runtime version substitution is made to the frozen hash material.
+
+### Capture, restore and limits
+
+`CheckpointCoordinator::capture` snapshots exact principal/policy, input/context
+bindings, paired variable/CHECK frames, CHECK outcomes, output rows, resource
+usage, completeness, invocation/depth/current-node state, approvals, write journal,
+idempotency maps and checkpoint progress/request/payload/intent mappings. It
+increments the source context version only after serialization, integrity and
+state validation succeed. Failures retain the original context/version.
+
+`restore` verifies integrity first, then execution/business/skill/version/semantic/
+IR/runtime bindings and exact current security context. It decodes a validated
+state before creating a fresh context. The restored guard receives the stored
+meter, retaining charged work and observed collection maxima; the injected
+monotonic clock is read **once** to start the restored execution segment. The
+reference does not store elapsed duration, and no new wall-clock/duration policy
+is introduced. Frames, iteration-local values and CHECK namespaces retain their
+original order and resolution behavior; independent restores do not share mutable
+state. State JSON object fields, including restored output fields, follow the
+canonical sorted-key ordering of the Oracle's restored dictionaries.
+
+Callers explicitly provide `CheckpointLimits` for outer document bytes/depth/nodes,
+decoded state bytes/depth/nodes, and Decimal token expansion. Base64 decoded size
+is bounded before allocation. Native capture preflights borrowed values/types,
+raw journals, provenance and metadata/counters before recursive Core projection
+or cloning, then checks exact canonical JSON cost before allocating output bytes.
+Large counters are bounded before version increment. State and outer limits
+remain separate. No implicit resource budget is selected by the library.
+
+The existing iterative, duplicate-key-rejecting UTF-8/JSON parser was extracted
+from IR into Core `parse_json_with_limits` for reuse. The NSO facade preserves
+its limits, canonical behavior, byte offsets and existing error messages. All
+**196 pre-Slice tests** passed before and after that extraction. The new generic
+JSON error path is constructed only on failure, avoiding repeated long-ancestor
+key copies on successful values (16 KiB key / 2,000 children test), and is
+credential-redacted; NSO continues projecting its existing
+error surface. No new dependency or crate edge is needed.
+
+### Approved strict restoration differences
+
+The Oracle remains `28a949ec96581cbdc52c8133527b23bb5b72ee0a`. The user explicitly
+approved strict state admission rather than reproducing these malformed states:
+
+* bool/float aliases of integer schema/version fields are rejected;
+* every envelope must recursively conform to its Core TypeRef; scalar-for-list,
+  wrong elements, primitive floats and non-finite Decimal values are rejected;
+* credential-bearing state/metadata is rejected through existing Core screening;
+* FOREACH depth must fit the existing **0..=16** bound; huge integers never truncate;
+* CHECK message/provenance/container kinds are validated without Python coercion;
+* caller-specified size/depth/node limits reject excessive wire and native states.
+
+`CheckpointError { kind, path, message, offset }` carries a safe path and typed
+kind with no NSL diagnostic code, rejected payload or underlying source chain.
+Checkpoint/Spec Debug omit state and identity payloads. Stronger validation occurs
+before a context is published or its clock is started; unlike the Python loader,
+invalid state cannot trigger clock construction before a later field fails.
+
+Captured idempotency/payload/intent strings retain the Oracle's model boundary;
+actual WRITE identity validation still belongs to the existing Core/WRITE boundary.
+The journal decoder preserves Python's finite Decimal/Money and business Date/
+DateTime normalization, including signed zero, offset precision and the frozen
+Python 3.12 subsecond-zero-offset/fourth-colon normalization behavior. Security
+UTC instants remain the separate R7-S01 contract.
+
+This Slice adds no checkpoint store, approval publisher, suspension coordinator,
+resume claim/consumption, provider invocation or automatic retry. These remain
+R7-S03/R7-S04 and subsequent WRITE slices. The pre-existing READ/prefix API is not
+silently expanded into a durable approval lifecycle.
+
+### R7-S02 verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R7-S02-CHECKPOINT-ORACLE` | **64 observations** in `tests/checkpoints.rs`: IR 1.0/1.1, empty/populated/typed-value/completeness states, checkpoint versions from 0/1/2 and a 41-digit counter. Exact state bytes, canonical envelope, integrity hash and post-restore recapture bytes match. Both fresh native snapshots and restored historical snapshots are exercised; historical resource usage may exceed current limits and remains preserved, matching the Oracle. |
+| `R7-S02-NEGATIVE-ORACLE` | **28 original rejections**: resigned execution/business/skill/semantic/IR/runtime and security mismatches, malformed frames/resources/checkpoint state, invalid values/statuses, unknown fields, duplicate JSON keys, invalid UTF-8, base64 and integrity failures. Typed JSON diagnostic text is native; acceptance/rejection and identity paths are checked rather than equating Python line/column messages. |
+| `R7-S02-STRICT-EXCEPTION` | **13 original Oracle successes** retained separately: outer/inner schema/version aliases, recursive type mismatch, float/NaN/credential values, depth 17/huge counter, coerced CHECK provenance/message. Native errors are codeless, payload-safe and reject before clock/context publication. |
+| `R7-S02-BASE64-ORACLE` | **24 observations**: binary payload lengths 0/1/2/3/4/5/63/64/65/255/256/257, exact envelope/digest identity, reference-compatible pad-bit/padding aliases and malformed alphabet/padding rejection. |
+| `R7-S02-VALUE-ORACLE` | **39 observations**: decoded journal values and exact recapture normalization; Decimal/Money, extra tag fields, nested bool/null/empty records, dates, naive/UTC/offset/fractional-second business times, malformed calendars, values and time fields. |
+| `R7-S02-BOUNDARIES` | Outer/state byte/depth/node limits at 0/1/MAX-1/MAX/MAX+1, Decimal budgets, snapshot version rollback on every capture failure, restored scope exit and guard meter, independent contexts, missing business identity, custom runtime identity, malformed header/schema fields, huge/deep native values/types/journals/counters and **128 bounded generated corruptions**. |
+| `R7-S02-JSON-REUSE` | Existing NSO regression/fuzz suites pass through the shared Core parser; dedicated Core tests check nested float path, duplicate-safe canonicalization, limit errors and credential-redacted JSON paths. |
+| `R7-S02-DETERMINISM` | All five fixtures generated twice from independent archives of the fixed commit; exact files and SHA-256 match. LF attributes preserve bytes on Linux and Windows. No frozen expected outcomes are rewritten. |
+
+| Rust SRS | R7-S02 status and evidence |
+| --- | --- |
+| `NSL-RUST-GATE-007` | IMPLEMENTED for checkpoint codec/capture/restore: exact state/identity/integrity, canonical bytes, versioning and corruption rejection. Durable storage and authenticated resume remain their planned boundaries. |
+| `NSL-RUST-GATE-008` | PARTIAL: checkpoint/request/skill/runtime and exact principal/policy binding implemented; current-authority/proof checks and claim lifecycle remain R7-S04. |
+| `NSL-RUST-CTX-001/003/004/007/008` | Execution/business identity, execution-local namespaces, frames, original counters/completeness and independent restored state verified. |
+| `NSL-RUST-CTX-005/006` | Restored monotonic guard starts once and retains the original meter; no wall-clock accounting or elapsed-time inference is introduced. |
+| `NSL-RUST-CORE-005`, `NSL-RUST-RUN-012/014/018` | Core business identity reused, bounded parsing/capture, typed safe failures, credential screening and no payload/debug/source-chain exposure for this boundary. Wider fault/fuzz/Trace/Replay work remains planned. |
+| `NSL-RUST-GATE-003/004/005/006/009/010` | No new implementation claim for approval policy, proof, human workflow or duplicate resume/provider effects. |
+
+Generate with Python 3.12 and an archive of the fixed Oracle:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_checkpoints.py "$oracle_dir" normal
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_checkpoints.py "$oracle_dir" negative
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_checkpoints.py "$oracle_dir" exceptions
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_checkpoints.py "$oracle_dir" wire
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_checkpoints.py "$oracle_dir" values
+```
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `checkpoints-oracle.tsv` | `23cbe6b77e50511ce937af58ee27fc8266245526ff12b1361c0bf6be707944ee` |
+| `checkpoints-negative-oracle.tsv` | `be8397f72337e3cae6fee7894516187183333f4d08363d32e717e3ffd6573501` |
+| `checkpoints-exceptions.tsv` | `2825eb5eb5eec222ebc83017a31779a039fd2b00f11c6cb08406e284ded50a5c` |
+| `checkpoints-wire-oracle.tsv` | `f6edbe1853d756598792e57d0874c12e10290f4aa16885491865bc120a93d5d3` |
+| `checkpoints-values-oracle.tsv` | `7eb0e670f779c0980e7ea9f76d33254f51c08f9fed3337ab56b097abc562a25f` |
+
+Stable **Rust 1.99.1** passes fmt, locked workspace check, all-target/all-feature
+Clippy with warnings denied, the dependency guard and **7 guard tests**, **211
+Rust tests** (196 before R7-S02), and frozen workspace build. The mandatory Python
+quality gate ran **once** for R7-S02 and its approved strict-validation
+continuation: **2,391 passed**, statement **99.28%**, branch **98.11%**, including
+traceability/readiness/certification, architecture and performance checks.
+
+Pinned `nightly-2026-11-15` LLVM instrumentation reports the existing workspace
+`crates/**/src/` executable-line aggregation (the Rust statement figure) **99.08%**
+(11,727/11,836) and branch coverage **98.29%** (1,720/1,750). The same measurement
+script/aggregation is used, with no added source or branch exclusions. Rust and
+Python are measured separately. Initial measurements were below target; concrete
+malformed-state, budget/preflight, header/base64 and temporal boundary cases were
+added before the final passing measurement.
+
+Oracle commit/wheel lock, existing Python sources and SRS fingerprints/statuses,
+previous compatibility fixtures, external package inventory (17 packages), crate
+dependency directions and Cargo.lock remain unchanged. Lockfile SHA-256 remains
+`628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.

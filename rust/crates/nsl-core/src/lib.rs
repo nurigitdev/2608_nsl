@@ -4,6 +4,7 @@ mod canonical_json;
 mod credentials;
 mod decimal;
 mod identity;
+mod json_decode;
 mod money;
 mod oracle_unicode;
 mod status;
@@ -29,3 +30,5 @@ pub use type_ref::{TypeError, TypeKind, TypeRef};
 pub use value::{CurrencyCode, Integer, Value, ValueData, ValueEnvelope, ValueError};
 
 pub use utc_instant::{UtcInstant, UtcInstantError};
+
+pub use json_decode::{JsonDecodeError, JsonLimit, JsonLimits, parse_json_with_limits};

@@ -110,3 +110,14 @@ Core boundary/ordering tests are in `tests/utc_instant.rs`; 11 frozen UTC vector
 and 360 approval binding/TTL observations are exercised in Runtime's
 `tests/approval_models.rs`. The Runtime README records the fixed Oracle and
 R7-S01 model, summary exception, quality and coverage evidence.
+
+## R7-S02 — shared bounded JSON admission
+
+`parse_json_with_limits` reuses the former IR iterative parser for checkpoint and
+NSO admission, with explicit byte/depth/node limits, duplicate-field rejection,
+4300-digit integer bounds and UTF-8/escape validation. It admits integer JSON
+numbers only, normalizes integer negative zero, and records a credential-redacted
+path and original byte offset on JSON errors. The IR facade retains existing NSO
+error strings and behavior. Pre/post extraction workspace regressions pass.
+No new package or dependency edge is introduced; Runtime checkpoint evidence and
+approved malformed-state exceptions are documented in its README/CHECKPOINT.md.

@@ -3,6 +3,7 @@
 mod approval;
 mod authorization;
 mod check;
+mod checkpoint;
 mod context;
 mod data;
 mod engine;
@@ -21,6 +22,10 @@ mod tools;
 pub use approval::*;
 pub use authorization::*;
 pub use check::*;
+pub use checkpoint::{
+    CHECKPOINT_RUNTIME_VERSION, CheckpointCoordinator, CheckpointError, CheckpointErrorKind,
+    CheckpointLimits, CheckpointSpec, ExecutionCheckpoint,
+};
 pub use context::*;
 pub use engine::*;
 pub use expression::*;
