@@ -143,3 +143,20 @@ From `rust/`, run `python tools/check_architecture.py` with Python 3.12 and the 
 `nsl-core` has no permitted workspace dependencies. `nsl-ir` may depend on `nsl-core` and reach the reviewed Decimal packages through it. External packages are checked against the allowlist of the workspace crate that introduces them. The `nsl-ir` allowlist contains the reviewed SHA-256 graph above. `nsl-compiler` cannot reach `nsl-runtime`. `nsl-runtime` cannot reach `nsl-compiler` or `nsl-source`, which owns the AST.
 
 Every member must inherit the workspace `unsafe_code = "forbid"` lint. Cargo's compile checks enforce that lint on workspace targets. Run `python -m unittest discover -s tools` to exercise the guard against temporary Cargo workspaces and verify compiler rejection of unsafe integration-test code.
+
+## R8-S01 WRITE identity graph
+
+`nsl-write` now depends on workspace `nsl-core` / `nsl-ir` and the already reviewed
+`sha2 = 0.11.1` with default features disabled. Cargo.lock changes only its local
+workspace dependency edges; all **17 external package identities, versions and
+checksums remain unchanged**. The guard now forbids WRITE from reaching Runtime,
+Compiler or Source, including transitive/renamed edges. Its **8 tests** include a
+new temporary-workspace negative case for those reverse dependencies.
+
+Runtime receives no WRITE-to-Runtime reverse edge: the builder uses a borrowed
+Core/IR context projection. Locked metadata and the frozen workspace build verify
+the graph. Current Cargo.lock SHA-256:
+
+```text
+d45307992ead2ecdf9f4e770060912e951d0bb75bf885c53320341e81bea6e28
+```

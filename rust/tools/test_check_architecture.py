@@ -7,7 +7,7 @@ import unittest
 from check_architecture import WORKSPACE, check, dependency_violations
 
 
-PACKAGES = ("nsl-core", "nsl-ir", "nsl-compiler", "nsl-runtime", "nsl-source", "bridge")
+PACKAGES = ("nsl-core", "nsl-ir", "nsl-compiler", "nsl-runtime", "nsl-source", "nsl-write", "bridge")
 
 
 class ArchitectureGuardTests(unittest.TestCase):
@@ -96,6 +96,18 @@ class ArchitectureGuardTests(unittest.TestCase):
         self.assertEqual(check(self.root), [
             "forbidden dependency: nsl-runtime -> bridge -> nsl-compiler",
             "forbidden dependency: nsl-runtime -> bridge -> nsl-compiler -> nsl-source",
+        ])
+
+    def test_write_rejects_runtime_and_transitive_compiler_source(self):
+        self.workspace({
+            "nsl-write": '[dependencies]\nnsl-runtime = {path = "../nsl-runtime"}\nbridge = {path = "../bridge"}\n',
+            "bridge": '[dependencies]\nnsl-compiler = {path = "../nsl-compiler"}\nnsl-source = {path = "../nsl-source"}\n',
+        })
+        self.lock()
+        self.assertEqual(check(self.root), [
+            "forbidden dependency: nsl-write -> bridge -> nsl-compiler",
+            "forbidden dependency: nsl-write -> bridge -> nsl-source",
+            "forbidden dependency: nsl-write -> nsl-runtime",
         ])
 
     def test_ir_rejects_compiler_layer_and_missing_lint_inheritance(self):

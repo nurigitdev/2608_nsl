@@ -121,3 +121,14 @@ path and original byte offset on JSON errors. The IR facade retains existing NSO
 error strings and behavior. Pre/post extraction workspace regressions pass.
 No new package or dependency edge is introduced; Runtime checkpoint evidence and
 approved malformed-state exceptions are documented in its README/CHECKPOINT.md.
+
+## R8-S01 shared business temporal formatting
+
+Checkpoint business Date/DateTime normalization moved to Core without changing
+its frozen decode behavior. `normalize_date` / `normalize_datetime` retain that
+admission/normalization contract. `canonical_datetime` serves business value
+encoding and preserves fractional timezone offsets that Python 3.12's decoder
+normalizes to UTC; WRITE applies its separate timezone-awareness requirement.
+Security/evidence instants retain the existing UTC-only `UtcInstant` contract.
+Existing regressions ran before and after extraction, with exact checkpoint and
+WRITE Oracle vectors exercising the shared code.

@@ -8,6 +8,7 @@ mod json_decode;
 mod money;
 mod oracle_unicode;
 mod status;
+mod temporal;
 mod type_ref;
 mod utc_instant;
 mod value;
@@ -32,3 +33,5 @@ pub use value::{CurrencyCode, Integer, Value, ValueData, ValueEnvelope, ValueErr
 pub use utc_instant::{UtcInstant, UtcInstantError};
 
 pub use json_decode::{JsonDecodeError, JsonLimit, JsonLimits, parse_json_with_limits};
+
+pub use temporal::{canonical_datetime, normalize_date, normalize_datetime};

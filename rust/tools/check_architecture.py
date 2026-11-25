@@ -31,6 +31,7 @@ APPROVED_EXTERNAL: dict[str, set[tuple[str, str]]] = {
 FORBIDDEN_WORKSPACE = {
     "nsl-compiler": {"nsl-runtime"},
     "nsl-runtime": {"nsl-compiler", "nsl-source"},
+    "nsl-write": {"nsl-compiler", "nsl-runtime", "nsl-source"},
 }
 
 
