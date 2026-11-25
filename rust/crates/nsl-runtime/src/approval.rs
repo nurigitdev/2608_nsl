@@ -1,7 +1,9 @@
 mod model;
 mod summary;
+mod suspension;
 pub use model::*;
 pub use summary::*;
+pub use suspension::*;
 
 use nsl_core::CredentialMaterialError;
 use std::fmt;

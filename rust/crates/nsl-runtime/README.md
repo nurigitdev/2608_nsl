@@ -960,3 +960,116 @@ Oracle commit/wheel lock, existing Python sources and SRS fingerprints/statuses,
 previous compatibility fixtures, external package inventory (17 packages), crate
 dependency directions and Cargo.lock remain unchanged. Lockfile SHA-256 remains
 `628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.
+
+## R7-S03 — Approval Suspension Coordinator
+
+`ApprovalSuspensionCoordinator` is a standalone execution-context component with
+injected async `CheckpointPort::save` and `ApprovalPort::publish` boundaries. Its
+checkpoint coordinator requires the existing explicit `CheckpointLimits`. There
+is no runtime filesystem/network access, background task or human-decision wait.
+A successful call returns `ApprovalSuspension` containing the captured checkpoint
+and a `WAITING_FOR_APPROVAL` result, releasing the worker after the two port calls.
+The result retains checks, outputs and resource usage, uses the existing partial/
+unknown completeness rules, and includes Pending approval and `APPROVAL_REQUIRED`
+suspension metadata. Saved state has `approval_request_published=false`; only the
+live context becomes true after publication acknowledges success, as in Python.
+
+Before mutation the coordinator checks tenant, execution, business operation,
+skill ID/version and semantic hash. For language 0.2 it additionally requires an
+explicit `PreWriteEvidence`, an exact summary of current unique CHECK IDs,
+`ALL_PASS`, COMPLETE data, all nine host evidence controls and an approval status
+that requires approval (NotRequested/Pending/Expired). Approved and Rejected are
+not suspension eligibility states. `approval_evidence_valid` does not convert an
+Approved state into a suspension. The evidence constructor defaults all controls
+to false, matching Python. These booleans are a **trusted host snapshot**, not
+proof authentication, inferred authority or permission to execute WRITE. Full
+WriteGuard/evidence construction remains R8-S03. The Oracle's legacy language
+0.1 component behavior is retained: it does not require this v0.2 evidence and
+omits validation/eligibility extensions. The READ/prefix engine remains unchanged.
+
+### Approved retry binding difference
+
+The fixed Oracle remains **28a949ec96581cbdc52c8133527b23bb5b72ee0a**. For a WRITE
+node already bound to the same ApprovalRequestId, both stored payload and intent
+bindings must exist and equal the incoming request. Rust rejects missing or
+mismatched values **before any context mutation, checkpoint capture/save or
+approval publication**. It returns `ApprovalSuspensionErrorKind::Type` with no
+NSL diagnostic code, safe static text and a logical path, for example:
+
+```text
+$.checkpoint.payload_hashes_by_write_node["write0001"]
+$.checkpoint.write_intent_hashes_by_write_node["write0001"]
+```
+
+All state is preserved, including approval records, suspension/publication flags,
+version, namespaces, checks, outputs and counters. If both bindings are invalid,
+payload is reported first. A different prior ApprovalRequestId retains the
+Oracle's earlier binding rejection. The original Oracle outcomes are retained in
+`suspensions-exceptions.tsv`: changing a payload/intent first saves version 2,
+then an idempotent publisher rejects the ID collision; removing a map entry is
+silently repaired and republished by Python. These original outcomes have not
+been rewritten into Rust expectations. Existing Python and the Oracle are not
+patched by this Slice.
+
+An unchanged retry remains valid, including recovery from an unpublished saved
+checkpoint. It captures a new version and calls save then publish again; the
+publisher must provide idempotence by ApprovalRequestId. The tests retain one
+published request across retries and verify exact Oracle checkpoint/result bytes.
+There is no implicit retry. Capture failure retains the staged fields but does
+not advance the version; save/publication error or dropped pending I/O retains
+the captured version and staged Pending state. No rollback or durable-outcome
+inference is performed: an adapter can fail after accepting the operation. An
+opaque `SuspensionPortError` prevents transport messages, credentials and source
+chains from entering public component errors. Checkpoint and suspension wrapper Debug omit data.
+
+### R7-S03 verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R7-S03-SUSPEND-ORACLE` | **81 scenarios / 91 observations** from the frozen Oracle: IR 1.0/1.1, complete/partial/unknown and populated/empty states, 41-digit versions, all approval statuses, all nine controls individually denied, default/missing/mismatched evidence, no/failing/unknown/duplicate CHECKs, all six identity mismatches and prior request-ID conflict. Exact result data, semantic view, checkpoint wire/state bytes, event order, versions and publisher records match. Error comparisons retain original Python errors and check native typed kind/path and rejection rather than Python exception wording. |
+| `R7-S03-RETRY-BINDING` | **8 original Oracle exception scenarios** (both IR versions) and **36 native rejection cases** across published/unpublished state, versions 0/1/41 digits, missing/changed payload, intent and both. Full canonical state is identical before/after rejection; no save/publication occurs. Unchanged retry after restoring the saved unpublished checkpoint succeeds. |
+| `R7-S03-FAULTS` | Save and publication errors both before and after adapter acceptance, explicit successful retries, idempotent publication, pending save/publish Future drop, no background work or human wait, no journal/provider/idempotency effects. Staged/captured state follows the Oracle on I/O failure; errors do not claim rollback. |
+| `R7-S03-BOUNDARIES` | Caller checkpoint outer/state byte budgets at 0/1/MAX-1/MAX/MAX+1; over-budget capture never reaches either port and a later explicit retry succeeds. Result status admission, immutable request/suspension data, safe escaped paths, source-chain suppression and binding-error precedence are checked. Existing checkpoint suites continue covering depth/node budgets. |
+| `R7-S03-DETERMINISM` | Both fixture files generated twice from independent git archives of the fixed Oracle; byte-for-byte and SHA-256 identity verified. LF attributes preserve fixture bytes on both CI systems. |
+
+| Rust SRS | R7-S03 status and evidence |
+| --- | --- |
+| `NSL-RUST-GATE-001/002/005` | PARTIAL: suspension request identity, payload/intent retry bindings and Pending metadata implemented. Actual approval proof/WRITE guard remains R7-S04/R8. |
+| `NSL-RUST-GATE-007` | Existing integrity-protected codec reused for deterministic pre-publication snapshots, exact save/publish order, version and failure state; injected storage adapter is host-owned. |
+| `NSL-RUST-GATE-010` | IMPLEMENTED for suspension: the component returns after port acknowledgement and never owns human workflow orchestration/waiting. |
+| `NSL-RUST-RUN-007/016/017`, `NSL-RUST-CTX-001/004/007/008` | Suspension pre-WRITE CHECK/completeness evidence, identity, retained resources/result semantics and deterministic retry/state behavior verified. Full live WRITE is not claimed. |
+| `NSL-RUST-RUN-012/014/015/018` | Typed limits/failures, opaque adapter errors, payload-safe Debug, dependency isolation and no direct enterprise I/O in this component. |
+| `NSL-RUST-GATE-003/004/006/008/009` | No new claim of authenticated resume, proof/current principal validation, resume claim/release/consumption or provider effects. These remain R7-S04 and later slices. |
+
+Generate the original observations with Python 3.12 and a fixed-commit archive:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_suspensions.py "$oracle_dir" normal
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_suspensions.py "$oracle_dir" exceptions
+```
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `suspensions-oracle.tsv` | `797df6995a7a5667bc389c63d8d915beab057579cc546e02d57fec55cb53cc90` |
+| `suspensions-exceptions.tsv` | `1ca9d6ddbc8dc6fc1580eb52ce3d1016f682120db61404b5bd35683a2be6cf82` |
+
+Stable **Rust 1.99.1** passes fmt, locked workspace check, all-target/all-feature
+Clippy with warnings denied, the dependency guard and **7 guard tests**, **217
+Rust tests** (211 before R7-S03), and frozen workspace build. An initial Clippy
+finding in test Mutex scope was corrected before the final passing checks.
+The mandatory Python quality command ran **once** locally for R7-S03 and passed:
+**2,391 tests**, statement **99.28%**, branch **98.11%**, including the existing
+traceability/readiness/certification, architecture and performance checks. The
+pre-existing v0.1 CONDITIONAL findings remain unchanged.
+
+Pinned `nightly-2026-11-15` LLVM instrumentation, using the same workspace
+`crates/**/src/` executable-line aggregation (the Rust statement figure), reports
+**99.05%** (12,011/12,126); branch coverage is **98.36%** (1,741/1,770). No new
+source or branch exclusions were introduced. The new suspension source itself
+covers all **20/20 instrumented branches**. Python and Rust remain separate
+measurements. Existing embedded source-unit-test aggregation is unchanged.
+
+Oracle lock/wheel, previous fixtures, Python implementation, frozen requirement
+fingerprints/statuses, crate dependencies, 17 external packages and Cargo.lock
+remain unchanged. Lockfile SHA-256 remains
+`628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.
