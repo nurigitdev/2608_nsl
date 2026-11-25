@@ -66,3 +66,7 @@ rust/crates/nsl-write/tests/fixtures/write-goldens-oracle.tsv text eol=lf
 rust/crates/nsl-write/tests/fixtures/write-negative-oracle.tsv text eol=lf
 rust/crates/nsl-write/tests/fixtures/write-admission-oracle.tsv text eol=lf
 rust/crates/nsl-write/tests/fixtures/write-metadata-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/idempotency-keys-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/idempotency-models-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/idempotency-retention-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/idempotency-reservations-oracle.tsv text eol=lf

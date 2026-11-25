@@ -172,6 +172,7 @@ version = "0.2.1"
 name = "nsl-write"
 version = "0.2.1"
 dependencies = [
+ "nsl-contract",
  "nsl-core",
  "nsl-ir",
  "sha2",

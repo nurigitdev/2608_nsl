@@ -1,4 +1,4 @@
-# nsl-write — R8-S01 Canonical Write Intent
+# nsl-write — Canonical Write Intent and Idempotency
 
 `WriteIntent` owns an immutable snapshot of evaluated argument envelopes and the
 Oracle's tenant/business/node/tool/approval identities. It validates both supplied
@@ -8,7 +8,7 @@ names/cardinality against the WRITE expression. Missing business identity,
 unknown/duplicate/read/transaction tool declarations, missing/extra/wrong argument
 names and a non-WRITE expression are rejected. The context is a borrowed Runtime
 projection (`tenant_id`, optional business ID and admitted `SkillObject`); this
-crate depends on Core/IR and the existing SHA-256 package, without a Runtime edge.
+crate depends on Core/IR/Contract and the existing SHA-256 package, without a Runtime edge.
 
 ## Oracle identity contract
 
@@ -192,3 +192,151 @@ are no new external packages or version updates (17 packages). Cargo.lock change
 only the WRITE crate's three declared workspace/existing SHA-256 edges; its
 reviewed SHA-256 is
 `d45307992ead2ecdf9f4e770060912e951d0bb75bf885c53320341e81bea6e28`.
+
+
+## R8-S02 — Durable Idempotency Contract
+
+`IdempotencyKeyFactory`, immutable identity/provider-evidence/record/reservation
+models, `IdempotencyRetentionValidator`, `IdempotencyEvidencePort` and
+`IdempotencyCoordinator` implement the frozen Oracle's idempotency boundary.
+The Oracle remains **28a949ec96581cbdc52c8133527b23bb5b72ee0a**; its code,
+wheel lock, existing compatibility observations and Python SRS fingerprints are
+unchanged. R8-S02 adds one permitted workspace dependency on `nsl-contract` for
+current contract identity and retention semantics. No Runtime dependency or new
+external package is introduced.
+
+### Stable key and validated models
+
+The key is `idem:sha256:` plus SHA-256 of `NSL-IDEMPOTENCY-KEY-V1\0` followed
+by canonical UTF-8 JSON containing exactly `tenant_id`, `business_operation_id`
+and `write_node_id`. Execution ID, payload, tool, approval and contract do not
+enter this key. Payload drift therefore keeps the key and conflicts separately;
+a new business operation, tenant or WRITE node gets its own identity. Transport
+retry must retain the business operation ID; a genuinely new business operation
+must receive a new ID. This module performs no automatic business retry.
+
+As previously approved in R2-S01, supplied IdempotencyKey models check the exact
+prefix and **76 Unicode characters**, including a 64-character non-hex/Unicode
+suffix. The key factory itself always emits lowercase SHA-256 hex. PayloadHash
+and contract hashes retain strict lowercase 64-hex validation. Required strings
+use Python-compatible blank/credential screening without trimming or rewriting
+accepted identities. Native UTC instants and Bool/enum types reject unsupported
+representations before constructing a model. Evidence requires
+`verified_at < guaranteed_until`; a standalone historical evidence record can
+have past retention, matching Python. A CONFLICT reservation cannot carry a
+business result reference. CREATED with a reference and REUSED without one are
+both representable, as in the Oracle. Models expose borrowed metadata and typed
+identifiers; their Debug output omits identity/evidence contents.
+
+### Retention and reservation order
+
+Validation requires `now < required_until`, exact intent/contract/evidence tool
+binding, current canonical Tool Contract hash, exactly WRITE capability, required
+idempotency with `TOOL_AND_TENANT`, `RETURN_ORIGINAL_RESULT` and
+`IDEMPOTENCY_CONFLICT`, matching opaque retention-policy strings, and an explicit
+durable duplicate guarantee. It accepts `verified_at == now` and
+`guaranteed_until == required_until`, rejects future verification, and rejects
+`now == guaranteed_until`. All comparisons use caller-supplied UTC instants at
+microsecond precision; no system clock is consulted. Internal Optional Tool
+Contract encoding failure is a codeless typed error, with no reservation effect,
+retaining R5-S02's existing canonical encoding boundary.
+
+The coordinator takes a borrowed `IdempotencyContext` projection of tenant,
+optional business ID and the existing raw checkpoint key/payload maps. It checks:
+
+1. Context tenant and business identity, then retention evidence.
+2. Any cached key against semantic identity, then any cached payload.
+3. The injected durable reservation acknowledgement against the **entire incoming
+   record**, then the CONFLICT disposition.
+4. Only after a matching CREATED/REUSED acknowledgement, both checkpoint maps.
+
+Rejections preserve the original maps, including partial/foreign-node data. A
+matching partial key-only or payload-only checkpoint is filled after successful
+acknowledgement. Foreign acknowledgement fields are rejected with
+`IDEMPOTENCY_STATE_INVALID` before interpreting its CONFLICT disposition. Cached
+or durable payload drift produces `IDEMPOTENCY_CONFLICT`. Retention failures use
+`IDEMPOTENCY_RETENTION_UNAVAILABLE`. Native errors carry static safe messages and
+redacted paths; port failures are opaque codeless errors with no protected source.
+No local cache entry is treated as proof that durable reservation succeeded.
+
+### Host durability contract and pending outcomes
+
+The host port must atomically scope reservations by **tenant/tool/key**, persist
+before CREATED acknowledgement, retain duplicate detection through the incoming
+record's `retained_until` across restarts, preserve the original stored payload
+on conflict, and return the original business result on reuse when available.
+Same semantic key across two tools remains isolated by that host scope.
+The incoming record retains the full provider guarantee expiry, which can exceed
+the requested minimum recovery horizon.
+
+The Oracle compares a returned record to the full incoming record. A retry after
+a provider guarantee reference or expiry change must therefore acknowledge the
+new incoming record after checking durable state; returning only the old stored
+record is rejected. This echo contract is distinct from preserving the original
+business result reference. Both behaviors are recorded without changing Oracle
+outcomes. `REUSED` with no business result is a pending/unknown reservation, never
+a successful business WRITE or permission to invoke the provider again.
+
+The reference test adapter uses one mutex-protected durable-state abstraction;
+its retained storage survives coordinator/context replacement. It verifies atomic
+reservation and result reuse, not power-loss durability of a real database.
+Production storage remains host supplied through the explicit port contract.
+Error/drop can occur before or after adapter acceptance: the maps stay unchanged
+while durable evidence may already exist. Dropping a future does not imply
+rollback, commit outcome or safe business retry. Later retry observes CREATED or
+REUSED according to durable state. Runtime WriteGuard, WRITE_REQUESTED persistence
+and actual provider mutation remain R8-S03/R8-S04/R9 respectively.
+
+### R8-S02 verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R8-S02-IDENTITY-ORACLE` | 26 factory/intent observations: original stable identity, payload drift, tenant/business/node separation, Unicode/control escaping, blank and credential rejection. |
+| `R8-S02-MODELS-ORACLE` | 99 original model admissions: all required bindings, hashes, supplied key lengths 0/1/63/64/65 with ASCII/non-ASCII suffixes, result references/dispositions, one-microsecond TTL constructor boundaries and minimum/maximum UTC instants. |
+| `R8-S02-RETENTION-ORACLE` | 26 observations: now/horizon/verification/expiry at -1/0/+1 microsecond, exact horizon acceptance, wrong tool/hash/policy/durability/scope/duplicate/conflict behavior and READ/TRANSACTION contract rejection. |
+| `R8-S02-RESERVATION-ORACLE` | 35 multi-step scenarios: CREATED, REUSED pending/original result, cached/durable payload conflict, context/partial-cache admission, all nine acknowledgement bindings, failure before/after persistence, changed guarantee/TTL echo vs stale acknowledgement, tenant/tool/business/node isolation. Success values, error class meaning/detail code, maps, calls and stored-record counts match the original observations. Python messages are retained verbatim in fixture bytes; Rust safe path/kind is checked separately. |
+| `R8-S02-ATOMICITY` | Real thread races with 0/1/9/10/11/32 reservations, same and competing payloads: exactly one CREATED, same payload reused, competing payload rejected, one unchanged stored original and no map mutation on rejection. |
+| `R8-S02-FAILURE` | Unpolled/dropped pending futures before/after acceptance, same-port fresh-context retry, failure-order paths, context/cache preservation, codeless contract encoding failure before the port, immutable snapshots and safe errors/Debug. |
+| `R8-S02-GOLDENS` | Original duplicate/conflict compatibility observations keep the exact stable key, payload, current contract hash, retained evidence and original business result reference. |
+| `R8-S02-DETERMINISM` | Four files regenerated from two independent `git archive` exports of the frozen commit: exact bytes and SHA-256 match. Explicit LF attributes preserve bytes on both CI operating systems. |
+
+| Rust SRS | R8-S02 status and scope |
+| --- | --- |
+| `NSL-RUST-IDEM-001/002` | IMPLEMENTED/VERIFIED for stable identity and exact Python canonical key generation; `R8-S02-IDENTITY-ORACLE`, `R8-S02-GOLDENS`. |
+| `NSL-RUST-IDEM-003` | IMPLEMENTED for the durable atomic port contract and coordinator; integration with the concurrent injected reference adapter verified by `R8-S02-RESERVATION-ORACLE` / `R8-S02-ATOMICITY`. Host database durability remains an adapter obligation. |
+| `NSL-RUST-IDEM-004` | PARTIAL at the reservation boundary: same-payload reuse returns original result/pending state without creating another reservation. Business mutation E2E evidence remains the later provider execution slice. |
+| `NSL-RUST-IDEM-005` | IMPLEMENTED/VERIFIED for checkpoint and durable reservation payload conflict; `R8-S02-RESERVATION-ORACLE` / `R8-S02-ATOMICITY`. |
+| `NSL-RUST-IDEM-006/007` | IMPLEMENTED/VERIFIED for identity/current-contract/evidence and retention admission before reserving; live WRITE enforcement remains later guards. `R8-S02-RETENTION-ORACLE`, `R8-S02-FAILURE`. |
+| `NSL-RUST-IDEM-008` | IMPLEMENTED at this API boundary: business identity is stable across transport retries, new business identity is separate, no automatic mutation retry or commit inference; `R8-S02-FAILURE`. |
+
+Generate all four files using Python 3.12 and an unmodified frozen archive:
+
+```bash
+for mode in keys models retention reservations; do
+  .venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_idempotency.py "$oracle_dir" "$mode"
+done
+```
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `idempotency-keys-oracle.tsv` | `7c0b230f2b60ec108bb9ee870194616fdec1de0bcd57cfd73ce2c0abdc45d31f` |
+| `idempotency-models-oracle.tsv` | `45cda9900d785ddc1e70907e18c4a1abf76cba401e629705bf5dda5f7fe15662` |
+| `idempotency-retention-oracle.tsv` | `dcbde22fe82d009838a102a9d76f2ef980e84839752fc9c454721c05c7d65078` |
+| `idempotency-reservations-oracle.tsv` | `19e061de604b47c3fd3728055ff143fde710c21484a00871eb9571ab996ff6cd` |
+
+R8-S02 local verification on pinned **Rust 1.99.1** passes formatting, locked
+workspace check, architecture guard and **8 guard tests**, all-target/all-feature
+Clippy with warnings denied, **253 Rust tests** (244 baseline + 9 idempotency
+tests), and frozen workspace build. The mandatory Python quality command ran
+**exactly once locally**: **2,391 passed**, statement **99.28%**, branch
+**98.11%**, with existing traceability/readiness, architecture, performance and
+certification checks. Existing Python v0.1 CONDITIONAL findings are unchanged.
+
+Pinned **nightly-2026-11-15** LLVM instrumentation, using the unchanged workspace
+`crates/**/src/` executable-line aggregation for the Rust statement figure,
+measures **99.12%** (13,337/13,456); branch **98.44%** (1,888/1,918). The new
+idempotency modules cover 453/455 executable lines and 45/46 instrumented branches.
+No exclusions were added; embedded source-unit-test aggregation is unchanged.
+These Rust and Python figures are independent measurements. Host durability and
+business mutation guarantees retain the explicitly scoped later verification
+obligations above.

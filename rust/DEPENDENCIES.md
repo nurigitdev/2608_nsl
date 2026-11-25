@@ -160,3 +160,19 @@ the graph. Current Cargo.lock SHA-256:
 ```text
 d45307992ead2ecdf9f4e770060912e951d0bb75bf885c53320341e81bea6e28
 ```
+
+
+## R8-S02 idempotency contract graph
+
+`nsl-write` adds the permitted internal workspace edge to `nsl-contract` for
+current canonical Tool Contract hash and durable retention semantics. Core/IR
+models remain shared, with no dependency on Runtime, Compiler or Source. All
+**17 external packages, versions, checksums and resolved features are unchanged**
+from R8-S01. Cargo.lock changes only the internal WRITE dependency list. The
+locked check, architecture guard and frozen workspace build pass; lockfile bytes
+match before and after the build.
+
+```text
+Cargo.lock SHA-256
+0c9622b402712dd5cdd5a79f2bca9b4ec8a7ae4f2e2804586f3acc1e14a8870a
+```
