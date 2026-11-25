@@ -1073,3 +1073,156 @@ Oracle lock/wheel, previous fixtures, Python implementation, frozen requirement
 fingerprints/statuses, crate dependencies, 17 external packages and Cargo.lock
 remain unchanged. Lockfile SHA-256 remains
 `628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.
+
+## R7-S04 — Resume Claim / Validation / Consumption
+
+`ResumeToken` admits an execution ID, Core BusinessOperationId, positive arbitrary-
+precision checkpoint version and immutable ApprovalEvidence. Debug omits token
+identities/proof data. `ApprovalResumeCoordinator::resume` accepts an explicit
+`ApprovalResumeRequest`, the existing bounded `CheckpointCoordinator`, injected
+`ResumeCheckpointPort`, `ApprovalEvidenceVerifier`, UTC `ApprovalClock` and the
+separate monotonic `RuntimeClock`. `RecordedApprovalClock` uses the existing Core
+UTC/microsecond model. No clock is inferred from token or checkpoint contents.
+
+The resume order is:
+
+1. Validate explicit inputs, token/request identities and **current verified
+   principal**, before invoking the claim port.
+2. Atomically claim the requested execution/version under a nonempty claim ID.
+3. Compare the returned checkpoint's execution/business/version to the token,
+   before context restoration or proof verification.
+4. Verify checkpoint integrity, skill/runtime/request bindings and the complete
+   principal/data-policy projection using R7-S02; restore the context once.
+5. Require a Pending approval and all stored request/intent/payload bindings.
+6. Authenticate the complete evidence through the injected host verifier, then
+   compare business operation, request ID, intent, payload and remaining identity
+   bindings in the Oracle's order. Only then read the UTC clock for expiry.
+7. For an otherwise approved proof, compare the caller's **current** intent and
+   payload hash to the saved bindings. Hash construction remains R8-S01.
+8. Release invalid/mismatched proofs; consume authenticated Approved, Rejected or
+   Expired decisions before returning an outcome. Rejected/Expired decisions do
+   **not** pass the approval gate. An exact expiry instant is already expired.
+
+`ApprovalValidationResult` retains Oracle validation/status/reason codes and
+`approval_gate_passed`/`requires_reapproval` semantics. Evidence and current-value
+mismatches return Pending status after release. Verified rejection and expiry
+are consumed, preserving the Oracle's terminal-decision semantics; reapproval
+requires the host's later lifecycle. Returned context retains namespaces,
+CHECKs, outputs, resources and checkpoint version; only the applicable approval
+record changes on consume. Neither release nor consume rewrites the checkpoint.
+`ApprovalResumeOutcome` opens only the approval gate, never business WRITE:
+current policy, WriteGuard, idempotency, durable request and provider boundaries
+remain R8/R9. Evidence approver identity is independent of the executing actor;
+authenticity/current approver authority belongs to the trusted proof verifier.
+A nonempty `evidence_integrity` string alone never authenticates anything.
+
+### Approved Oracle differences
+
+Oracle **28a949ec96581cbdc52c8133527b23bb5b72ee0a** remains fixed. Its original
+successes are retained unchanged in `resumes-exceptions.tsv` for both IR versions:
+
+* Equal stored/current principals can be UNVERIFIED or have an invalid actor
+  type and still reach consume in Python. Rust calls existing
+  `principal.validate(true)` before claim, including structure, credential
+  screening and VERIFIED state. Failure is a codeless
+  `ApprovalResumeErrorKind::Type` at `$.request.security.principal`; no claim,
+  restore, verifier or clock call occurs.
+* A misbehaving claim adapter can return a valid checkpoint with a different
+  version; Python restores it and consumes the originally requested claim. Rust
+  checks all three returned identities immediately. Mismatches are codeless Type
+  errors at `$.checkpoint.execution_id`, `$.checkpoint.business_operation_id` or
+  `$.checkpoint.checkpoint_version`. The **acquired token/claim identity**, never
+  the mismatched returned identity, is used to release. No context is restored,
+  no proof is examined and no consume occurs.
+
+Execution/business return mismatches were already ordinary Python rejections;
+the new Type classification and earlier guard also cover these cases. Every
+mismatch attempts release, preserves checkpoint bytes and publishes no outcome.
+If release itself fails, the original typed kind/path is preserved together with
+`release_failed=true`. No failed acknowledgement is treated as a confirmed
+release. This safe native error representation does not expose Python transport
+messages or let cleanup failure hide the initial binding error.
+
+The earlier R7-S02 admission difference remains: malformed checkpoint state is
+rejected before constructing a runtime clock/context. The original blank-intent
+fixture records Python's clock count 1; Rust explicitly asserts 0 and compares
+the remaining observations independently. No frozen expectation is rewritten.
+
+### Atomic adapter and failure contract
+
+`ResumeCheckpointPort` is a **host-owned durable atomic boundary**, matching the
+Oracle protocol. Across workers it must reject stale versions, live claims and
+consumed claims, and enforce the exact owner on release/consume. A local
+coordinator lock would not provide distributed exclusivity and is not used.
+Tests provide a deterministic Mutex-backed atomic reference adapter, real
+concurrent worker threads and overlapping pending futures. Exactly one valid
+resumed context is returned and one consume succeeds; a losing attempt never
+reaches proof verification. The tests verify protocol/adapter behavior, not a
+new production database or distributed persistence implementation.
+
+No context/outcome is returned on claim, verifier, clock, restore, cleanup or
+consume errors. Acquired, acknowledged claims are released for validation/
+restore failures. A consume error or an unacknowledged claim is not automatically
+released: an adapter may have accepted the operation before returning an error.
+Dropping pending claim/release/consume futures similarly starts no background
+cleanup, releases no unconfirmed operation and returns no execution context.
+The remaining live/consumed state denies duplicate resume; authoritative host
+recovery is explicit. This matches the fixed Oracle's fail-closed cancellation/
+I/O boundary and does not infer rollback, business commit or safe WRITE retry.
+
+Adapter failures are typed (`ResumeClaimError`), verifier/clock failures are
+opaque, and component errors carry safe paths/static text with no source chain
+or new NSL diagnostic code. Existing Oracle approval-validation reason codes
+remain semantic outcomes, distinct from these component errors. Tokens and
+resume-outcome Debug omit identities, restored state and proof contents.
+
+### R7-S04 verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R7-S04-RESUME-ORACLE` | **124 scenarios / 136 observations** in `tests/resumes.rs`: IR 1.0/1.1, empty/populated snapshots; exact restored state and checkpoint bytes; validation/status/reason/gate/reapproval results; proof calls, UTC/monotonic clock calls, claim/release/consume order, owner and store state. All current proof bindings, current payload/intent mismatches, identity precedence, token mismatch, principal/data-policy changes, missing/non-Pending state and missing/invalid maps are exercised. |
+| `R7-S04-STRICT-EXCEPTION` | **6 original Oracle successes** retained: UNVERIFIED/invalid actor and wrong returned version across both IRs. Native rejection is before claim or before restore, uses safe Type/path errors, preserves checkpoint bytes, and releases any acquired claim. Additional tests cover all principal structure/credential failures, all three returned identities, and release failures before/after adapter acceptance. |
+| `R7-S04-CLAIM-ATOMICITY` | Two real worker threads race the same checkpoint: exactly one successful context and consume, with no second verifier call. Pending overlapping claims reject LIVE duplicates. Reference adapter tests enforce owner matching, release/reclaim, stale/latest and permanently consumed state. No provider/business mutation is performed. |
+| `R7-S04-FAULTS` | Claim/release/consume fail before and after acceptance; verifier/clock dependency failure releases for explicit retry; invalid proof can be corrected and retried. Consume failure never publishes a context or attempts unsafe release; explicit retries remain LIVE/CONSUMED blocked. Dropped pending claim/release/consume futures leave state fail-closed and start no background work. |
+| `R7-S04-BOUNDARIES` | Versions -1/0/1/2 and a 41-digit positive value; empty/blank/credential token/input admission; expiry -1/0/+1 microsecond, no expiry and maximum UTC instant, Rejected/Expired precedence; inherited checkpoint integrity-material/state byte budgets 0/1/MAX-1/MAX/MAX+1, release before proof/context on limit failure. Full transport-envelope admission remains the adapter's existing `ExecutionCheckpoint::from_bytes` boundary. |
+| `R7-S04-DETERMINISM` | Both files generated twice from independent fixed-commit archives: exact files and SHA-256 match. LF attributes preserve fixture bytes on Linux and Windows. |
+
+| Rust SRS | R7-S04 status and evidence |
+| --- | --- |
+| `NSL-RUST-GATE-001/002/006/008` | IMPLEMENTED for this resume component: authenticated verifier boundary, complete evidence binding, verified current principal, exact checkpoint/request/current security projection and returned token identity/version admission. Host authentication/proof implementation is explicitly injected. |
+| `NSL-RUST-GATE-009` | IMPLEMENTED at the atomic port/consumer boundary, with concurrent/live/stale/consumed/owner contract tests and consume-before-outcome behavior. Durable cross-worker atomicity must be supplied by the production host adapter. |
+| `NSL-RUST-GATE-003/004/005` | Resume approval gate rejects missing/invalid/mismatched proof, Rejected/Expired decision and changed current intent/payload. Full policy/WRITE execution remains R8/R9. |
+| `NSL-RUST-GATE-007/010` | Existing deterministic integrity-protected codec reused; no background task, human wait or workflow orchestration added. |
+| `NSL-RUST-CTX-001/004/005/006/007/008`, `NSL-RUST-RUN-012/014/018` | Identity, retained local state/resources/completeness, separate recorded UTC and monotonic clocks, bounded restore, safe typed failures and payload/proof-safe Debug verified. |
+
+Generate the original observations with Python 3.12 and an archive of the pin:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_resumes.py "$oracle_dir" normal
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_resumes.py "$oracle_dir" exceptions
+```
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `resumes-oracle.tsv` | `f23008543293a31c0b4c3f4961bfd02781c3a9556209970ce71a62f057f031b9` |
+| `resumes-exceptions.tsv` | `4fa1ee2a5d589aa2c66f2e55f6c84152ed8acc6c387ff38528174b745f45e5ea` |
+
+Stable **Rust 1.99.1** passes fmt, locked workspace check, all-target/all-feature
+Clippy with warnings denied, the dependency guard and **7 guard tests**, **227
+Rust tests** (217 before R7-S04), and frozen workspace build. The mandatory Python
+quality command ran **once** locally for R7-S04 and passed: **2,391 tests**,
+statement **99.28%**, branch **98.11%**, including the existing traceability,
+readiness, architecture, performance and certification gates. The pre-existing
+v0.1 CONDITIONAL findings remain unchanged.
+
+Pinned `nightly-2026-11-15` LLVM instrumentation, with the same workspace
+`crates/**/src/` executable-line aggregation (the Rust statement figure), reports
+**99.08%** (12,389/12,504); branch coverage is **98.39%** (1,771/1,800). The new
+resume module covers **378/378 executable lines and 30/30 instrumented branches**.
+No source or branch exclusions were added; embedded source-unit-test aggregation
+is unchanged. Python and Rust remain independent coverage measurements.
+
+Oracle lock/wheel, Python implementation, previous compatibility fixtures,
+frozen requirement fingerprints/statuses, crate dependencies, 17 external
+packages and Cargo.lock remain unchanged. Lockfile SHA-256 remains
+`628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.

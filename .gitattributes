@@ -56,3 +56,5 @@ rust/crates/nsl-runtime/tests/fixtures/checkpoints-wire-oracle.tsv text eol=lf
 rust/crates/nsl-runtime/tests/fixtures/checkpoints-values-oracle.tsv text eol=lf
 rust/crates/nsl-runtime/tests/fixtures/suspensions-oracle.tsv text eol=lf
 rust/crates/nsl-runtime/tests/fixtures/suspensions-exceptions.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/resumes-oracle.tsv text eol=lf
+rust/crates/nsl-runtime/tests/fixtures/resumes-exceptions.tsv text eol=lf

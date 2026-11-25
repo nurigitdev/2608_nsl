@@ -1,7 +1,9 @@
 mod model;
+mod resume;
 mod summary;
 mod suspension;
 pub use model::*;
+pub use resume::*;
 pub use summary::*;
 pub use suspension::*;
 
