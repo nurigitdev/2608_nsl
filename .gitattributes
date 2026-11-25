@@ -70,3 +70,7 @@ rust/crates/nsl-write/tests/fixtures/idempotency-keys-oracle.tsv text eol=lf
 rust/crates/nsl-write/tests/fixtures/idempotency-models-oracle.tsv text eol=lf
 rust/crates/nsl-write/tests/fixtures/idempotency-retention-oracle.tsv text eol=lf
 rust/crates/nsl-write/tests/fixtures/idempotency-reservations-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/write-guard-models-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/write-guard-decisions-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/write-guard-prewrite-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/write-guard-exceptions-oracle.tsv text eol=lf

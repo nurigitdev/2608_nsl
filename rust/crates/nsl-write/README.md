@@ -340,3 +340,175 @@ No exclusions were added; embedded source-unit-test aggregation is unchanged.
 These Rust and Python figures are independent measurements. Host durability and
 business mutation guarantees retain the explicitly scoped later verification
 obligations above.
+
+
+## R8-S03 — Current-policy WriteGuard
+
+`WritePolicyRequest`, `PolicyDecision`, `BusinessPreconditionEvidence`,
+`WriteContractEvidence`, `RiskAcceptancePolicy`, `WriteGuardDecision` and
+`WriteGuard` now implement the fixed Oracle's policy/precondition boundary,
+with the explicitly user-approved current-principal/contract/scope admission
+checks below. The frozen Oracle remains
+**28a949ec96581cbdc52c8133527b23bb5b72ee0a**. Python implementation, Oracle wheel
+lock, earlier compatibility observations and frozen SRS fingerprints/statuses
+are unchanged.
+
+### Ownership and authority boundary
+
+`nsl-write` retains its Core/IR/Contract dependencies, with no Runtime/Compiler/
+Source edge or additional package. `WriteGuardContext` borrows a `WritePrincipal`
+view and the optional business ID. The view borrows the current principal's
+tenant, subject, actor, role/scope sets, authentication-context reference,
+verification metadata and optional on-behalf-of identity. It applies Runtime's
+existing principal rules with verification required, including nonempty and
+credential-free identities/roles/scopes, USER/SERVICE actor types, and a valid
+optional delegation reference. Empty roles are allowed; they do not grant a
+missing scope. Host authentication establishes verification metadata; this view
+validates the admitted model and does not implement an authentication protocol.
+
+`WriteExecutionEvidence` is the small typed projection of the existing Runtime
+`PreWriteEvidence`: validation status, approval status and its ten control
+booleans. Host code constructs the projection from the current admitted Runtime
+snapshot; no Runtime state model is moved, cloned or given a reverse dependency.
+These projections and public model constructors are not independently verified
+authorization, approval or durability proofs. The host still supplies those
+trusted boundaries. Validated IR/semantic admission and actual provider execution
+remain the existing compiler/Runtime boundary and later controlled integration.
+
+Models retain immutable owned snapshots, typed Core risk/capability/UTC instants,
+strict lowercase SHA-256 evidence and credential-screened required text.
+Policy actions are exactly WRITE. Policy expiry must be strictly after evaluation;
+precondition expiry must be strictly after observation. The six precondition
+mechanisms retain VERSION, REVISION, ETAG, PRECONDITION_TOKEN,
+TRANSACTIONAL_REVALIDATION and EQUIVALENT_PROVIDER_MECHANISM. Risk acceptance is
+R3-only by default, independently configurable as a nonempty set of Core risk
+levels; repeated inputs retain at most six unique levels. Evidence/Spec Debug
+omits identity/evidence contents. Model errors are codeless, contain safe paths
+and static messages, and expose no protected error source.
+
+### Approved native admission difference
+
+The original Oracle's WriteGuard has no current Tool Contract/scope parameter and
+does not validate the current principal. With otherwise matching ALLOW policy and
+precondition snapshots, its unit boundary returns ALLOWED even when the required
+WRITE scope is absent/empty or the principal is unverified. The user approved
+preserving that Oracle while making the Rust boundary reject these cases.
+`write-guard-exceptions-oracle.tsv` retains **16 original ALLOWED observations**,
+with separate expected native rejections; no frozen success is rewritten.
+
+Before evaluating policy evidence or calling the policy port, Rust checks:
+
+1. The current principal model with verification required, then context tenant
+   and business ID against the admitted WriteIntent.
+2. Evidence tool/capability/precondition support and the current Tool Contract's
+   tool, exactly WRITE capability, risk and canonical contract hash. The validated
+   WRITE Tool Contract already guarantees atomicity and precondition support.
+3. A nonempty, credential-free actual `current_contract.required_scope` and
+   membership in the **current principal's** scopes.
+4. The configured accepted risk set.
+
+Invalid principals produce a codeless `WriteGuardErrorKind::Principal` with a
+path such as `$.context.principal.verification`. Missing/invalid required scope
+or missing current scope yields BLOCKED / `WRITE_SCOPE_DENIED`. Current contract
+or contract-evidence mismatch yields BLOCKED / `WRITE_CONTRACT_INVALID`.
+Internal Optional contract encoding failure retains R5-S02's codeless boundary
+at `$.current_contract`. These outcomes occur with **zero policy-port calls** and
+no provider, reservation, persistence or Runtime-state effect. Evidence can be
+self-consistent yet stale relative to the actual current contract; it is still
+rejected. Updating all evidence to a new scope still requires that new scope.
+
+### Oracle policy, precondition and PreWrite order
+
+After admission, policy must be present, match all eight request identity fields
+(tenant, subject, action, tool, risk, business operation, node, intent hash), be
+current (`evaluated_at <= now < expires_at`) and explicitly ALLOW. Missing,
+foreign, future, expired or DENY policy fails closed before preconditions.
+Business precondition evidence must then be present and match tenant, business
+operation, node, tool, current contract hash, payload hash and intent hash. It
+must be current (`observed_at <= now < expires_at`) and explicitly assert provider
+atomic enforcement. The runtime decision does not claim the provider's business
+condition already passed; the provider must enforce the bound mechanism during
+its later atomic invocation.
+
+Only those successful checks replace the three Oracle control flags
+`current_policy_allowed`, `tool_preconditions_passed` and
+`business_preconditions_passed` on a local value copy. CHECK FAIL/UNKNOWN precedence,
+approval rejection/evidence validity, runtime preflight, trust, intent binding,
+idempotency, durability and replay permission preserve the Oracle's original
+PreWriteEvaluator ordering. `NO_CHECK` remains admissible when every other axis
+allows it. Pending/not-requested/expired approval yields REQUIRES_APPROVAL after
+other controls succeed. Evaluation never mutates the caller's evidence/context.
+`require_write_allowed` accepts only ALLOWED; an optional reason is not permission.
+
+`WriteGuard::evaluate(request, now)` evaluates an explicitly host-supplied trusted
+policy snapshot, including its identity/TTL. `WriteGuard::authorize(request,
+port, now)` is the current-authority path: after admission it calls the injected
+synchronous `RuntimePolicyPort` **exactly once**, ignores any cached decision on
+the request, and checks the newly returned decision. An old ALLOW cannot override
+a current DENY; an old DENY cannot veto a new matching ALLOW. The caller supplies
+the authoritative UTC check instant; the guard does not read a system clock or
+cache authority. The host port must resolve current authority for the request.
+Port failures become opaque codeless errors at `$.policy_decision`, without an
+ALLOW verdict. No automatic policy/provider retry is introduced.
+
+Like Python, standalone `WriteGuardDecision` construction checks that an optional
+reason is nonblank, without interpreting or rewriting an opaque reason string.
+Guard-generated reasons are fixed safe labels. The decision model is an internal
+host value, not an authenticated authorization proof; public error redaction
+remains the Runtime/integration output boundary.
+
+### R8-S03 verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R8-S03-MODELS-ORACLE` | 161 original model observations: exact canonical data bytes, all required text/hash bindings, blank/control/credential rejection, WRITE-only action, all Core risk values, min/max UTC instants, -1/0/+1 microsecond constructor expiry, and decision reason admission. |
+| `R8-S03-DECISIONS-ORACLE` | 70 observations: context tenant/business binding; policy missing/DENY, all mismatched identities and exact TTL edges; precondition missing/all bindings/TTL/atomicity; all six mechanisms and default/configurable risk levels; execution controls, all approval states and failure precedence. |
+| `R8-S03-PREWRITE-ORACLE` | 26 observations: all five CHECK summary statuses, approval/evidence axes, all nine blocking controls and original NO_CHECK semantics. Direct evaluation and Guard preserve the existing Runtime evidence. |
+| `R8-S03-ADMISSION-EXCEPTIONS` | 16 original Oracle ALLOWED observations retained separately from user-approved native rejection: missing/empty WRITE scopes, unverified/malformed current principal, stale actual contract tool/risk/scope/version/hash and blank required scope. Zero policy-port calls for every native rejection. |
+| `R8-S03-CURRENT-AUTHORITY` | Fresh injected current policy once per call; request projection equality, missing snapshot, current DENY/foreign/stale/future policy and opaque port failure, cached ALLOW/DENY isolation, and repeated principal/scope/contract checks. |
+| `R8-S03-BOUNDARIES` | Empty/one/5/6/7/64/65 risk inputs (set semantics, at most six retained); 0/1/63/64/65 unrelated scopes cannot grant WRITE; USER/SERVICE/delegation, required/credential identities, internal Optional contract failure, immutable evidence, safe errors and Debug, and current-scope drift after an earlier ALLOW. |
+| `R8-S03-DETERMINISM` | Four files generated twice from independent fixed-commit `git archive` exports: bytes and SHA-256 match. LF attributes preserve fixture bytes across Linux/Windows. |
+
+| Rust SRS | R8-S03 status and scope |
+| --- | --- |
+| `NSL-RUST-WRITE-005` | IMPLEMENTED/VERIFIED at the current-policy Guard boundary; `R8-S03-CURRENT-AUTHORITY`, `R8-S03-ADMISSION-EXCEPTIONS`. Full provider-stage orchestration remains later controlled integration. |
+| `NSL-RUST-WRITE-006` | IMPLEMENTED/VERIFIED for exact business precondition binding; `R8-S03-DECISIONS-ORACLE`. |
+| `NSL-RUST-WRITE-007` | VERIFIED for validated atomic Tool Contract and explicit provider-atomic-enforcement evidence admission. Actual provider atomic execution remains the host/provider integration obligation. |
+| `NSL-RUST-WRITE-008` | IMPLEMENTED/VERIFIED for fail-closed verdicts, missing/current policy/precondition axes and typed admission failures; `R8-S03-DECISIONS-ORACLE`, `R8-S03-PREWRITE-ORACLE`, `R8-S03-ADMISSION-EXCEPTIONS`. |
+| `NSL-RUST-SEC-005/006` | IMPLEMENTED/VERIFIED within Guard for current authority and cross-tenant principal/policy/precondition binding. Trusted issuer authentication and the full controlled pipeline remain explicit external/later boundaries. |
+| `NSL-RUST-SEC-010` | Existing replay permission is preserved as a blocking PreWrite axis; complete replay/provider E2E verification remains later integration. |
+| `NSL-RUST-DIFF-010` | All 257 ordinary observations match; 16 admission differences are explicitly user approved, separately recorded and tested. |
+| `NSL-RUST-WRITE-009/010/011` | No new completed claim: durable WRITE_REQUESTED, full provider request and controlled mutation pipeline remain R8-S04/R8-S05/R9. |
+
+Generate the original observations using Python 3.12 and an unmodified archive:
+
+```bash
+for mode in models decisions prewrite exceptions; do
+  .venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_write_guard.py "$oracle_dir" "$mode"
+done
+```
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `write-guard-models-oracle.tsv` | `deb8ad15519f05d50968a1af912121b6bbb77e6e79f66b7b6e832c852eaa8116` |
+| `write-guard-decisions-oracle.tsv` | `4ba64823f788d5f298f39f6ef05285a77c403e54114151b55ea4dbe1c5aa46d2` |
+| `write-guard-prewrite-oracle.tsv` | `b23261d989660bad70906a9292a09ce039e46cd0186b524862fafa2042bb0c07` |
+| `write-guard-exceptions-oracle.tsv` | `12de0e435059a1d42dd6475d66e94e94a2517bce583917e2282173e043092a65` |
+
+
+Pinned **Rust 1.99.1** passes fmt, locked workspace check, architecture guard and
+**8 guard tests**, all-target/all-feature Clippy with warnings denied, **263 Rust
+tests** (253 baseline + 10 Guard tests), and frozen workspace build. The complete
+Rust regression also passed before and after simplifying the new invariant checks
+and bounding the risk set's retained storage. The mandatory Python quality gate
+ran **exactly once locally for R8-S03**: **2,391 passed**, statement **99.28%**,
+branch **98.11%**, with unchanged traceability/readiness, architecture, performance
+and certification gates. Existing Python v0.1 CONDITIONAL findings remain.
+
+Pinned **nightly-2026-11-15** LLVM instrumentation uses the unchanged workspace
+`crates/**/src/` executable-line aggregation for the Rust statement figure:
+**99.12%** (13,975/14,099); branch **98.42%** (1,994/2,026). New Guard modules
+cover 638/643 executable lines and 106/108 instrumented branches; the Guard
+admission/decision body, principal validation and PreWrite axes each cover all of
+their instrumented branches. No exclusions were added; embedded source-unit-test
+aggregation is unchanged. Rust and Python are independent measurements.

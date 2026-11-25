@@ -1,9 +1,11 @@
 #![forbid(unsafe_code)]
 mod canonical;
+mod guard;
 mod idempotency;
 mod intent;
 mod snapshot;
 pub use canonical::{canonical_write_arguments, compute_payload_hash, compute_write_intent_hash};
+pub use guard::*;
 pub use idempotency::*;
 pub use intent::{
     ApprovalIdentityEvidence, WriteIntent, WriteIntentBuilder, WriteIntentContext, WriteIntentSpec,

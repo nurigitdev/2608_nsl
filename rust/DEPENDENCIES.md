@@ -176,3 +176,17 @@ match before and after the build.
 Cargo.lock SHA-256
 0c9622b402712dd5cdd5a79f2bca9b4ec8a7ae4f2e2804586f3acc1e14a8870a
 ```
+
+
+## R8-S03 current-policy guard graph
+
+The Guard reuses Core/IR/Contract through the existing `nsl-write` graph. Borrowed
+principal and execution-evidence projections preserve the prohibition on WRITE
+reaching Runtime, Compiler or Source; no existing Runtime model is moved and no
+external package/feature or workspace edge is added. All **17 external packages**
+and Cargo.lock bytes remain unchanged. Locked metadata, the dependency guard and
+the frozen build pass. Cargo.lock SHA-256 remains:
+
+```text
+0c9622b402712dd5cdd5a79f2bca9b4ec8a7ae4f2e2804586f3acc1e14a8870a
+```
