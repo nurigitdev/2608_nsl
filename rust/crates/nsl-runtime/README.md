@@ -1226,3 +1226,112 @@ Oracle lock/wheel, Python implementation, previous compatibility fixtures,
 frozen requirement fingerprints/statuses, crate dependencies, 17 external
 packages and Cargo.lock remain unchanged. Lockfile SHA-256 remains
 `628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.
+
+## R7-S05 — Approval Differential Gate / R7 Exit
+
+**R7 exit gate: PASS**, with the five previously approved native-admission
+exception groups explicitly retained. `tests/approval_gate.rs` connects fresh
+native contexts to suspension, canonical checkpoint wire storage, strict wire
+loading, fresh-context resume and claim release/consumption. This is a test and
+evidence Slice; production Core/Runtime behavior is unchanged.
+
+The fixed unmodified Oracle remains
+**28a949ec96581cbdc52c8133527b23bb5b72ee0a**. The new gate compares **54 lifecycle
+scenarios / 139 observations** across IR 1.0 and 1.1:
+
+| Planned comparison | Gate evidence |
+| --- | --- |
+| Suspend result | Exact result data and semantic view, WAITING_FOR_APPROVAL and completeness, Pending approval/suspension metadata, saved version and integrity hash. Empty legacy/NO_CHECK and v0.2 evidence rejection remain distinct Oracle behavior. |
+| Checkpoint state | Exact saved wire bytes, stored state/owner/latest version, namespaces, scope frame, CHECK/EMIT/resource history, live post-publication context and every subsequent resume snapshot. All claims load the actual serialized native snapshot through `ExecutionCheckpoint::from_bytes`; expected Oracle checkpoints are never used to seed native contexts. |
+| Resume success | Gate/reapproval/consumed values, exact restored state and checkpoint bytes, independent runtime-clock construction, explicit proof retry and resuspend/retry versions including a 41-digit prior counter. |
+| Resume rejection code | Exact Oracle semantic approval reason codes; stale/live/consumed duplicates, principal subject/scope changes, corrupted stored wire and consume-before/after-acceptance failures. Native codeless component kind/path is checked separately from Python exception wording; the host adapter maps invalid wire to an opaque claim failure. |
+| Approval validation outcome | All evidence identity bindings, current payload/intent changes, invalid-proof release followed by corrected successful retry, Rejected/Expired decisions, expiry -1/0/+1 microsecond and no-expiry behavior. |
+
+The injected reference adapter records the complete save→publish→claim→verify→
+clock→release/consume history. Publication failure requires an explicit new
+snapshot/retry; stale earlier versions cannot resume. A consumed decision cannot
+be replayed, including Rejected/Expired decisions. Consume-before/after-acceptance
+errors publish no successful outcome; explicit retry remains LIVE/CONSUMED
+blocked. No business ToolExecutionPort is called. Durable cross-worker atomicity
+and proof authentication remain host-adapter contracts; the existing R7-S04
+concurrent-worker, owner, cancellation and failure suites remain part of exit
+verification. Runtime policy/WriteGuard/provider mutation remains R8/R9 scope.
+
+### Existing approved differences remain visible
+
+`approval-gate-exceptions.tsv` retains **14 original Oracle scenarios / 28
+observations**. The first native suspension matches the Oracle, then the gate
+asserts the previously approved native rejection at the exact divergence:
+
+* same-ID changed/missing payload/intent rejects before state/version/port changes;
+* invalid or UNVERIFIED current principal rejects before claim;
+* a returned checkpoint version mismatch releases the acquired claim before
+  restore, proof verification or consumption.
+
+The original Python overwrite/repair/consume outcomes remain unchanged in the
+fixture, including Python's mutation before publication collision. No expected
+outcome is rewritten to make native behavior appear identical. The corpus
+manifest also retains the already approved integer-only summary and strict
+checkpoint-state admission groups covered by R7-S01/R7-S02 suites.
+
+`approval-gate-manifest.json` pins **15 R7 fixtures**, their row counts and SHA-256
+values, all five comparison axes, the five explicit approved-difference IDs,
+the full Oracle commit and the complete baseline-lock byte hash. This includes
+all earlier model/time/summary, checkpoint, suspension and resume corpora. The
+baseline evidence JSON contains fractional coverage metadata and is bound as
+immutable bytes; it is not parsed as an integer-only NSL value. The gate rejects
+missing entries, fingerprint changes or an altered Oracle pin.
+
+### Verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R7-S05-LIFECYCLE-ORACLE` | 54 scenarios / 139 exact lifecycle observations in `approval_gate.rs`; new native snapshots are persisted/decoded before resume. |
+| `R7-S05-APPROVED-EXCEPTIONS` | 14 original exception scenarios; native safe Type paths, exact retry state/version preservation, no unintended port/proof/clock activity, acquired-claim release. |
+| `R7-S05-CORPUS-INVENTORY` | 15 fixtures and baseline-lock hash, full commit pin, five comparison axes and five approved-difference groups verified by the exit test. |
+| `R7-S05-DETERMINISM` | Both new files generated twice from independent fixed-commit archives; exact bytes and SHA-256 match. LF checkout attributes cover Linux/Windows. |
+| `R7-EXIT` | **38 selected Rust tests** pass across approval models, checkpoint codec, suspension, resume and the new lifecycle/inventory gate. Existing malformed-state/credential/summary, concurrency/claim ownership, resource budgets and failure/cancellation suites are included. |
+
+This certifies the R7 component evidence for `NSL-RUST-GATE-001/002/005/006/007/
+008/009/010` and their existing principal/state/resource/error boundaries. The
+approval-gate portion of `NSL-RUST-GATE-003/004` is verified; actual business WRITE
+policy and provider execution remain their later slices. Frozen requirement
+fingerprints/statuses are unchanged; this README records verification scope.
+
+Run the complete R7 exit gate:
+
+```bash
+cd rust
+cargo test --locked -p nsl-runtime --test approval_models --test checkpoints --test suspensions --test resumes --test approval_gate -- --nocapture
+```
+
+Generate the original lifecycle observations with Python 3.12 and the pin archive:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_approval_gate.py "$oracle_dir" normal
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_approval_gate.py "$oracle_dir" exceptions
+```
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `approval-gate-oracle.tsv` | `cf0969c38c3cf8684ea13f96a0cb977e54f003ee32f9df61f20d232242c9bc19` |
+| `approval-gate-exceptions.tsv` | `5371c8be56e38bc6238a45623a68eac7a4fe37638b0ac9beeb42a2aa0090205c` |
+
+Stable **Rust 1.99.1** passes fmt, locked workspace check, all-target/all-feature
+Clippy with warnings denied, the dependency guard and **7 guard tests**, **230
+Rust tests** (227 before R7-S05), and frozen workspace build. The mandatory Python
+quality command ran **once** locally for R7-S05: **2,391 passed**, statement
+**99.28%**, branch **98.11%**, with the existing traceability/readiness,
+architecture, performance and certification checks. The pre-existing Python
+v0.1 CONDITIONAL findings remain unchanged.
+
+Pinned `nightly-2026-11-15` LLVM coverage uses the unchanged workspace
+`crates/**/src/` executable-line aggregation (the Rust statement figure):
+**99.08%** (12,389/12,504), branch **98.39%** (1,771/1,800). Source/branch exclusions
+and embedded source-unit-test aggregation are unchanged; Rust and Python are
+independent measurements.
+
+Oracle commit/wheel lock, Python and Rust production implementations, prior
+fixtures, crate dependency directions, 17 external packages and Cargo.lock
+remain unchanged. Lockfile SHA-256 remains
+`628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.

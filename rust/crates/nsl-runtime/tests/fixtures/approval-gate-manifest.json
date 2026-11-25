@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "gate_id": "R7-EXIT",
+  "oracle_commit": "28a949ec96581cbdc52c8133527b23bb5b72ee0a",
+  "comparisons": [
+    "suspend_result",
+    "checkpoint_state",
+    "resume_success",
+    "resume_rejection_code",
+    "approval_validation_outcome"
+  ],
+  "approved_difference_ids": [
+    "R7-S01-INTEGER-SUMMARY",
+    "R7-S02-STRICT-STATE-ADMISSION",
+    "R7-S03-RETRY-BINDING",
+    "R7-S04-VERIFIED-PRINCIPAL",
+    "R7-S04-CLAIM-IDENTITY"
+  ],
+  "fixtures": [
+    {
+      "name": "approval-models-oracle.tsv",
+      "sha256": "1acc98a0747d015ca5fd43bbd333560821c9f5c502b0e0978192db8b38a7cf47",
+      "rows": 536
+    },
+    {
+      "name": "approval-bindings-oracle.tsv",
+      "sha256": "f632f75c9f59e2ae286f8e51dcb49126ddacadd10cc95ed2bb668f7a79280d10",
+      "rows": 360
+    },
+    {
+      "name": "approval-time-oracle.tsv",
+      "sha256": "892f357eea539af33b15ccb5110f8ec0b7ac9856e175656fb11116083e272372",
+      "rows": 11
+    },
+    {
+      "name": "approval-summary-exceptions.tsv",
+      "sha256": "cbfe66e8126de35349b7f2939637a9b9ea962ac392a068955b18edcc60f3b7e2",
+      "rows": 14
+    },
+    {
+      "name": "checkpoints-oracle.tsv",
+      "sha256": "23cbe6b77e50511ce937af58ee27fc8266245526ff12b1361c0bf6be707944ee",
+      "rows": 64
+    },
+    {
+      "name": "checkpoints-negative-oracle.tsv",
+      "sha256": "be8397f72337e3cae6fee7894516187183333f4d08363d32e717e3ffd6573501",
+      "rows": 28
+    },
+    {
+      "name": "checkpoints-exceptions.tsv",
+      "sha256": "2825eb5eb5eec222ebc83017a31779a039fd2b00f11c6cb08406e284ded50a5c",
+      "rows": 13
+    },
+    {
+      "name": "checkpoints-wire-oracle.tsv",
+      "sha256": "f6edbe1853d756598792e57d0874c12e10290f4aa16885491865bc120a93d5d3",
+      "rows": 24
+    },
+    {
+      "name": "checkpoints-values-oracle.tsv",
+      "sha256": "7eb0e670f779c0980e7ea9f76d33254f51c08f9fed3337ab56b097abc562a25f",
+      "rows": 39
+    },
+    {
+      "name": "suspensions-oracle.tsv",
+      "sha256": "797df6995a7a5667bc389c63d8d915beab057579cc546e02d57fec55cb53cc90",
+      "rows": 81
+    },
+    {
+      "name": "suspensions-exceptions.tsv",
+      "sha256": "1ca9d6ddbc8dc6fc1580eb52ce3d1016f682120db61404b5bd35683a2be6cf82",
+      "rows": 8
+    },
+    {
+      "name": "resumes-oracle.tsv",
+      "sha256": "f23008543293a31c0b4c3f4961bfd02781c3a9556209970ce71a62f057f031b9",
+      "rows": 124
+    },
+    {
+      "name": "resumes-exceptions.tsv",
+      "sha256": "4fa1ee2a5d589aa2c66f2e55f6c84152ed8acc6c387ff38528174b745f45e5ea",
+      "rows": 6
+    },
+    {
+      "name": "approval-gate-oracle.tsv",
+      "sha256": "cf0969c38c3cf8684ea13f96a0cb977e54f003ee32f9df61f20d232242c9bc19",
+      "rows": 54
+    },
+    {
+      "name": "approval-gate-exceptions.tsv",
+      "sha256": "5371c8be56e38bc6238a45623a68eac7a4fe37638b0ac9beeb42a2aa0090205c",
+      "rows": 14
+    }
+  ],
+  "oracle_lock_sha256": "0fa65de90dd3fb1742e51754615cd14bfab371128e92338d985191648d1d37ce"
+}
