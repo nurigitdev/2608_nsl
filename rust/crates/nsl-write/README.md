@@ -1109,3 +1109,142 @@ impossible variant matching with directly typed object fields; all six outcome
 regressions passed before and after, then final Rust gates/coverage were rerun.
 No source/branch exclusions were added; embedded source-unit-test aggregation is
 unchanged. Rust and Python are independent measurements.
+
+## R9-S04 — Post-WRITE verification contract
+
+`PostWriteVerifier::verify` borrows the private `PersistedWriteOutcome` capability
+from R9-S03, the original/current WRITE contract and the current tenant/business
+and node-to-key/payload map projection. It accepts only a COMMITTED outcome.
+The result, journal, requested/outcome records, provider error/deadline metadata
+and business WRITE call count remain unchanged throughout READ verification,
+including errors and cancellation. The API returns verification evidence, not a
+final RuntimeResult; controlled orchestration and EMIT remain **R9-S05**.
+
+The frozen Oracle exposed two component gaps. Changing the contract after the
+original WRITE could remove verification (NOT_REQUESTED/zero READ), redirect its
+READ method, or change unrelated metadata while still passing validation. A
+matched observation one microsecond before commit was also accepted as VERIFIED.
+The user explicitly approved the following native differences while preserving
+Oracle **28a949ec96581cbdc52c8133527b23bb5b72ee0a** and its original observations:
+
+* **R9-S04-ORIGINAL-CONTRACT**: require the current canonical contract hash to
+  equal the actual original request's contract hash inside the persisted token.
+  Mismatch returns a typed `VerificationErrorKind::Binding` at `$.contract_hash`,
+  with **no diagnostic code**, before READ or NOT_REQUESTED selection. Tool ID,
+  WRITE capability, current tenant/business and exact stored key/payload are also
+  checked before READ. Core's admitted WRITE contract guarantees its semantics.
+* **R9-S04-OBSERVATION-FRESHNESS**: after response binding validation, require
+  `observed_at >= committed_at` at UTC microsecond precision with **0µs tolerance**.
+  A pre-commit observation returns verification UNKNOWN with
+  `VERIFICATION_OBSERVATION_STALE`, no accepted observation evidence/time, and
+  unchanged **COMMITTED** business state. Equality and +1µs preserve the original
+  VERIFIED/FAILED result. A foreign response remains BINDING_MISMATCH first.
+
+These are explicit additional native admission rules. There is no new future-time
+or TTL policy, rollback inference or automatic business WRITE retry. A failed or
+unknown verification does not reclassify a committed business mutation.
+
+`VerificationRequest` owns the nine-field outcome identity, verification method,
+business/transaction references, optional reference schema and consistency hint.
+Its **14-field** canonical hash input uses `write_tool_id` for the original WRITE
+tool, compact sorted UTF-8 JSON and the exact domain
+`NSL-POST-WRITE-VERIFY-V1\0`. Contract admission compares the original WRITE
+contract hash inside the persisted request without changing these frozen bytes. The schema uses
+Core's external TypeRef projection, including the existing R5-S02 InternalOptional
+rejection at any depth. Optional remains representable as an owned internal model
+but cannot enter request bytes/hash. The verifier rejects unencodable contracts
+and credential-bearing method identities before READ.
+
+`VerificationObservation` requires a valid SHA-256 request hash, business
+reference, exact Bool match, nonempty evidence ref and UTC observation time.
+Matched observations cannot have a failure reason; unmatched ones require one.
+`VerificationResult` always retains COMMITTED. NOT_REQUESTED has no outcome
+metadata; VERIFIED requires method, evidence and time without a failure reason;
+FAILED/UNKNOWN require method and reason. It preserves the Oracle's permissive
+optional evidence/time on manually constructed FAILED/UNKNOWN models. A portable
+three-field `to_summary_data()` projection supports later Runtime integration
+without a reverse dependency. Public Debug output omits business data.
+
+| READ outcome | Verification result |
+| --- | --- |
+| No declared executable method | NOT_REQUESTED, zero READ calls. Schema-only and hint-only contracts retain this behavior. |
+| Matching bound observation at/after commit | VERIFIED or FAILED, preserving evidence/time and provider reason. |
+| Timeout / dependency / malformed response | UNKNOWN with the corresponding frozen `VERIFICATION_*` reason. |
+| Foreign request hash or business reference | UNKNOWN / `VERIFICATION_BINDING_MISMATCH`. |
+| Bound pre-commit observation | UNKNOWN / `VERIFICATION_OBSERVATION_STALE` (approved difference). |
+| Cancelled READ | Typed Cancelled error propagated; no manufactured verification result or commit reclassification. |
+
+`PostWriteVerificationPort` exposes **only `read`**, with a boxed Send future and
+Send + Sync adapter boundary. It contains no WRITE execution/retry interface,
+runtime creation, timer, network, database or filesystem operation. Its trusted
+host implementation must enforce the actual READ method's capability, current
+tenant authority and inbound resource budgets; naming a method READ does not
+authenticate a host adapter. Schema/type graphs come from the host's bounded,
+admitted contract profile. This Slice adds no raw unbounded decoder. Cancellation
+or dropping a pending READ cannot produce a verdict or repeat the earlier WRITE.
+
+### R9-S04 differential evidence and traceability
+
+Two independent unmodified frozen archives reproduce all four artifacts byte for
+byte and with identical SHA-256. Original Python code, Oracle lock, earlier
+corpora and frozen requirement fingerprints remain unchanged. LF attributes keep
+the new TSV bytes stable on Windows and Linux.
+
+| Artifact | Observations | SHA-256 |
+| --- | ---: | --- |
+| `verification-models-oracle.tsv` | 229 | `4bebbdc4b9c758980fc874b9d992d4b57d3b9ae4676355cb82f94ef868b218e9` |
+| `verification-hashes-oracle.tsv` | 27 | `68ff6470b206042f7bc58bcc0c2619c8b322e3124ad428c32d029653a091de7b` |
+| `verification-normal-oracle.tsv` | 28 | `f9daa95b90d92e9864bddd4220ef7296907c81bd54acf8b70869919f9b469559` |
+| `verification-exceptions-oracle.tsv` | 5 | `3331f09b9c3beacba1164f84408c5f25eabc69e02572acf97350c5ea976bee3e` |
+
+Models cover blank/control/credential-bearing/Unicode text, null optional fields,
+SHA-256 lengths 0/1/63/64/65, matched/reason combinations, every status constraint,
+missing/present time and minimum/maximum UTC instants. Typed Rust fields exclude
+wrong Python runtime classes before constructor entry. Hash cases compare exact
+bytes/SHA-256 for every identity/method field, all external TypeRef families,
+empty record/enum projections and escaped Unicode. The fixture adapter constructs
+those owned empty type models; it does not relax Core/NSO wire decoding rules.
+
+Ordinary flow compares full result, summary, READ request bytes/hash/count and
+journal preservation. It includes failed, unknown, not-requested and cancelled
+paths, missing port, wrong contract/tool/capability, current identity/maps, both
+definite and uncertain noncommitted inputs, equality/+1µs and binding-error
+precedence. Every flow first creates genuine native requested and outcome receipt
+capabilities using the original frozen contract, then verifies the READ boundary.
+The five exception cases preserve original Oracle NOT_REQUESTED/VERIFIED/FAILED
+observations: three contract changes are rejected before READ, and two pre-commit
+matched/unmatched observations become UNKNOWN with COMMITTED retained. Additional
+native tests cover nested InternalOptional, credential/unencodable contract
+metadata, data-safe Debug output and dropping a pending verification future.
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_verification.py "$oracle_dir" models
+.venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_verification.py "$oracle_dir" hashes
+.venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_verification.py "$oracle_dir" normal
+.venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_verification.py "$oracle_dir" exceptions
+```
+
+| Requirement | R9-S04 status / verification |
+| --- | --- |
+| `NSL-RUST-VER-001/003/004/006` | IMPLEMENTED/VERIFIED at the admitted post-WRITE component boundary: required READ, independent VERIFIED/FAILED/UNKNOWN, no success conversion, injected adapter. `R9-S04-MODELS`, `R9-S04-ORACLE`. |
+| `NSL-RUST-VER-002`, `NSL-RUST-SEC-005/006` | IMPLEMENTED/VERIFIED original contract, tenant/business/tool/payload/outcome binding and 0µs freshness. `R9-S04-CONTRACT`, `R9-S04-FRESHNESS`, `R9-S04-ORACLE`. |
+| `NSL-RUST-COMMIT-006` | VERIFIED component admission only through persisted COMMITTED evidence; full Runtime enforcement remains R9-S05. |
+| `NSL-RUST-ASYNC-002/004/005`, `NSL-RUST-DIFF-008/010` | VERIFIED executor-neutral READ port and scoped original/difference corpus. `R9-S04-ORACLE`, `R9-S04-CANCEL`. |
+| `NSL-RUST-VER-005`, verified EMIT and final RuntimeResult | Remain R9-S05; no new end-to-end completion claim. |
+
+Rust **1.99.1** passes fmt, locked metadata/workspace check, architecture guard
+and **8 guard tests**, all-target/all-feature Clippy with warnings denied,
+**299 Rust tests** (292 baseline plus seven R9-S04 tests), and frozen workspace
+build with an unchanged lock digest. The mandatory Python quality command ran
+**exactly once locally for R9-S04**: **2,391 passed**, statement **99.28%**, branch
+**98.11%**, including traceability/readiness, architecture, performance and
+certification checks. Existing v0.1 CONDITIONAL findings remain unchanged.
+
+Pinned **nightly-2026-11-15** LLVM instrumentation retains the existing workspace
+`crates/**/src/` executable-line aggregation for the Rust statement figure:
+**99.19%** (15,226/15,350); branch **98.53%** (2,152/2,184). New verification
+modules cover **348/348 executable lines and 54/54 instrumented branches**.
+Coverage review led to additional typed observation-time consistency and
+credential-method rejection cases; final Rust gates/coverage include those
+cases. No source/branch exclusions were added; embedded source-unit-test
+aggregation is unchanged. Rust and Python are independent measurements.

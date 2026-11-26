@@ -259,3 +259,13 @@ checksum changes. Cargo.lock remains byte-identical to R9-S02, with SHA-256
 The storage context borrows compatible Runtime-owned maps/journal without a
 Runtime dependency. Locked check, architecture guard and frozen build verify the
 unchanged supply-chain and layer boundaries.
+
+## R9-S04 post-WRITE verification
+
+Verification models, request hashing and the READ-only port reuse existing
+Core/Contract/WRITE types, SHA-256 and `std`. No crate edge, external package,
+feature, version or checksum changes. Cargo.lock is byte-identical to R9-S03:
+`8b4279337d80c827fff79fb3dcb5f3c06155fdae2d5b86231734fde0c8c76563`.
+The verifier borrows R9-S03's durable capability and a compatible Runtime-owned
+map projection, preserving the forbidden WRITE-to-Runtime/Compiler/Source edges.
+Locked check, architecture guard and frozen build verify the unchanged graph.

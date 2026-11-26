@@ -6,6 +6,7 @@ mod idempotency;
 mod intent;
 mod requested;
 mod snapshot;
+mod verification;
 pub use canonical::{canonical_write_arguments, compute_payload_hash, compute_write_intent_hash};
 pub use execution::*;
 pub use guard::*;
@@ -16,6 +17,7 @@ pub use intent::{
 use nsl_core::{JsonLimit, JsonLimits};
 pub use requested::*;
 use std::fmt;
+pub use verification::*;
 /// Inclusive canonical output limits, with the argument object at depth 0.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WriteLimits {
