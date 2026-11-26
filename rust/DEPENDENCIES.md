@@ -230,3 +230,22 @@ types and `std`. They add no Runtime/Tokio reverse edge, external package, featu
 or version. Cargo.lock is byte-identical to R8-S05 and its SHA-256 remains
 `5dfa85682c9050eb3eda9fb72946ab36134367e4af675b9575f36947e24e2314`.
 Locked metadata/check, architecture guard, Clippy, tests and frozen build pass.
+
+## R9-S02 cooperative WRITE cancellation and deadline
+
+`nsl-write` reuses the already reviewed **Tokio =1.54.1** package for private
+sticky signal storage (`sync`) and optional deadline waiting (`time`). Its tests
+reuse existing `rt` and `test-util` features for a paused current-thread driver.
+There is no Runtime/Compiler/Source reverse edge or Tokio type in the public
+semantic method signatures. A normal invocation creates no runtime or timer;
+the deadline method requires the host's Tokio time driver. No task is spawned
+by the production coordinator.
+
+All **17 external package records**, versions and checksums are identical to
+R9-S01, and these features were already enabled by the Runtime dependency graph.
+Cargo.lock changes only by adding Tokio to the WRITE crate's dependency list.
+The before/after frozen-build lock SHA-256 is:
+
+```text
+8b4279337d80c827fff79fb3dcb5f3c06155fdae2d5b86231734fde0c8c76563
+```

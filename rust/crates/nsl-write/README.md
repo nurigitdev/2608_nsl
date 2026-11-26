@@ -862,3 +862,124 @@ Pinned **nightly-2026-11-15** LLVM instrumentation retains the existing workspac
 cover **142/142 executable lines and 2/2 instrumented branches**. No exclusions
 were added; embedded source-unit-test aggregation is unchanged. Rust and Python
 are independent measurements.
+
+## R9-S02 — Cooperative cancellation and unknown-commit faults
+
+The user approved extending the R9-S01 WRITE port after a concrete probe showed
+that dropping a pending Rust invocation after a possible mutation produced no
+async cleanup, outcome or caller recovery advice. The frozen Python Oracle
+instead delivers cancellation, awaits cleanup, and can observe either a final
+result or a cleanup exception. Oracle **28a949e** remains unchanged.
+
+`WriteExecutionPort::execute` and `WriteInvocationCoordinator::invoke` now both
+require an invocation-local `WriteCancellationSignal`. Each call gets a fresh
+signal; the host retains a clone to request cancellation and continues awaiting
+invocation. The signal is sticky and wakes both current and later subscribers.
+Repeated notification never performs a second provider call or aborts cleanup.
+Concurrent invocations with separate signals keep their cancellation, mutation,
+cleanup and call-count state isolated. Existing S01 port implementations/tests
+were migrated to the required parameter; their original Oracle bytes are intact.
+
+`invoke_with_timeout(durable, timeout_ms, cancellation)` uses the host's time
+driver and the same private durable handoff. A positive deadline polls completion
+before expiry; on expiry it requests cancellation and **awaits the same provider
+future without a second cleanup deadline**. It never drops that future to infer
+a commit state. Consistent with `asyncio.wait_for`, nonpositive budgets return
+the conservative timeout observation without invoking the provider. The corpus
+also checks 1 ms, `i64::MAX-1` and `i64::MAX` immediate-completion controls.
+`invoke` itself needs no time driver. Neither method spawns or retries a WRITE.
+
+| Observed completion | Native outcome / recovery |
+| --- | --- |
+| Explicit COMMITTED, including cancellation suppression | Preserve the complete result envelope and metadata; no reconciliation directive. |
+| Explicit NOT_COMMITTED, including cancellation suppression | Preserve the provider's definite rejection; no reconciliation directive. |
+| Explicit UNKNOWN | Preserve the provider's unknown outcome; reconciliation required. |
+| Cancelled without a definite result | UNKNOWN / `PROVIDER_CANCELLED`; reconciliation required. |
+| Deadline expires, then provider terminates Cancelled | UNKNOWN / `PROVIDER_TIMEOUT`; reconciliation required. |
+| Connection loss or provider exception after possible mutation | UNKNOWN / `PROVIDER_CONNECTION_LOST` or `PROVIDER_EXCEPTION`; reconciliation required. |
+| Exception raised during cancellation cleanup | UNKNOWN / `PROVIDER_EXCEPTION`; retain this error instead of overwriting it with timeout/cancellation. |
+| Malformed acknowledgement | UNKNOWN / `PROVIDER_ACKNOWLEDGEMENT_MALFORMED`; reconciliation required. |
+
+`WriteInvocation::provider_error()` retains the typed termination; for deadline
+cancellation this is the actual provider's Cancelled error while the outcome
+reason is TIMEOUT. `deadline_elapsed()` records the separate deadline observation.
+Successful suppression keeps all returned values, transaction/reference data and
+evidence refs. Public Debug output remains data-safe, and protected raw transport
+exception details stay in the trusted host adapter.
+
+Caller advice is invariant: `automatic_retry_allowed()` is **false** for every
+observation. Only an unknown outcome has `reconciliation_required() == true` and
+`recovery_status() == Some(RECONCILIATION_REQUIRED)`. Definite observations return
+no provisional terminal status: exact outcome identity admission, durable outcome
+evidence and post-WRITE verification still belong to **R9-S03/S04/S05**. This
+Slice does not promote a COMMITTED observation to final Runtime success.
+
+This is a cooperative in-process boundary. The caller must request cancellation
+and await completion. Unstructured task abort/future drop, process crash or a
+noncooperative provider cannot synchronously manufacture an observed result;
+the durable requested record remains the host's recovery evidence. The old S01
+drop regression remains as evidence of that limit. A timer expiring alone never
+proves business rollback or authorizes retry.
+
+### R9-S02 differential and fault evidence
+
+`write-faults-oracle.tsv` contains **81 original Oracle observations** covering
+timeout, connection loss, cancellation, malformed acknowledgement, provider
+exception, suppression to each explicit outcome, and cleanup exceptions. Faults
+occur both before and after a synthetic possible mutation; cleanup suspends for
+0/1/3 scheduler turns. Two independent unmodified frozen archives reproduce the
+fixture byte-for-byte, with SHA-256:
+
+```text
+ebc08434e57f1cc37cc03d0b68e1732127d16392638a12d3dbd05cea30215817
+```
+
+The generator drives the genuine Oracle `CommitAwareWriteExecutor`, including its
+in-memory outcome evidence port. It records original final statuses and outcome
+record counts separately. The native comparison selects the invocation/recovery
+projection: full outcome fields, durable flag, possible mutation and cleanup
+counts, persistence/provider/cleanup order, recovery status and retry permission.
+It does not claim that native R9-S03 outcome persistence exists already. Every
+entered provider is called once; automatic business retries are **zero**. The two
+nonpositive timeout cases enter no provider and also have zero retries.
+
+Native fault tests run with a paused Tokio clock, without real business I/O.
+An additional barrier holds cleanup for **60 virtual seconds** after cancellation
+or deadline expiry. Invocation remains pending until that barrier opens, then
+preserves the committed result or cleanup exception. Separate tests exercise
+0/1/3 existing signal waiters, late subscribers, repeated notification and two
+concurrent invocations. S01 test helper extraction ran its five regressions before
+and after the behavior-preserving move; no baseline expectation changed.
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_write_faults.py "$oracle_dir"
+```
+
+| Requirement | R9-S02 status / verification |
+| --- | --- |
+| `NSL-RUST-COMMIT-002/003/004/005` | IMPLEMENTED/VERIFIED at the invocation/recovery boundary: unknown remains distinct, automatic business retry zero, reconciliation required. `R9-S02-ORACLE`, `R9-S02-CLEANUP`. |
+| `NSL-RUST-TOOL-009`, `NSL-RUST-ASYNC-003`, `NSL-RUST-SEC-009`, `NSL-RUST-PERF-008` | VERIFIED asynchronous after-mutation fault classification and preserved suppression/cleanup outcomes. `R9-S02-ORACLE`, `R9-S02-CLEANUP`. |
+| `NSL-RUST-WRITE-009/010/011`, `NSL-RUST-ASYNC-002/004/005` | VERIFIED existing durable handoff plus injected, executor-neutral public port/signals; architecture guard and migrated S01 regressions. |
+| `NSL-RUST-DIFF-008/010` | VERIFIED scoped outcome and recovery projection over 81 untouched Oracle observations. `R9-S02-ORACLE`. |
+| `R9-S02-ISOLATION`, `R9-S02-SIGNAL` | VERIFIED invocation-local control, sticky multiple/late subscribers and one call per entered provider. |
+| Durable outcome identity/evidence, verification, full controlled RuntimeResult | Remain R9-S03/S04/S05; no new completion claim. |
+
+The production dependency update reuses reviewed Tokio **=1.54.1** with existing
+features; all 17 external package/version/checksum records are unchanged. See
+[dependency evidence](../../DEPENDENCIES.md). Frozen Python implementation,
+Oracle lock, requirement fingerprints and earlier fixture bytes remain unchanged.
+
+Rust **1.99.1** passes fmt, locked metadata/workspace check, architecture guard
+and **8 guard tests**, all-target/all-feature Clippy with warnings denied,
+**286 Rust tests** (282 baseline plus four R9-S02 tests), and frozen workspace
+build with a stable lock digest. The mandatory Python quality command ran
+**exactly once locally for R9-S02**: **2,391 passed**, statement **99.28%**, branch
+**98.11%**, including existing traceability/readiness, architecture, performance
+and certification checks. Existing v0.1 CONDITIONAL findings are unchanged.
+
+Pinned **nightly-2026-11-15** LLVM instrumentation retains the existing workspace
+`crates/**/src/` executable-line aggregation for the Rust statement figure:
+**99.16%** (14,617/14,741); branch **98.48%** (2,076/2,108). The execution modules
+cover **221/221 executable lines and 12/12 instrumented branches**. No source or
+branch exclusions were added; embedded source-unit-test aggregation is unchanged.
+Rust and Python are independent measurements.

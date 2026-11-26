@@ -184,6 +184,7 @@ dependencies = [
  "nsl-core",
  "nsl-ir",
  "sha2",
+ "tokio",
 ]
 
 [[package]]
