@@ -1,7 +1,9 @@
 mod models;
+mod outcome;
 use crate::{DurableWriteRequest, WriteAttemptRecord, WriteCallRequest, WriteRequestedReceipt};
 pub use models::*;
 use nsl_core::ExecutionStatus;
+pub use outcome::*;
 use std::{
     fmt,
     future::{Future, poll_fn},

@@ -84,3 +84,6 @@ rust/crates/nsl-integration/tests/fixtures/write-gate-exceptions-oracle.tsv text
 rust/crates/nsl-write/tests/fixtures/write-invocation-models-oracle.tsv text eol=lf
 rust/crates/nsl-write/tests/fixtures/write-invocation-invocation-oracle.tsv text eol=lf
 rust/crates/nsl-write/tests/fixtures/write-faults-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/write-outcomes-models-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/write-outcomes-records-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/write-outcomes-persistence-oracle.tsv text eol=lf

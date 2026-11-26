@@ -983,3 +983,129 @@ Pinned **nightly-2026-11-15** LLVM instrumentation retains the existing workspac
 cover **221/221 executable lines and 12/12 instrumented branches**. No source or
 branch exclusions were added; embedded source-unit-test aggregation is unchanged.
 Rust and Python are independent measurements.
+
+## R9-S03 — Durable WRITE outcome evidence
+
+`WriteOutcomeCoordinator::persist` consumes the non-Clone `WriteInvocation` from
+R9-S01/S02. It takes the requested-record hash directly from that invocation's
+private, receipt-validated R8 handoff. There is no caller-supplied replacement
+request hash or raw receipt path that can construct `PersistedWriteOutcome`.
+Public record/receipt/journal constructors create data models, not durable
+capabilities or provider permits.
+
+Before storage, the coordinator checks all nine provider outcome identity fields
+against the actual request, then current execution/tenant/business-operation
+identity and the exact existing node-to-idempotency-key/payload-hash maps. Missing
+and foreign entries fail closed before the outcome port is called. It borrows
+the Runtime-owned maps and `Vec<ValueData>` journal directly, so there is no WRITE
+dependency on Runtime or copy of mutable Runtime state across the storage await.
+Bindings remain borrowed throughout that await.
+
+`WriteOutcomeRecord` retains requested-record hash, identity, commit state,
+optional reason, provider transaction ID, business reference, evidence refs and
+UTC recorded time. Its canonical hash input flattens identity into **16 fields**,
+uses sorted compact UTF-8 JSON, and hashes
+`NSL-WRITE-OUTCOME-V1\0 || canonical_bytes` with SHA-256. Dataclass/journal output
+keeps the Oracle's nested `identity` object instead. These are deliberately two
+projections of the same validated record. All 16 hash fields, Unicode/JSON escapes
+and minimum/maximum UTC timestamps are checked against the frozen Oracle.
+
+For COMMITTED, record reason is null and transaction/business references and refs
+come from the result envelope. NOT_COMMITTED/UNKNOWN retain reason, transaction
+ID and refs, with a null business reference. As in Oracle **28a949e**, raw result
+value, result type metadata, committed timestamp and public message do not enter
+this outcome record/hash; the original complete observation stays available in
+the persisted result or persistence failure. No value/type graph is cloned by
+outcome persistence. Record metadata is a fixed-depth string/list projection;
+trusted host adapters retain their inbound size-budget responsibility.
+
+`WriteOutcomeEvidencePort` is an injected `Send + Sync` async storage contract:
+durably persist the complete record before acknowledging its hash and opaque
+durable reference. `WriteOutcomeReceipt` has exactly the Oracle fields
+`record_hash`, `durable_ref`, `persisted_at`; there is no invented durable boolean.
+Its constructors enforce hash/text/UTC admission. The coordinator requires an
+exact current-record hash and `persisted_at >= recorded_at` before appending one
+`WriteJournalEntry`. A valid receipt for a different actual requested record is
+rejected, including when the provider outcome identity itself is unchanged.
+
+Only after receipt validation does the coordinator append to the borrowed
+journal and return its privately constructed `PersistedWriteOutcome`. It exposes
+the original invocation, validated journal entry and receipt for subsequent
+verification/orchestration. It does not return final Runtime success:
+post-WRITE verification and complete controlled execution remain **R9-S04/S05**.
+
+Storage failure, malformed acknowledgement, foreign hash or early persisted time
+leaves the existing journal and idempotency maps intact. `WriteOutcomePersistenceError`
+retains the original observation, including definite COMMITTED or uncertain state,
+and the typed protected error for caller recovery; it does not erase the provider
+result or manufacture rollback. Debug output omits business data and protected
+adapter exception details. Provider calls and automatic WRITE retry are absent
+from this coordinator. An error/drop can occur after the storage adapter has
+accepted a record, so neither implies that durable storage rolled back. The
+pending-after-acceptance test checks that dropping the future cannot create an
+acknowledgement, journal append or durable result token. Host durability and crash
+recovery remain real adapter obligations, not claims about the in-memory test port.
+
+### R9-S03 Oracle corpus and traceability
+
+The generator uses two independent unmodified `git archive` exports of frozen
+**28a949ec96581cbdc52c8133527b23bb5b72ee0a**. It produces byte-identical files and
+SHA-256 hashes in both runs. No original Python code, Oracle lock or earlier
+fixture is changed. LF attributes preserve new TSV bytes on both CI platforms.
+
+| Artifact | Observations | SHA-256 |
+| --- | ---: | --- |
+| `write-outcomes-models-oracle.tsv` | 67 | `94bf65cd85f0fc8e41af43e23903bff56977558af10f6c9c7575a3110895d42d` |
+| `write-outcomes-records-oracle.tsv` | 26 | `1bd1aceb685cab714e2d8df40ecc7314cfcada559f47868f6203a903fb4b90b6` |
+| `write-outcomes-persistence-oracle.tsv` | 50 | `3b4c1d6358b3430860775a9e0a6832b8f667f84ffe537521b231284cd1ce685c` |
+
+Models cover blank/control/credential-bearing/Unicode text, hash lengths
+0/1/63/64/65, optional fields, 0/1/63/64/65 evidence refs and journal references.
+Typed Rust enums and UTC instants exclude wrong Python runtime classes before
+constructor entry; the fixture adapter uses Core enum admission for malformed
+status text. Record cases compare exact bytes and hashes, changing each of the
+16 identity/metadata fields independently. Persistence covers all three outcome
+states, existing journal prefixes, all nine foreign identity fields, four current
+context failures, four missing/foreign idempotency entries, storage and receipt
+failures, and persisted-time boundaries at -1/0/+1 microsecond.
+
+The native differential projection compares original outcome/error category and
+detail code, exact record bytes/hash, journal, unchanged maps and durable flag,
+storage count and event order. Each input invocation calls its provider once;
+outcome persistence never invokes it again. Extra native tests link two different
+real requested records to different outcome hashes and reject a cross-record
+receipt, preserve COMMITTED on evidence rejection, and drop a pending storage
+future after simulated acceptance without mutating the journal.
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_write_outcomes.py "$oracle_dir" models
+.venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_write_outcomes.py "$oracle_dir" records
+.venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_write_outcomes.py "$oracle_dir" persistence
+```
+
+| Requirement | R9-S03 status / verification |
+| --- | --- |
+| `NSL-RUST-WRITE-009/010/011` | VERIFIED original durable requested record retained through outcome evidence; no direct provider/retry path. `R9-S03-BINDING`, `R9-S03-PERSISTENCE`. |
+| `NSL-RUST-COMMIT-001/003/004/005` | VERIFIED all three durable state records and preserved original observation/recovery advice; no automatic business retry. `R9-S03-MODELS`, `R9-S03-PERSISTENCE`. |
+| `NSL-RUST-IDEM-004/005/006`, `NSL-RUST-SEC-005/006` | VERIFIED current node key/payload and tenant/business identity admission at this post-invocation boundary. No new provider idempotency/atomicity claim. `R9-S03-PERSISTENCE`. |
+| `NSL-RUST-ASYNC-002/004/005` | VERIFIED injected async storage and direct borrowed Runtime state projection without reverse dependency or executor type in the API. Architecture guard, `R9-S03-DROP`. |
+| `NSL-RUST-DIFF-008/010` | VERIFIED 67 model, 26 byte/hash and 50 persistence observations. `R9-S03-MODELS`, `R9-S03-RECORDS`, `R9-S03-PERSISTENCE`. |
+| `NSL-RUST-COMMIT-006`, post-WRITE verification and final RuntimeResult | Remain R9-S04/S05; persisted COMMITTED observation alone does not complete them. |
+
+Rust **1.99.1** passes fmt, locked metadata/workspace check, architecture guard
+and **8 guard tests**, all-target/all-feature Clippy with warnings denied,
+**292 Rust tests** (286 baseline plus six R9-S03 tests), and frozen workspace
+build with an unchanged lock digest. The mandatory Python quality command ran
+**exactly once locally for R9-S03**: **2,391 passed**, statement **99.28%**, branch
+**98.11%**, including traceability/readiness, architecture, performance and
+certification checks. Existing v0.1 CONDITIONAL findings remain unchanged.
+
+Pinned **nightly-2026-11-15** LLVM instrumentation retains the existing workspace
+`crates/**/src/` executable-line aggregation for the Rust statement figure:
+**99.17%** (14,878/15,002); branch **98.50%** (2,098/2,130). The new outcome module
+covers **261/261 executable lines and 22/22 instrumented branches**. A small
+behavior-preserving encoder cleanup replaced object construction followed by
+impossible variant matching with directly typed object fields; all six outcome
+regressions passed before and after, then final Rust gates/coverage were rerun.
+No source/branch exclusions were added; embedded source-unit-test aggregation is
+unchanged. Rust and Python are independent measurements.

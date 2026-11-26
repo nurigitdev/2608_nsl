@@ -249,3 +249,13 @@ The before/after frozen-build lock SHA-256 is:
 ```text
 8b4279337d80c827fff79fb3dcb5f3c06155fdae2d5b86231734fde0c8c76563
 ```
+
+## R9-S03 durable outcome evidence
+
+Outcome records, hashing, receipt admission and the storage port reuse existing
+Core/SHA-256 types and `std`. No crate edge, external package, feature, version or
+checksum changes. Cargo.lock remains byte-identical to R9-S02, with SHA-256
+`8b4279337d80c827fff79fb3dcb5f3c06155fdae2d5b86231734fde0c8c76563`.
+The storage context borrows compatible Runtime-owned maps/journal without a
+Runtime dependency. Locked check, architecture guard and frozen build verify the
+unchanged supply-chain and layer boundaries.
