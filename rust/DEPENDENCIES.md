@@ -190,3 +190,18 @@ the frozen build pass. Cargo.lock SHA-256 remains:
 ```text
 0c9622b402712dd5cdd5a79f2bca9b4ec8a7ae4f2e2804586f3acc1e14a8870a
 ```
+
+
+## R8-S04 durable requested-evidence graph
+
+Request/record/receipt assembly reuses the existing Core/IR/Contract and SHA-256
+dependencies of `nsl-write`. The async storage boundary uses standard-library
+Future/Pin/Box types; borrowed identity/checkpoint projections preserve the
+prohibition on WRITE reaching Runtime, Compiler or Source. No package, feature,
+version or workspace edge changes. The **17 external packages** and Cargo.lock
+bytes remain unchanged. Locked check, architecture guard and frozen build pass.
+Cargo.lock SHA-256 remains:
+
+```text
+0c9622b402712dd5cdd5a79f2bca9b4ec8a7ae4f2e2804586f3acc1e14a8870a
+```

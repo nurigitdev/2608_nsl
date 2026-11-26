@@ -3,6 +3,7 @@ mod canonical;
 mod guard;
 mod idempotency;
 mod intent;
+mod requested;
 mod snapshot;
 pub use canonical::{canonical_write_arguments, compute_payload_hash, compute_write_intent_hash};
 pub use guard::*;
@@ -11,6 +12,7 @@ pub use intent::{
     ApprovalIdentityEvidence, WriteIntent, WriteIntentBuilder, WriteIntentContext, WriteIntentSpec,
 };
 use nsl_core::{JsonLimit, JsonLimits};
+pub use requested::*;
 use std::fmt;
 /// Inclusive canonical output limits, with the argument object at depth 0.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

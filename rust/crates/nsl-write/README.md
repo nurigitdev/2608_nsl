@@ -512,3 +512,210 @@ cover 638/643 executable lines and 106/108 instrumented branches; the Guard
 admission/decision body, principal validation and PreWrite axes each cover all of
 their instrumented branches. No exclusions were added; embedded source-unit-test
 aggregation is unchanged. Rust and Python are independent measurements.
+
+
+## R8-S04 — Durable WRITE_REQUESTED evidence
+
+`WriteCallRequest`, `WriteCallRequestBuilder`, `WriteAttemptRecord`,
+`WriteRequestedReceipt`, `WriteEvidencePort` and `WriteRequestedCoordinator`
+implement the fixed Oracle's request assembly and durable evidence boundary.
+The Oracle remains **28a949ec96581cbdc52c8133527b23bb5b72ee0a**, including its
+original request/hash/receipt semantics. The only new workflow differences are
+the explicitly user-approved reservation disposition handling described below.
+Existing Python implementation, Oracle wheel lock, compatibility observations,
+SRS fingerprints and Cargo.lock are unchanged.
+
+### Ownership, snapshot admission and request bindings
+
+WRITE still depends only on Core/IR/Contract and existing SHA-256 packages, with
+no Runtime/Compiler/Source edge. `WriteCallContext` borrows tenant/execution/
+business identity; `WriteEvidenceContext` additionally borrows the existing
+checkpoint durable flag. No Runtime model is moved or cloned. There is no direct
+filesystem/SQL/HTTP access and no database/provider implementation in Core.
+
+A validated call snapshot owns tenant, execution, business operation, invocation,
+node, tool reference/ID/current contract hash, evaluated argument envelopes,
+idempotency key, payload hash, approval/request IDs, intent hash, full typed
+business precondition evidence and ordered trace references. Scalar identities
+use the Oracle's nonblank/credential rules. The supplied idempotency key retains
+the R2-S01 prefix plus 64 Unicode-character suffix rule, including nonhex suffixes;
+payload/contract/intent hashes remain strict lowercase SHA-256. Argument names
+must be nonblank, matching `_freeze_arguments`; name validation does not alter
+accepted names or treat metadata as payload. A standalone call constructor checks
+argument payload bytes against the supplied hash, while identity binding between
+separate components belongs to the builder/Guard boundaries.
+
+`WriteCallRequest::new(&spec, WriteSnapshotLimits)` borrows the input and checks
+argument values and TypeRef/provenance metadata under the existing explicit
+R8-S01 caller budgets before its immutable snapshot clone. The builder likewise
+preflights the borrowed intent under the new caller profile before constructing
+an owned Spec. Flat ordered trace strings are screened before cloning; their
+Oracle admission has no new hidden truncation/count quota. Caller-facing decoders
+retain their separate overall input-size limits. No value/type conformance rule
+is added to pure canonical argument hashing.
+
+The builder checks context tenant/business identity, exactly WRITE evidence and
+tool identity, all six reservation evidence bindings (tenant/business/node/tool/
+contract/payload), and all seven precondition identity/hash bindings plus the
+explicit provider-atomic-enforcement flag. Execution/invocation/approval-request
+IDs and trace references are admitted before publishing a preparation. The
+existing R8-S03 Guard remains responsible for verified current principal, actual
+current contract/scope, current policy/precondition TTL, approval and other axes.
+Host code must use those current boundaries; public model constructors and an
+ALLOWED snapshot are not authenticated authority by themselves.
+
+### User-approved reservation disposition handling
+
+The frozen Python builder ignores `reservation.disposition` and its existing
+business result reference. Its lower coordinator accepts a supplied ALLOWED
+snapshot and can persist/invoke for CREATED, CONFLICT and both REUSED forms.
+Normal IdempotencyCoordinator already rejects conflicts upstream, but the lower
+builder itself lacks that check. The user explicitly approved closing this
+boundary in Rust while preserving the original Oracle observations.
+
+`WriteCallRequestBuilder::build` returns an explicit `WriteCallPreparation`:
+
+| Reservation | Native preparation | Persistence / new provider path |
+| --- | --- | --- |
+| CREATED, with or without result ref | `Created(PreparedWriteCall)` | May enter the durable evidence stage after ALLOWED/context checks. |
+| CONFLICT | `WriteExecutionErrorKind::Conflict`, `IDEMPOTENCY_CONFLICT`, path `$.reservation.disposition` | Zero storage/provider calls. |
+| REUSED with an existing result ref | `Reused(IdempotencyReservation)` | Return the existing bound reference; zero new storage/provider calls. |
+| REUSED without a result ref | `Pending(IdempotencyReservation)` | Explicit pending state; zero new storage/provider calls. |
+
+All identity/precondition and auxiliary ID/trace admission checks still precede
+the disposition handoff, so reuse cannot return foreign evidence. The original
+five disposition observations remain verbatim in their own fixture: both CREATED
+cases match; the three CONFLICT/REUSED cases carry the separate native outcome.
+No Oracle success is rewritten into a failure. A pending reservation does not
+prove business completion, and an existing result reference is not interpreted
+as a new COMMITTED outcome. R9 remains the explicit provider/outcome boundary.
+
+`PreparedWriteCall` has a private boxed request and is non-Clone; only the builder
+mints it on CREATED. This keeps the enum small without weakening Clippy or
+unsafe-code policy. Standalone admitted call models, REUSED and PENDING do not
+mint that token. The host must obtain a genuine current CREATED reservation from
+the trusted reservation flow; this type is a local handoff, not authentication or
+a global exactly-once guarantee. Explicitly rebuilding from a caller-supplied old
+CREATED snapshot is not automatic retry; the orchestration must not substitute
+that snapshot for a fresh reservation/current authority.
+
+### Exact record bytes and SHA-256
+
+`WriteAttemptRecord::from_request` retains exactly these **13** frozen fields:
+
+```text
+tenant_id, execution_id, business_operation_id, invocation_id, node_id,
+tool_id, contract_hash, approval_request_id, idempotency_key, payload_hash,
+write_intent_hash, precondition_evidence_id, requested_at
+```
+
+Record bytes are compact sorted canonical UTF-8 JSON, with `requested_at` encoded
+as UTC `datetime.isoformat()` at microsecond precision, including six fractional
+digits when nonzero. Its identity is `sha256:` plus SHA-256 of
+`NSL-WRITE-REQUESTED-V1\0` followed by those canonical bytes. The immutable model
+caches the bytes/hash; neither generic serializer defaults nor Debug enter the
+hash. Every bound field, Unicode/control escaping, a one-microsecond timestamp
+change and year 1/9999 boundaries are compared with the original Oracle.
+
+Tool reference, approval ID, trace references, full arguments and full precondition
+body are retained in the call but are outside this original 13-field record
+projection. Their omission is characterized, not silently changed. Payload and
+intent hash/precondition evidence ID remain the existing record bindings.
+
+### Durable acknowledgement and private handoff
+
+The host-owned async `WriteEvidencePort::record_requested` must durably persist
+the entire record before acknowledging its hash. Actual database/power-loss
+durability is an adapter obligation, as with the existing idempotency port.
+The injected reference adapter and test-only provider spy verify ordering and
+component failure behavior; they do not claim production database durability.
+
+`WriteRequestedCoordinator::persist` consumes only a CREATED preparation, then:
+
+1. Requires ALLOWED, then matches execution/tenant/business identity to the
+   current borrowed context before touching storage.
+2. Builds the immutable requested-at record and awaits the injected port.
+3. Requires the receipt's exact record hash, `durable == true` and
+   `persisted_at >= requested_at`. Equality is accepted; one microsecond earlier
+   is rejected. UTC timestamps are explicit caller values; no system clock or
+   upper freshness bound absent from Python is invented.
+4. Only after all checks pass, sets `write_request_durable = true` and publishes
+   a private, non-Clone `DurableWriteRequest` containing the request, matching
+   record and receipt for the later R9 consumer.
+
+Receipt mismatch/non-durable/predating evidence returns
+`WRITE_REQUEST_EVIDENCE_INVALID`. Storage-port failures are opaque codeless errors
+with static safe messages/paths and no protected source chain. Invalid receipt
+objects cannot cross the typed Rust port; model construction rejects malformed
+hash/reference/UTC/Bool representations instead. Metadata/value limit failures
+retain the R8-S01 codeless typed snapshot error boundary.
+
+On failure, no new handoff is minted and the checkpoint flag is preserved,
+including a previously true flag. That old flag never bypasses current receipt
+validation. Dropping a future before polling, before acceptance or after storage
+acceptance but before acknowledgement cannot produce a handoff or provider call.
+Storage may nevertheless already contain the record; error/drop never implies
+rollback, commit state or permission to repeat a business WRITE. No automatic
+retry, timeout-to-commit inference or new provider/commit model is introduced.
+
+Production provider orchestration remains R9-S01. This Slice implements the
+required durable handoff; its test-only spy **consumes that handoff** and records
+`WRITE_REQUESTED → PROVIDER_WRITE` only after validated storage and flag update.
+The full combined pre-invocation certification remains R8-S05. Current authority,
+trust, approval and timing still belong to their own live orchestration checks;
+the durable handoff proves the completed persistence stage, not those proofs.
+
+### R8-S04 verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R8-S04-MODELS-ORACLE` | 173 observations: exact call/record/receipt model projection, all scalar/hash/key admissions, nonhex/Unicode key suffixes, blank/control/credential rejection, correctly formatted forged payload hash rejection, argument-name admission, and ordered trace lists at 0/1/63/64/65. |
+| `R8-S04-BUILD-ORACLE` | 29 CREATED assembly observations: exact identities/envelopes/precondition/trace output; context, tool/capability, every reservation/precondition binding and atomicity rejection; invalid auxiliary IDs/traces. |
+| `R8-S04-RECORD-ORACLE` | 24 exact canonical-byte/SHA-256 observations: all 13 changed fields, UTC min/max/-1/0/+1 microsecond, Unicode/control escaping, deterministic repeats and omitted-field invariance. |
+| `R8-S04-DURABILITY-ORACLE` | 17 original execution observations: storage before mock provider, receipt timestamp -1/0/+1 microsecond, wrong hash/non-durable/storage failure, both initial durable-flag states, blocked/requires-approval and foreign execution/tenant/business contexts. |
+| `R8-S04-DISPOSITION-EXCEPTIONS` | Five original Oracle request/invocation observations preserved: CREATED cases match; user-approved CONFLICT/REUSED results have zero new storage/provider calls and no durable handoff. |
+| `R8-S04-FAULT-BOUNDARIES` | Unpolled/pending/dropped futures before/after adapter acceptance, storage errors before/after acceptance, no rollback/commit inference, old checkpoint flag isolation, immutable snapshots and safe Debug/errors. |
+| `R8-S04-SNAPSHOT-BOUNDARIES` | Existing canonical bytes/depth/nodes and snapshot metadata depth/nodes/text at 0/1/MAX-1/MAX/MAX+1; borrowed constructor/builder rejection of 8,192-level TypeRef metadata on a 512 KiB worker stack, with safe owner lifetime/drop on a larger stack. |
+| `R8-S04-DETERMINISM` | Five files regenerated from independent frozen `git archive` exports: exact bytes/SHA-256 match; explicit LF attributes preserve cross-platform fixture bytes. |
+
+| Rust SRS | R8-S04 status and scope |
+| --- | --- |
+| `NSL-RUST-WRITE-009` | IMPLEMENTED/VERIFIED at the durable evidence/handoff boundary; `R8-S04-DURABILITY-ORACLE`, `R8-S04-FAULT-BOUNDARIES`. Production storage durability is a host-adapter obligation. |
+| `NSL-RUST-WRITE-010` | IMPLEMENTED for the immutable request's idempotency/payload/approval/intent/precondition bindings; actual provider port integration remains R9-S01. `R8-S04-MODELS-ORACLE`, `R8-S04-BUILD-ORACLE`. |
+| `NSL-RUST-WRITE-002/003/008` | Preserved component bindings, payload verification and fail-closed eligibility/evidence checks. Guard policy/authority/TTL semantics remain R8-S03; combined certification remains R8-S05. |
+| `NSL-RUST-HASH-006/007/008` | IMPLEMENTED/VERIFIED for the externally relevant original requested-record bytes, SHA-256/domain/field projection; `R8-S04-RECORD-ORACLE`. |
+| `NSL-RUST-IDEM-005`, `NSL-RUST-DIFF-010` | Approved CONFLICT rejection and explicit REUSED/PENDING routing supplement existing idempotency. Ordinary observations remain unchanged; new workflow differences are separately retained and verified. |
+| `NSL-RUST-WRITE-011`, `NSL-RUST-COMMIT-*` | No completed full-pipeline/commit-state claim: provider invocation and commit/uncertainty semantics remain R9; full R8 pre-invocation gate remains R8-S05. |
+
+Generate original observations with Python 3.12 and an unmodified fixed archive:
+
+```bash
+for mode in models build records durability dispositions; do
+  .venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_write_requested.py "$oracle_dir" "$mode"
+done
+```
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `write-requested-models-oracle.tsv` | `1b458d2cb2d3e5a461b1be9e9a3bc93aaf10166d25657b4da601215f88a7d076` |
+| `write-requested-build-oracle.tsv` | `455b2ac88e29f265d5c8185eac61a8e86c304fc9c59aab060633d973c6097934` |
+| `write-requested-records-oracle.tsv` | `8c71c151d51f62fd1df4c1b1241733c690b173cbf051104b22c382440300403d` |
+| `write-requested-durability-oracle.tsv` | `9c26d66417bdbb954fe7e51efff55793b0288dacf677416c303cffa303d1d787` |
+| `write-requested-dispositions-oracle.tsv` | `e7ae9696baf3a6dd9225da641137bb36ca070a57720f915c84eca6b721e3030a` |
+
+
+Pinned **Rust 1.99.1** passes fmt, locked workspace check, architecture guard and
+**8 guard tests**, all-target/all-feature Clippy with warnings denied, **272 Rust
+tests** (263 baseline + 9 new requested-evidence tests), and frozen workspace
+build. Final forged-payload observations also pass the complete Rust regression.
+The mandatory Python quality command ran **exactly once locally for R8-S04**:
+**2,391 passed**, statement **99.28%**, branch **98.11%**, with unchanged
+traceability/readiness, architecture, performance and certification checks.
+Existing Python v0.1 CONDITIONAL findings remain unchanged.
+
+Pinned **nightly-2026-11-15** LLVM instrumentation uses the unchanged workspace
+`crates/**/src/` executable-line aggregation for the Rust statement figure:
+**99.14%** (14,376/14,500); branch **98.46%** (2,046/2,078). New requested-evidence
+modules cover all **401/401 executable lines and 52/52 instrumented branches**.
+No source/branch exclusions were added; embedded source-unit-test aggregation is
+unchanged. Rust and Python figures are independent measurements.
