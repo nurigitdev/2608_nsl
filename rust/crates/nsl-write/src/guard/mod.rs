@@ -5,6 +5,7 @@ use crate::WriteIntent;
 pub use models::*;
 use nsl_contract::ToolContract;
 use nsl_core::{PreWriteEligibility, ToolCapability, UtcInstant};
+use nsl_ir::SkillObject;
 pub use prewrite::*;
 pub use principal::*;
 use std::fmt;
@@ -75,6 +76,9 @@ pub struct WriteGuardContext<'a> {
     pub business_operation_id: Option<&'a str>,
 }
 pub struct WriteGuardRequest<'a> {
+    /// The immutable, schema/integrity-admitted Skill from the current Runtime
+    /// context. This borrowed model is not itself a package/authentication proof.
+    pub skill: &'a SkillObject,
     pub intent: &'a WriteIntent,
     pub context: WriteGuardContext<'a>,
     pub current_contract: &'a ToolContract,
@@ -204,6 +208,27 @@ impl WriteGuard {
         }
         if !self.risk_policy.accepts(e.risk_level) {
             return reject("RISK_NOT_ACCEPTED");
+        }
+        if r.skill.semantic_hash.as_str() != i.skill_semantic_hash {
+            return reject("WRITE_SKILL_BINDING_MISMATCH");
+        }
+        let mut declarations = r
+            .skill
+            .required_tools
+            .iter()
+            .filter(|t| t.tool_ref == i.tool_ref);
+        let Some(declared) = declarations.next() else {
+            return reject("WRITE_DECLARED_CONTRACT_MISMATCH");
+        };
+        if declarations.next().is_some()
+            || declared.tool_id != i.tool_id
+            || declared.version != c.version()
+            || declared.contract_hash != current_hash
+            || declared.kind.capability() != ToolCapability::Write
+            || declared.kind.risk_level() != c.risk_level()
+            || declared.required_scope != c.required_scope()
+        {
+            return reject("WRITE_DECLARED_CONTRACT_MISMATCH");
         }
         Ok(None)
     }

@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "gate_id": "R8-EXIT",
+  "oracle_commit": "28a949ec96581cbdc52c8133527b23bb5b72ee0a",
+  "oracle_lock_sha256": "0fa65de90dd3fb1742e51754615cd14bfab371128e92338d985191648d1d37ce",
+  "approved_difference_ids": [
+    "R8-S01-SNAPSHOT-METADATA",
+    "R8-S03-CURRENT-PRINCIPAL-SCOPE",
+    "R8-S04-RESERVATION-DISPOSITION",
+    "R8-S05-DECLARED-CONTRACT-BINDING"
+  ],
+  "comparisons": [
+    "checks",
+    "validation",
+    "approval",
+    "policy_request",
+    "eligibility",
+    "phase",
+    "record_hash",
+    "checkpoint_flag",
+    "port_counts",
+    "event_order"
+  ],
+  "fixtures": [
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/idempotency-keys-oracle.tsv",
+      "sha256": "7c0b230f2b60ec108bb9ee870194616fdec1de0bcd57cfd73ce2c0abdc45d31f",
+      "rows": 26
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/idempotency-models-oracle.tsv",
+      "sha256": "45cda9900d785ddc1e70907e18c4a1abf76cba401e629705bf5dda5f7fe15662",
+      "rows": 99
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/idempotency-reservations-oracle.tsv",
+      "sha256": "19e061de604b47c3fd3728055ff143fde710c21484a00871eb9571ab996ff6cd",
+      "rows": 35
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/idempotency-retention-oracle.tsv",
+      "sha256": "dcbde22fe82d009838a102a9d76f2ef980e84839752fc9c454721c05c7d65078",
+      "rows": 26
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-admission-oracle.tsv",
+      "sha256": "3d538093747ca3a649bf8b66747251083fb7b1ab46e3e0055549ee2b281b373d",
+      "rows": 33
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-goldens-oracle.tsv",
+      "sha256": "91d490ad7fb907ccacbfe1e9905a64da08fcff487f7309298d4964504277cb1a",
+      "rows": 6
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-guard-decisions-oracle.tsv",
+      "sha256": "4ba64823f788d5f298f39f6ef05285a77c403e54114151b55ea4dbe1c5aa46d2",
+      "rows": 70
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-guard-exceptions-oracle.tsv",
+      "sha256": "12de0e435059a1d42dd6475d66e94e94a2517bce583917e2282173e043092a65",
+      "rows": 16
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-guard-models-oracle.tsv",
+      "sha256": "deb8ad15519f05d50968a1af912121b6bbb77e6e79f66b7b6e832c852eaa8116",
+      "rows": 161
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-guard-prewrite-oracle.tsv",
+      "sha256": "b23261d989660bad70906a9292a09ce039e46cd0186b524862fafa2042bb0c07",
+      "rows": 26
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-metadata-oracle.tsv",
+      "sha256": "75183d7135cf4deaf8d267efe8c0ba16672bab0be1acfa8a0576681625ef7383",
+      "rows": 10
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-models-oracle.tsv",
+      "sha256": "1d337dea2461491a25bde30d11940017e695ffd1d5be95c7d59bba28490b4351",
+      "rows": 19
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-negative-oracle.tsv",
+      "sha256": "ca2abc7ded3f97b8c4fb32c89f5b5d58d04f8960dfba67575c748ca9ad4173b7",
+      "rows": 25
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-requested-build-oracle.tsv",
+      "sha256": "455b2ac88e29f265d5c8185eac61a8e86c304fc9c59aab060633d973c6097934",
+      "rows": 29
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-requested-dispositions-oracle.tsv",
+      "sha256": "e7ae9696baf3a6dd9225da641137bb36ca070a57720f915c84eca6b721e3030a",
+      "rows": 5
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-requested-durability-oracle.tsv",
+      "sha256": "9c26d66417bdbb954fe7e51efff55793b0288dacf677416c303cffa303d1d787",
+      "rows": 17
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-requested-models-oracle.tsv",
+      "sha256": "1b458d2cb2d3e5a461b1be9e9a3bc93aaf10166d25657b4da601215f88a7d076",
+      "rows": 173
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-requested-records-oracle.tsv",
+      "sha256": "8c71c151d51f62fd1df4c1b1241733c690b173cbf051104b22c382440300403d",
+      "rows": 24
+    },
+    {
+      "path": "rust/crates/nsl-write/tests/fixtures/write-values-oracle.tsv",
+      "sha256": "8527b8e2311dd60d27a42cc1c5cf3813c5e9ad947e7a646e1cd1de9222d8a097",
+      "rows": 36
+    },
+    {
+      "path": "rust/crates/nsl-integration/tests/fixtures/write-gate-base.json",
+      "sha256": "7a7d8fbfba5f6ab071929dadd25fde56d813e4aa05f3d7233fdb7b1dd9aaef8a"
+    },
+    {
+      "path": "rust/crates/nsl-integration/tests/fixtures/write-gate.nso",
+      "sha256": "1fb3d2f97b8067b5e5d0abd92d6a413758b7fe8a472898b5cd4176ba98df3d83"
+    },
+    {
+      "path": "rust/crates/nsl-integration/tests/fixtures/write-gate-normal-oracle.tsv",
+      "sha256": "302f19aac23cb9f1400a3203bb7e82d31a407c7945addbff7f3be9461b02789c",
+      "rows": 54
+    },
+    {
+      "path": "rust/crates/nsl-integration/tests/fixtures/write-gate-exceptions-oracle.tsv",
+      "sha256": "401b0f13371c78e9b1e3990071a303fcfdb91ced58654d4a7515a978d62a5249",
+      "rows": 5
+    },
+    {
+      "path": "rust/crates/nsl-runtime/tests/fixtures/approval-gate-manifest.json",
+      "sha256": "6ff20c98450bb3270f22313c82cd22ba95eebdb0aa237ce85e3bc7104d9e12ad"
+    }
+  ]
+}

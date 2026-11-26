@@ -123,6 +123,14 @@ dependencies = [
 [[package]]
 name = "nsl-integration"
 version = "0.2.1"
+dependencies = [
+ "nsl-contract",
+ "nsl-core",
+ "nsl-ir",
+ "nsl-runtime",
+ "nsl-write",
+ "sha2",
+]
 
 [[package]]
 name = "nsl-ir"

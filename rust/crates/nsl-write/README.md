@@ -719,3 +719,36 @@ Pinned **nightly-2026-11-15** LLVM instrumentation uses the unchanged workspace
 modules cover all **401/401 executable lines and 52/52 instrumented branches**.
 No source/branch exclusions were added; embedded source-unit-test aggregation is
 unchanged. Rust and Python figures are independent measurements.
+
+## R8-S05 — Admitted Skill / declared contract binding
+
+`WriteGuardRequest` now requires `skill: &SkillObject`, borrowed from the current
+schema/integrity-admitted Runtime context. Both Guard entry points compare its
+semantic hash with the intent, require a unique matching `tool_ref` declaration,
+and compare declared tool/version/hash/capability/risk/scope against the current
+Tool Contract before contacting policy or opening later boundaries. New rejection
+reasons are `WRITE_SKILL_BINDING_MISMATCH` and
+`WRITE_DECLARED_CONTRACT_MISMATCH`. No optional/unbound Guard path is retained.
+
+The user approved this extra native check after the combined gate showed that
+both Oracle and the earlier Guard accepted self-consistent new contract evidence
+while retaining an old approved Skill/intent. A timeout change alone changes
+contract identity. Recompile/new-intent plus old approval is rejected; matching
+new approval is required. Original Oracle observations and all prior fixture
+bytes remain unchanged. Existing S03 isolated-predicate test helpers supply an
+explicit abstract unit declaration projection; the new full component gate uses
+strictly decoded genuine Oracle NSO and real `WriteIntentBuilder` output.
+
+Caller admission remains explicit: a raw caller-created Skill/cached semantic
+hash is not an authenticated artifact. The Runtime/NSO boundary verifies the model;
+Guard consumes that immutable admitted model and binds its declaration. Current
+principal/scope checks, proof/TTL, host port authority and durable storage contracts
+retain their existing responsibilities. No Runtime reverse dependency is added.
+
+The R8 exit gate is in `nsl-integration` with development-only workspace edges.
+It composes Runtime CHECK/approval components with all R8 stages and a test-only
+consumer of the private durable handoff. Its **54 ordinary scenarios** compare
+exact CHECK/validation/approval/decision, record hash, flags, counts and order;
+**5 original Oracle exception scenarios** explicitly retain approved native
+rejections/reuse routing. The inventory binds **19 previous R8 files**, four new
+artifacts and the R7 manifest. See [gate scope and traceability](../nsl-integration/README.md).

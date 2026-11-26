@@ -216,6 +216,7 @@ impl Principal {
     }
 }
 pub struct Setup {
+    pub skill: nsl_ir::SkillObject,
     pub data: ValueData,
     pub i: WriteIntent,
     pub c: ToolContract,
@@ -231,8 +232,27 @@ impl Setup {
     pub fn new(d: ValueData) -> Self {
         let ctx = field(&d, "context");
         let p = field(ctx, "principal");
+        // Abstract S03 unit projections isolate guard predicates. Full NSO
+        // schema/integrity admission is exercised by the R8-S05 integration gate.
+        let i = intent(field(&d, "intent"));
+        let c = contract(field(&d, "current_contract"), None);
+        let mut skill = crate::support::skill();
+        skill.semantic_hash = i.metadata().skill_semantic_hash.parse().unwrap();
+        skill.required_tools = vec![nsl_ir::RequiredTool {
+            tool_ref: i.metadata().tool_ref.clone(),
+            tool_id: i.metadata().tool_id.clone(),
+            version: c.version().into(),
+            kind: nsl_ir::RequiredToolKind::V1_1 {
+                capability: ToolCapability::Write,
+                risk_level: c.risk_level().unwrap_or(RiskLevel::R3),
+            },
+            contract_hash: c.contract_hash().unwrap(),
+            required_scope: c.required_scope().into(),
+            output_classification: c.output_classification(),
+        }];
         Self {
-            i: intent(field(&d, "intent")),
+            skill,
+            i,
             c: contract(field(&d, "current_contract"), None),
             ce: contract_evidence(field(&d, "contract_evidence")).unwrap(),
             p: if field(&d, "policy_decision") == &ValueData::Null {
@@ -269,6 +289,7 @@ impl Setup {
     }
     pub fn request(&self) -> WriteGuardRequest<'_> {
         WriteGuardRequest {
+            skill: &self.skill,
             intent: &self.i,
             context: self.context(),
             current_contract: &self.c,

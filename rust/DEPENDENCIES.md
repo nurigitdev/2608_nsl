@@ -205,3 +205,20 @@ Cargo.lock SHA-256 remains:
 ```text
 0c9622b402712dd5cdd5a79f2bca9b4ec8a7ae4f2e2804586f3acc1e14a8870a
 ```
+
+## R8-S05 integration gate development graph
+
+`nsl-integration` adds development-only paths to existing `nsl-core`, `nsl-ir`,
+`nsl-contract`, `nsl-runtime` and `nsl-write`, and reuses reviewed `sha2 =0.11.1`
+with default features disabled for corpus inventory checks. Its production
+library/dependency graph remains empty. WRITE still cannot reach Runtime,
+Compiler or Source. No external package, feature, version or checksum changes:
+comparison with the previous lock confirms all **17 external package records**
+are identical. Cargo.lock changes only the integration crate's declared list.
+Locked workspace check, all-target/all-feature Clippy, dependency guard and frozen
+build pass; the lock digest is stable before/after the build.
+
+```text
+Cargo.lock SHA-256
+5dfa85682c9050eb3eda9fb72946ab36134367e4af675b9575f36947e24e2314
+```
