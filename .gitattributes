@@ -81,3 +81,5 @@ rust/crates/nsl-write/tests/fixtures/write-requested-durability-oracle.tsv text 
 rust/crates/nsl-write/tests/fixtures/write-requested-dispositions-oracle.tsv text eol=lf
 rust/crates/nsl-integration/tests/fixtures/write-gate-normal-oracle.tsv text eol=lf
 rust/crates/nsl-integration/tests/fixtures/write-gate-exceptions-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/write-invocation-models-oracle.tsv text eol=lf
+rust/crates/nsl-write/tests/fixtures/write-invocation-invocation-oracle.tsv text eol=lf

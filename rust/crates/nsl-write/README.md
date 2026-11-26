@@ -752,3 +752,113 @@ exact CHECK/validation/approval/decision, record hash, flags, counts and order;
 **5 original Oracle exception scenarios** explicitly retain approved native
 rejections/reuse routing. The inventory binds **19 previous R8 files**, four new
 artifacts and the R7 manifest. See [gate scope and traceability](../nsl-integration/README.md).
+
+## R9-S01 — Commit-aware provider invocation
+
+`WriteExecutionPort` is an injected `Send + Sync` host adapter returning a boxed
+`Send` future. Its request is the immutable R8 `WriteCallRequest`; its response is
+`WriteExecutionOutcome::Committed`, `NotCommitted`, or `Unknown`. There is no
+Tokio type, timer, network/database implementation, background task or retry in
+this semantic API. The production dependency graph and lock are unchanged.
+
+`WriteInvocationCoordinator::invoke` **consumes `DurableWriteRequest`**. Only R8's
+matching current durable acknowledgement can construct that non-Clone handoff.
+Polling invocation makes one awaited provider call. Raw call requests, receipt
+objects and checkpoint booleans cannot be passed in its place. Guard/context or
+storage/receipt failures cannot reach the port, even with an old durable flag.
+The positive route verifies the same pipeline is connected. Provider requests
+preserve every argument envelope and all idempotency/payload/approval/intent/
+precondition/trace bindings from the Oracle.
+
+`WriteInvocation` retains the request, requested record/receipt, and observed
+outcome. It is not Clone and exposes no method to recover the consumed handoff.
+Its outcome is a **provider observation**, not a persisted final business result.
+As in the Oracle's split invocation/outcome boundaries, a well-formed foreign
+outcome identity remains observable here; exact request/outcome identity admission
+and durable outcome recording belong to **R9-S03**. COMMITTED must still pass
+later outcome persistence and post-WRITE verification (**R9-S04/S05**). This Slice
+does not mark those requirements complete or expose a final RuntimeResult.
+
+The result models preserve the Oracle's nine outcome identity fields, full result
+ValueEnvelope, business reference, optional transaction ID, UTC commit timestamp,
+reason/message and evidence references. The enum's COMMITTED case directly owns
+the Oracle `WriteCommitted.result` envelope. Constructors validate nonempty,
+credential-free identity/scalar/evidence text, SHA-256 hashes and the existing
+IdempotencyKey prefix/length rule. The owned result envelope moves without cloning
+or encoding its recursive value/type graph; inbound decoding/resource budgets
+remain the injected host adapter's responsibility. It adds no implicit result
+type coercion or classification change. Public Debug output omits business data.
+
+Trusted adapter errors map to UNKNOWN_COMMIT_STATE with the request's identity
+and trace references, no transaction ID, and the exact frozen generic message:
+`provider outcome is uncertain; reconciliation is required`.
+
+| Adapter termination | Outcome reason |
+| --- | --- |
+| Cancelled | `PROVIDER_CANCELLED` |
+| Timeout | `PROVIDER_TIMEOUT` |
+| ConnectionLost | `PROVIDER_CONNECTION_LOST` |
+| Exception | `PROVIDER_EXCEPTION` |
+| MalformedAcknowledgement | `PROVIDER_ACKNOWLEDGEMENT_MALFORMED` |
+
+An explicit provider NOT_COMMITTED result remains distinct from uncertainty.
+Protected transport exception details stay in the host adapter. Rust makes an
+arbitrary Python object acknowledgement unrepresentable as a successful response;
+the decoder reports MalformedAcknowledgement instead. No timeout is interpreted
+as rollback. Dropping an unpolled invocation calls no provider; polling a pending
+invocation twice calls it once. Dropping after polling retains no rollback claim,
+reusable permit or automatic retry. Full asynchronous after-mutation cancellation,
+timeout/connection fault injection and caller reconciliation semantics are the
+next **R9-S02** Slice, not a completion claim of these adapter-classifier tests.
+
+### R9-S01 evidence and traceability
+
+Frozen Oracle **28a949ec96581cbdc52c8133527b23bb5b72ee0a** generates **155 model
+boundary observations** and **9 invocation observations**. Models cover blank,
+Python control whitespace, credential-bearing text, Unicode, 0/1/63/64/65 hash/key
+lengths, optional metadata and 0/1/63/64/65 evidence collections. Evidence refs have
+no invented 64-item limit. Native typed fields exclude wrong Python runtime
+classes and naive/non-UTC datetime values at construction. Invocation compares
+exact outcome fields/state, the complete request, durable flag, requested record
+hash, call count and persistence-before-provider order. It includes all three
+explicit outcomes, foreign-identity observation and all five uncertainty reasons.
+
+Two independent unmodified `git archive` exports reproduced both files byte for
+byte and with identical SHA-256. Original Python/Oracle lock and all earlier R8
+fixtures remain unchanged; LF attributes preserve the new TSV bytes on Windows.
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_write_invocation.py "$oracle_dir" models
+.venv/bin/python -I -B rust/crates/nsl-write/tests/fixtures/generate_write_invocation.py "$oracle_dir" invocation
+```
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `write-invocation-models-oracle.tsv` | `0700804d0a5608c2e4d147f53e2d447a642bf95f4f8f6ff78a00dcb060b58ea6` |
+| `write-invocation-invocation-oracle.tsv` | `718d23c5d2798a202a9777938e2c2ebb34c73da1d157d5ba15ebb22d1ecb946f` |
+
+| Requirement | R9-S01 status / verification |
+| --- | --- |
+| `NSL-RUST-COMMIT-001/005` | IMPLEMENTED/VERIFIED for explicit provider outcome models and state distinctions. `R9-S01-MODELS`, `R9-S01-INVOCATION`. |
+| `NSL-RUST-WRITE-009/010` | VERIFIED durable handoff and unchanged complete provider request at invocation. `R9-S01-INVOCATION`, `R9-S01-FAIL-CLOSED`. |
+| `NSL-RUST-WRITE-011` | VERIFIED component boundary: provider coordinator requires the private R8 handoff. Complete controlled execution remains R9-S05. |
+| `NSL-RUST-TOOL-005/006`, `NSL-RUST-WRITE-012`, `NSL-RUST-ASYNC-002/004/005` | IMPLEMENTED/VERIFIED injected async port without infrastructure or reverse Runtime dependency. Architecture guard plus source inspection. |
+| `NSL-RUST-TOOL-009`, `NSL-RUST-COMMIT-002/003/004`, `NSL-RUST-ASYNC-003` | Classifier/no-retry component evidence only. Full asynchronous fault/reconciliation gate remains R9-S02. `R9-S01-INVOCATION`, `R9-S01-DROP`. |
+| `NSL-RUST-COMMIT-006`, durable outcome/verification and final business result | Remain later R9 Slices; COMMITTED observation cannot certify their completion. |
+
+Five new Rust tests certify this Slice. Rust **1.99.1** passes fmt, locked metadata
+and workspace check, architecture guard plus **8 tests**, all-target/all-feature
+Clippy with warnings denied, **282 Rust tests**, and frozen workspace build.
+Cargo.lock SHA-256 remains
+`5dfa85682c9050eb3eda9fb72946ab36134367e4af675b9575f36947e24e2314`.
+The mandatory Python quality command ran **exactly once locally for R9-S01**:
+**2,391 passed**, statement **99.28%**, branch **98.11%**, including existing
+traceability/readiness, architecture, performance and certification checks.
+Existing v0.1 CONDITIONAL findings are unchanged.
+
+Pinned **nightly-2026-11-15** LLVM instrumentation retains the existing workspace
+`crates/**/src/` executable-line aggregation for the Rust statement figure:
+**99.15%** (14,538/14,662); branch **98.47%** (2,066/2,098). New execution modules
+cover **142/142 executable lines and 2/2 instrumented branches**. No exclusions
+were added; embedded source-unit-test aggregation is unchanged. Rust and Python
+are independent measurements.

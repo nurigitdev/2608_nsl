@@ -222,3 +222,11 @@ build pass; the lock digest is stable before/after the build.
 Cargo.lock SHA-256
 5dfa85682c9050eb3eda9fb72946ab36134367e4af675b9575f36947e24e2314
 ```
+
+## R9-S01 commit-aware port
+
+The WRITE invocation trait/future and outcome models use only existing workspace
+types and `std`. They add no Runtime/Tokio reverse edge, external package, feature
+or version. Cargo.lock is byte-identical to R8-S05 and its SHA-256 remains
+`5dfa85682c9050eb3eda9fb72946ab36134367e4af675b9575f36947e24e2314`.
+Locked metadata/check, architecture guard, Clippy, tests and frozen build pass.

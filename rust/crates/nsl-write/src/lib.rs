@@ -1,11 +1,13 @@
 #![forbid(unsafe_code)]
 mod canonical;
+mod execution;
 mod guard;
 mod idempotency;
 mod intent;
 mod requested;
 mod snapshot;
 pub use canonical::{canonical_write_arguments, compute_payload_hash, compute_write_intent_hash};
+pub use execution::*;
 pub use guard::*;
 pub use idempotency::*;
 pub use intent::{

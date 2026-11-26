@@ -12,6 +12,7 @@ pub enum WriteExecutionErrorKind {
     Conflict,
     Snapshot(WriteIntentErrorKind),
     Evidence,
+    Outcome,
     Port,
     NotAllowed,
 }
@@ -25,6 +26,7 @@ impl WriteExecutionError {
     pub fn detail_code(&self) -> Option<&'static str> {
         match self.kind {
             WriteExecutionErrorKind::Evidence => Some("WRITE_REQUEST_EVIDENCE_INVALID"),
+            WriteExecutionErrorKind::Outcome => Some("WRITE_OUTCOME_EVIDENCE_INVALID"),
             WriteExecutionErrorKind::Conflict => Some("IDEMPOTENCY_CONFLICT"),
             _ => None,
         }
@@ -43,7 +45,7 @@ fn error(kind: WriteExecutionErrorKind, path: &str, message: &'static str) -> Wr
         message,
     }
 }
-fn required(s: &str, path: &str) -> Result<(), WriteExecutionError> {
+pub(crate) fn required(s: &str, path: &str) -> Result<(), WriteExecutionError> {
     crate::required(s, path).map_err(|_| {
         error(
             WriteExecutionErrorKind::Model,
@@ -52,7 +54,7 @@ fn required(s: &str, path: &str) -> Result<(), WriteExecutionError> {
         )
     })
 }
-fn hash(s: &str, path: &str) -> Result<PayloadHash, WriteExecutionError> {
+pub(crate) fn hash(s: &str, path: &str) -> Result<PayloadHash, WriteExecutionError> {
     required(s, path)?;
     crate::hash(s, path).map_err(|_| {
         error(
@@ -62,7 +64,7 @@ fn hash(s: &str, path: &str) -> Result<PayloadHash, WriteExecutionError> {
         )
     })
 }
-fn key(s: &str, path: &str) -> Result<nsl_core::IdempotencyKey, WriteExecutionError> {
+pub(crate) fn key(s: &str, path: &str) -> Result<nsl_core::IdempotencyKey, WriteExecutionError> {
     required(s, path)?;
     s.parse().map_err(|_| {
         error(
