@@ -1,0 +1,13 @@
+{
+  "slice": "R9-S05",
+  "oracle_commit": "28a949ec96581cbdc52c8133527b23bb5b72ee0a",
+  "profile": "actual frozen prefix/checkpoint/suspension/claim/resume/WRITE/verification/suffix; synthetic host ports; no business I/O",
+  "cases": 5,
+  "independent_archive_generations": 2,
+  "identical_bytes_and_sha256": true,
+  "approved_difference": "R9-S05-VERIFICATION-TERMINAL-STATUS",
+  "files": {
+    "controlled-runtime-base.json": "195a339fab932c45b54a1269cc19d4e2ffd045ac72fbba5c675b79c9dc7a1004",
+    "controlled-runtime-oracle.tsv": "ddefd34719b6759f099c7206f63f11489694663943d3272033bcd4f4a392d560"
+  }
+}

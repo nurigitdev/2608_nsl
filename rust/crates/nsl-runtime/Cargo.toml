@@ -9,6 +9,7 @@ publish.workspace = true
 nsl-core = { path = "../nsl-core" }
 nsl-ir = { path = "../nsl-ir" }
 nsl-contract = { path = "../nsl-contract" }
+nsl-write = { path = "../nsl-write" }
 num-bigint = { version = "=0.4.8", default-features = false, features = ["std"] }
 sha2 = { version = "=0.11.1", default-features = false }
 tokio = { version = "=1.54.1", default-features = false, features = ["rt", "sync", "time"] }

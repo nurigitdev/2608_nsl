@@ -1335,3 +1335,121 @@ Oracle commit/wheel lock, Python and Rust production implementations, prior
 fixtures, crate dependency directions, 17 external packages and Cargo.lock
 remain unchanged. Lockfile SHA-256 remains
 `628268a256b8144d2e6f26a9db9835b620896fed75eec7a3a92b05fae7dfe562`.
+
+## R9-S05 complete Controlled WRITE execution
+
+Runtime now owns the full injected-port orchestration:
+
+```text
+prepare_controlled: READ/CHECK prefix → checkpoint v1 → canonical intent
+ControlledPrefix.suspend: bound approval request → checkpoint v2 → publication
+ApprovalResumeCoordinator: current principal → atomic claim → proof → consume
+execute_approved: preflight/actual intent/TTL → current WRITE guard → reservation
+→ durable WRITE_REQUESTED → one provider invocation + cooperative cleanup
+→ receipt-validated durable outcome → original-contract READ verification
+→ WRITE result binding → suffix/EMIT → ExecutionResult
+```
+
+The existing READ-only and pre-WRITE-result APIs retain their behavior. Their
+regression suite passed before and after extracting context-preserving execution.
+Completed prefixes, including `NO_CHECK` and failing CHECK summaries, can be
+checkpointed/prepared as in the Oracle; the existing R7 suspension gate still
+requires complete `ALL_PASS` validation. Failed/unauthorized prefixes cannot
+publish an approval request. Repeated suspension retains R7's binding and retry
+rules, and resume retains atomic claim/consume and duplicate-resume rejection.
+
+`execute_approved` consumes the private, non-Clone R7 resume outcome. It retains
+its authenticated proof and recomputes the actual intent/payload, checks proof
+bindings and current expiry, then derives contract and execution evidence from
+the admitted Skill and live context. Current WRITE scope and policy, business
+preconditions, retention, requested/outcome receipts and original-contract
+verification all use the existing R8/R9 components. A caller-created commit or
+verification result cannot authorize suffix execution. REUSED/PENDING reservations
+return the original reservation/reference without new requested storage or a
+provider call. Automatic business WRITE retries are **zero** throughout.
+
+Host trust/replay/durability/idempotency readiness is explicit, defaults false,
+and does not substitute for current policy, proof, reservation or durable receipts.
+Ports remain host-owned; no HTTP, SQL, filesystem, worker or package-verification
+transport is introduced. R10 package authentication and R9-S06's full fault/exit
+certification remain later slices. Verification's privileged adapter must enforce
+actual READ capability, tenant authority and inbound budgets as documented in
+`nsl-write`.
+
+### Approved terminal-state difference
+
+The frozen Oracle stays at `28a949ec96581cbdc52c8133527b23bb5b72ee0a`.
+`R9-S05-VERIFICATION-TERMINAL-STATUS` records the user-approved native policy:
+
+| Actual commit | Verification | Runtime status | Suffix/EMIT |
+| --- | --- | --- | --- |
+| COMMITTED | VERIFIED | COMPLETED | Runs |
+| COMMITTED | NOT_REQUESTED in the original contract | COMPLETED | Runs |
+| COMMITTED | FAILED or UNKNOWN | RECONCILIATION_REQUIRED | Skipped |
+| NOT_COMMITTED | None | FAILED | Skipped |
+| UNKNOWN_COMMIT_STATE | None | RECONCILIATION_REQUIRED | Skipped |
+
+The Oracle's original COMPLETED/zero-output observations for FAILED/UNKNOWN
+verification remain intact in the fixture. Native results retain **COMMITTED**,
+provider/business identities, verification status/reason/evidence and null runtime
+error; completeness follows the existing result rule (PARTIAL when CHECKs exist
+and execution is not COMPLETED). This never infers rollback or retries a WRITE.
+Original-contract NOT_REQUESTED is distinct from missing required verification
+infrastructure, which returns a typed component failure.
+
+`ControlledExecution` keeps the actual context, persisted outcome, verification
+and typed failure accessible through read-only getters. Outcome-storage failures
+preserve the original invocation; verification cancellation or malformed WRITE
+values preserve a known COMMITTED outcome. Suffix resource failures retain the
+write/verification summaries. Recursive WRITE-result type validation precedes
+binding; existing strict suffix/EMIT type rules and screened Runtime diagnostics
+apply. Errors have screened paths and no invented diagnostic code or exposed
+payload/debug chain. Prior approved Core/R6/R7/R8/R9 differences remain unchanged.
+
+### Verification and traceability
+
+| Verification ID | Evidence |
+| --- | --- |
+| `R9-S05-FLOW-ORACLE` | `controlled_runtime.rs`: five actual frozen prefix/suspend/claim/resume/provider/verification/result scenarios. Prefix and suspension results, payload/intent hashes, requested/outcome records, final result and semantic view are compared; the two terminal-state exceptions are explicit. |
+| `R9-S05-BOUNDARIES` | Current scope/proof/expiry/policy/trust/replay/readiness rejection, REUSED/PENDING/conflict, requested/outcome storage and receipt failures, stale/missing/cancelled verification, malformed result values/types, suffix type errors and EMIT row budgets 0/1/2. Provider counts and ordering are asserted. |
+| `R9-S05-CANCELLATION` | Paused-clock timeout waits for cleanup; suppression returning COMMITTED is retained and cleanup uncertainty remains UNKNOWN_COMMIT_STATE. One provider call and zero retries. |
+| `R9-S05-PREFIX` | Missing business identity, unsupported/invalid/duplicate plans, failed/NO_CHECK/unauthorized prefixes, checkpoint/canonical/metadata zero budgets and request node/tool/approval/payload/intent mismatches; no premature publication. |
+| `R9-S05-DETERMINISM` | Both new fixtures generated twice from independent `git archive` snapshots of the fixed Oracle; all bytes and SHA-256 match. Inventory test binds both fingerprints, full Oracle SHA and approved-difference ID. |
+
+This adds Slice evidence for `NSL-RUST-GATE-001/002/003/004/005/006/007/008/009/010`
+within this Runtime orchestration scope. Frozen SRS statuses, fingerprints,
+Python Oracle/wheel lock and Python production behavior are unchanged. The
+synthetic host adapters demonstrate orchestration and evidence handling, not
+production authentication, business-system durability or real business I/O.
+
+```bash
+cd rust
+cargo test --locked -p nsl-runtime --test controlled_runtime
+```
+
+Fixture generation uses Python 3.12 with an independent fixed-commit archive:
+
+```bash
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_controlled_runtime.py "$oracle_dir" base
+.venv/bin/python -I -B rust/crates/nsl-runtime/tests/fixtures/generate_controlled_runtime.py "$oracle_dir" cases
+```
+
+| Fixture | SHA-256 |
+| --- | --- |
+| `controlled-runtime-base.json` | `195a339fab932c45b54a1269cc19d4e2ffd045ac72fbba5c675b79c9dc7a1004` |
+| `controlled-runtime-oracle.tsv` | `ddefd34719b6759f099c7206f63f11489694663943d3272033bcd4f4a392d560` |
+
+Local verification on pinned **Rust 1.99.1 / Edition 2024** passes metadata,
+locked workspace check, fmt, all-target/all-feature Clippy with warnings denied,
+**306 Rust tests**, the dependency guard and **8 guard tests**, and frozen
+workspace build. The mandatory Python quality command ran **once** for this
+Slice: **2,391 passed**, statement **99.28%**, branch **98.11%**; existing
+traceability/readiness/architecture/performance/certification checks pass and
+Python v0.1's existing CONDITIONAL findings are unchanged.
+
+Pinned `nightly-2026-11-15` LLVM instrumentation retains the same workspace
+`crates/**/src/` executable-line aggregation used for Rust statement reporting:
+**99.01%** (15,750/15,907), with branch **98.34%** (2,187/2,224). No source/branch
+exclusion or embedded-unit-test aggregation changes were made. Rust and Python
+coverage remain independent measurements. Cargo.lock SHA-256 is
+`294e934fa954969fc16f4b1d9d2d345dd0e671d5749de669b1db8d799ff0f1ce`.

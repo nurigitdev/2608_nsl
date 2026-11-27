@@ -91,3 +91,5 @@ rust/crates/nsl-write/tests/fixtures/verification-models-oracle.tsv text eol=lf
 rust/crates/nsl-write/tests/fixtures/verification-hashes-oracle.tsv text eol=lf
 rust/crates/nsl-write/tests/fixtures/verification-normal-oracle.tsv text eol=lf
 rust/crates/nsl-write/tests/fixtures/verification-exceptions-oracle.tsv text eol=lf
+
+rust/crates/nsl-runtime/tests/fixtures/controlled-runtime-oracle.tsv text eol=lf

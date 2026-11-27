@@ -1,4 +1,6 @@
 mod admission;
+mod controlled;
+pub use controlled::*;
 mod failure;
 mod privacy;
 pub use failure::*;
@@ -33,8 +35,8 @@ pub trait ProtectedRuntimeDebugSink: Send + Sync {
     fn record(&self, record: ProtectedRuntimeDebugRecord) -> Result<(), RuntimeDebugSinkError>;
 }
 
-/// READ-only/pre-WRITE orchestration, with no WRITE, checkpoint, snapshot or
-/// audit transport. Wire callers must use the existing strict NSO decoder.
+/// Runtime orchestration with injected READ and controlled WRITE services.
+/// Wire callers must use the existing strict NSO decoder. No transport is owned here.
 pub struct RuntimeEngine<'a> {
     catalog: &'a ToolContractCatalog,
     tools: &'a dyn ToolExecutionPort,
@@ -103,6 +105,17 @@ impl<'a> RuntimeEngine<'a> {
         clock: &C,
         prefix_end: Option<usize>,
     ) -> Result<ExecutionResult, RuntimeTerminalError> {
+        self.run_with_context(skill, request, clock, prefix_end)
+            .await
+            .map(|(result, _)| result)
+    }
+    async fn run_with_context<'c, C: RuntimeClock + Send + Sync>(
+        &self,
+        skill: Arc<SkillObject>,
+        request: ExecutionRequest,
+        clock: &'c C,
+        prefix_end: Option<usize>,
+    ) -> Result<(ExecutionResult, Option<ExecutionContext<&'c C>>), RuntimeTerminalError> {
         let authorize = request
             .validate_for_execution(self.options.environment == RuntimeEnvironment::Production)
             .map_err(|e| e.to_string())
@@ -117,30 +130,33 @@ impl<'a> RuntimeEngine<'a> {
                     .map_err(|e| e.message)
             });
         if let Err(message) = authorize {
-            return Ok(ExecutionResult {
-                execution_id: request.identity().execution_id().into(),
-                skill_id: skill.skill_id.clone(),
-                skill_version: skill.skill_version.clone(),
-                semantic_hash: skill.semantic_hash.to_string(),
-                status: ExecutionStatus::Failed,
-                completeness: Completeness::Unknown,
-                checks: vec![],
-                outputs: vec![],
-                resources: ResourceUsage::default(),
-                error: Some(RuntimeErrorInfo {
-                    code: "NSL-E5201".into(),
-                    category: "AUTHORIZATION".into(),
-                    message: nsl_core::redact_text(&message),
-                    node_id: None,
-                    detail_code: None,
-                }),
-                validation: None,
-                pre_write_eligibility: None,
-                approval: None,
-                write: None,
-                verification: None,
-                suspension: None,
-            });
+            return Ok((
+                ExecutionResult {
+                    execution_id: request.identity().execution_id().into(),
+                    skill_id: skill.skill_id.clone(),
+                    skill_version: skill.skill_version.clone(),
+                    semantic_hash: skill.semantic_hash.to_string(),
+                    status: ExecutionStatus::Failed,
+                    completeness: Completeness::Unknown,
+                    checks: vec![],
+                    outputs: vec![],
+                    resources: ResourceUsage::default(),
+                    error: Some(RuntimeErrorInfo {
+                        code: "NSL-E5201".into(),
+                        category: "AUTHORIZATION".into(),
+                        message: nsl_core::redact_text(&message),
+                        node_id: None,
+                        detail_code: None,
+                    }),
+                    validation: None,
+                    pre_write_eligibility: None,
+                    approval: None,
+                    write: None,
+                    verification: None,
+                    suspension: None,
+                },
+                None,
+            ));
         }
         let mut ctx = ExecutionContext::with_clock(skill.clone(), request, clock);
         let work: Result<(), BoundaryError> = async {
@@ -221,7 +237,7 @@ impl<'a> RuntimeEngine<'a> {
             } else {
                 None
             };
-        Ok(ExecutionResult {
+        let result = ExecutionResult {
             execution_id: ctx.identity().execution_id().into(),
             skill_id: skill.skill_id.clone(),
             skill_version: skill.skill_version.clone(),
@@ -238,7 +254,8 @@ impl<'a> RuntimeEngine<'a> {
             write: None,
             verification: None,
             suspension: None,
-        })
+        };
+        Ok((result, Some(ctx)))
     }
 }
 

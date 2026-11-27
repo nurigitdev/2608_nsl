@@ -91,6 +91,9 @@ pub struct ResourceGuard<C: RuntimeClock = SystemRuntimeClock> {
     started_ns: BigInt,
 }
 impl<C: RuntimeClock> ResourceGuard<C> {
+    pub(crate) fn clock(&self) -> &C {
+        &self.clock
+    }
     pub fn new(limits: ResourceLimits, clock: C) -> Self {
         Self::with_usage(limits, ResourceUsage::default(), clock)
     }

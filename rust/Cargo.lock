@@ -155,6 +155,7 @@ dependencies = [
  "nsl-contract",
  "nsl-core",
  "nsl-ir",
+ "nsl-write",
  "num-bigint",
  "sha2",
  "tokio",

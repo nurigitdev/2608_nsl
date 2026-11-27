@@ -299,6 +299,7 @@ pub struct ApprovalResumeRequest<'a> {
     pub claim_id: &'a str,
 }
 pub struct ApprovalResumeOutcome<C: RuntimeClock> {
+    evidence: ApprovalEvidence,
     context: ExecutionContext<C>,
     checkpoint: ExecutionCheckpoint,
     claim_id: String,
@@ -314,6 +315,21 @@ impl<C: RuntimeClock> fmt::Debug for ApprovalResumeOutcome<C> {
     }
 }
 impl<C: RuntimeClock> ApprovalResumeOutcome<C> {
+    pub(crate) fn into_controlled_parts(
+        self,
+    ) -> (
+        ExecutionContext<C>,
+        ApprovalValidationResult,
+        ApprovalEvidence,
+        bool,
+    ) {
+        (
+            self.context,
+            self.validation,
+            self.evidence,
+            self.claim_consumed,
+        )
+    }
     pub fn context(&self) -> &ExecutionContext<C> {
         &self.context
     }
@@ -484,6 +500,7 @@ impl ApprovalResumeCoordinator {
                 })?;
         }
         Ok(ApprovalResumeOutcome {
+            evidence: t.approval_evidence().clone(),
             context,
             checkpoint,
             claim_id: input.claim_id.into(),

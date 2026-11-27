@@ -269,3 +269,17 @@ feature, version or checksum changes. Cargo.lock is byte-identical to R9-S03:
 The verifier borrows R9-S03's durable capability and a compatible Runtime-owned
 map projection, preserving the forbidden WRITE-to-Runtime/Compiler/Source edges.
 Locked check, architecture guard and frozen build verify the unchanged graph.
+
+## R9-S05 Runtime controlled execution
+
+Adds the planned production **`nsl-runtime → nsl-write`** workspace edge so
+Runtime can orchestrate existing WRITE ports and immutable evidence capabilities.
+WRITE still cannot depend on Runtime, Compiler or Source. No new transport,
+external package, feature, version or checksum is introduced; all **17 external
+package records** are byte-for-byte equivalent to R9-S04. Cargo.lock changes
+only by adding `nsl-write` to the Runtime dependency list. Locked metadata/check,
+architecture guard and frozen build verify the graph, with before/after lock hash:
+
+```text
+294e934fa954969fc16f4b1d9d2d345dd0e671d5749de669b1db8d799ff0f1ce
+```

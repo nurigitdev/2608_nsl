@@ -171,6 +171,9 @@ impl<C: RuntimeClock> ExecutionContext<C> {
             checkpoint: CheckpointState::default(),
         }
     }
+    pub(crate) fn skill_arc(&self) -> Arc<SkillObject> {
+        self.skill.clone()
+    }
     pub fn skill(&self) -> &SkillObject {
         &self.skill
     }
