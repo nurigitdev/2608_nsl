@@ -1415,6 +1415,7 @@ payload/debug chain. Prior approved Core/R6/R7/R8/R9 differences remain unchange
 | `R9-S05-CANCELLATION` | Paused-clock timeout waits for cleanup; suppression returning COMMITTED is retained and cleanup uncertainty remains UNKNOWN_COMMIT_STATE. One provider call and zero retries. |
 | `R9-S05-PREFIX` | Missing business identity, unsupported/invalid/duplicate plans, failed/NO_CHECK/unauthorized prefixes, checkpoint/canonical/metadata zero budgets and request node/tool/approval/payload/intent mismatches; no premature publication. |
 | `R9-S05-DETERMINISM` | Both new fixtures generated twice from independent `git archive` snapshots of the fixed Oracle; all bytes and SHA-256 match. Inventory test binds both fingerprints, full Oracle SHA and approved-difference ID. |
+| `R9-S05-STACK-BOUNDARY` | `Box::pin` at ordinary execution, controlled prefix and approved orchestration boundaries. All 106 Runtime regression tests pass before/after the refactor, including the unchanged 256 KiB / 16-level worst-case test, cancellation and Oracle suites. |
 
 This adds Slice evidence for `NSL-RUST-GATE-001/002/003/004/005/006/007/008/009/010`
 within this Runtime orchestration scope. Frozen SRS statuses, fingerprints,
@@ -1442,14 +1443,31 @@ Fixture generation uses Python 3.12 with an independent fixed-commit archive:
 Local verification on pinned **Rust 1.99.1 / Edition 2024** passes metadata,
 locked workspace check, fmt, all-target/all-feature Clippy with warnings denied,
 **306 Rust tests**, the dependency guard and **8 guard tests**, and frozen
-workspace build. The mandatory Python quality command ran **once** for this
-Slice: **2,391 passed**, statement **99.28%**, branch **98.11%**; existing
+workspace build. The mandatory Python quality command ran once for the initial
+implementation and once more for the user-authorized stack correction. Both
+local runs report **2,391 passed**, statement **99.28%**, branch **98.11%**; existing
 traceability/readiness/architecture/performance/certification checks pass and
 Python v0.1's existing CONDITIONAL findings are unchanged.
 
 Pinned `nightly-2026-11-15` LLVM instrumentation retains the same workspace
 `crates/**/src/` executable-line aggregation used for Rust statement reporting:
-**99.01%** (15,750/15,907), with branch **98.34%** (2,187/2,224). No source/branch
+**99.01%** (15,748/15,905), with branch **98.34%** (2,187/2,224). No source/branch
 exclusion or embedded-unit-test aggregation changes were made. Rust and Python
 coverage remain independent measurements. Cargo.lock SHA-256 is
 `294e934fa954969fc16f4b1d9d2d345dd0e671d5749de669b1db8d799ff0f1ce`.
+
+### Execution future stack boundary
+
+The initial Windows CI found a stack overflow in the existing
+`full_engine_worst_case_is_bounded_and_contexts_are_independent` test.
+Context-preserving execution added an inline async layer to the Runtime driver.
+Runtime now pins that context-owning future on the heap at both callers, and
+also pins approved WRITE orchestration at its entry. Callers still await the
+original futures directly, preserving lifetime, cleanup, evidence ownership and
+error propagation. No spawned task, executor change, business retry or nested
+per-statement allocation is introduced by this correction.
+
+The original **256 KiB** test stack, **16** maximum foreach depth, resource
+budgets, immutable Oracle pin and all golden observations remain unchanged.
+The fix uses `std::Box` only; manifests, dependency graph, 17 external packages
+and Cargo.lock are unchanged from the initial R9-S05 implementation.

@@ -105,7 +105,9 @@ impl<'a> RuntimeEngine<'a> {
         clock: &C,
         prefix_end: Option<usize>,
     ) -> Result<ExecutionResult, RuntimeTerminalError> {
-        self.run_with_context(skill, request, clock, prefix_end)
+        // Keep the context-owning execution future off the caller's stack.
+        // The 256 KiB worst-case execution budget must also hold on Windows.
+        Box::pin(self.run_with_context(skill, request, clock, prefix_end))
             .await
             .map(|(result, _)| result)
     }

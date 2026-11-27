@@ -67,9 +67,11 @@ impl RuntimeEngine<'_> {
         if request.identity().business_operation_id().is_none() {
             return Err(binding("$.request.business_operation_id"));
         }
-        let (result, mut context) = self
-            .run_with_context(skill.clone(), request, clock, Some(plan.approval))
-            .await?;
+        // Use the same heap boundary as ordinary execution without moving the
+        // clock, context or cancellation ownership into a spawned task.
+        let (result, mut context) =
+            Box::pin(self.run_with_context(skill.clone(), request, clock, Some(plan.approval)))
+                .await?;
         let ready = result.status == ExecutionStatus::Completed;
         let (checkpoint, intent) = if ready {
             let ctx = context.as_mut().expect("completed prefix context");

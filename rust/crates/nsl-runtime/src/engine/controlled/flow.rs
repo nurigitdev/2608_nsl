@@ -17,16 +17,17 @@ impl RuntimeEngine<'_> {
             verification: None,
             failure: None,
         };
-        if let Err(error) = self
-            .controlled_work(
-                &mut execution,
-                validation,
-                &proof,
-                consumed,
-                services,
-                options,
-            )
-            .await
+        // Pin orchestration on the heap while retaining the original awaited
+        // cleanup and evidence ownership; no task or retry is introduced.
+        if let Err(error) = Box::pin(self.controlled_work(
+            &mut execution,
+            validation,
+            &proof,
+            consumed,
+            services,
+            options,
+        ))
+        .await
         {
             execution.failure = Some(error);
         }
